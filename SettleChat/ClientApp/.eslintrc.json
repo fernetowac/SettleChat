@@ -1,7 +1,12 @@
 {
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-        "ecmaVersion": 6,
-        "sourceType": "module"
-    }
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-var": "error"
+    
+    //"@typescript-eslint/no-function-return-type": 0 // Here I manually override this specific rule
+  }
 }
