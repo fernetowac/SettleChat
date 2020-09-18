@@ -1,25 +1,23 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
-import * as MessagesStore from '../store/Messages';
-import Messages from './Messages';
-import { ApplicationState } from '../store/index';
+import * as ConversationStore from "../store/Conversation";
 
-type MessageInputProps = typeof MessagesStore.actionCreators & MessagesStore.Message;
+type MessageInputProps = typeof ConversationStore.actionCreators & ConversationStore.Message;
 
-function MessageInput(data: MessageInputProps) {
-    console.log('data:' + JSON.stringify(data))
-    const [inputMessage, setInputMessage] = React.useState({ id: '', text: 'fero test init useState', userFrom: '' });
-    console.log('inputMessage:' + JSON.stringify(inputMessage))
+function MessageInput(props: MessageInputProps) {
+    console.log('data:' + JSON.stringify(props));
+    const [inputMessage, setInputMessage] = React.useState('');
+    console.log('inputMessage:' + JSON.stringify(inputMessage));
 
     const handleSubmit = (evt: React.SyntheticEvent<EventTarget>) => {
         evt.preventDefault();
-        data.addMessage(inputMessage);
-        setInputMessage({ id: '', text: '', userFrom: '' })
+        props.addMessage(inputMessage);
+        setInputMessage('');
     };
 
     const inputMessageOnChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
         e.preventDefault();
-        setInputMessage({ id: '1000', text: e.target.value, userFrom: 'Johny' });
+        setInputMessage(e.target.value);
     }
 
     return (
@@ -27,7 +25,7 @@ function MessageInput(data: MessageInputProps) {
             <form onSubmit={handleSubmit}>
                 <label>
                     Message:
-                    <input type="text" value={inputMessage.text} onChange={inputMessageOnChange} />
+                    <input type="text" value={inputMessage} onChange={inputMessageOnChange} />
                 </label>
                 <input type="submit" value="Submit" />
             </form>
@@ -36,9 +34,6 @@ function MessageInput(data: MessageInputProps) {
 }
 
 export default connect(
-    (state: ApplicationState) => {
-        console.log("MessageInput.tsx connect state:" + JSON.stringify(state))
-        return state.messages && state.messages.inputMessage ? state.messages.inputMessage : { id: '2000', text: 'dummy message input', userFrom: 'dummy user' } as MessagesStore.Message
-    },
-    MessagesStore.actionCreators
+    null,
+    ConversationStore.actionCreators
 )(MessageInput as any);

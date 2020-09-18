@@ -3,11 +3,15 @@ import thunk from 'redux-thunk';
 import { connectRouter, routerMiddleware } from 'connected-react-router';
 import { History } from 'history';
 import { ApplicationState, reducers } from './';
+import { createSignalRMiddleware } from '../middlewares/SignalRMiddleware';
+import { createIdentityMiddleware as createOIDCMiddleware } from '../middlewares/IdentityMiddleware';
 
-export default function configureStore(history: History, initialState?: ApplicationState) {
+export default function configureStore(history: History, signalRHubUrl: string, initialState: ApplicationState) {
     const middleware = [
         thunk,
-        routerMiddleware(history)
+        routerMiddleware(history),
+        createSignalRMiddleware(signalRHubUrl),
+        createOIDCMiddleware()
     ];
 
     const rootReducer = combineReducers({

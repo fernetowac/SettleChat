@@ -1,5 +1,6 @@
 import { Action, Reducer } from 'redux';
 import { AppThunkAction } from './index';
+import authService from '../components/api-authorization/AuthorizeService'
 
 // -----------------
 // STATE - This defines the type of data maintained in the Redux store.
@@ -8,6 +9,12 @@ export interface WeatherForecastsState {
     isLoading: boolean;
     startDateIndex?: number;
     forecasts: WeatherForecast[];
+}
+
+export const InitialWeatherForecastsState: WeatherForecastsState = {
+    isLoading: false,
+    startDateIndex: 0,
+    forecasts: []
 }
 
 export interface WeatherForecast {
@@ -41,17 +48,29 @@ type KnownAction = RequestWeatherForecastsAction | ReceiveWeatherForecastsAction
 // They don't directly mutate state, but they can have external side-effects (such as loading data).
 
 export const actionCreators = {
-    requestWeatherForecasts: (startDateIndex: number): AppThunkAction<KnownAction> => (dispatch, getState) => {
+    requestWeatherForecasts: (startDateIndex: number): AppThunkAction<KnownAction, void> => (dispatch, getState) => {
         // Only load data if it's something we don't already have (and are not already loading)
         const appState = getState();
         if (appState && appState.weatherForecasts && startDateIndex !== appState.weatherForecasts.startDateIndex) {
-            fetch('weatherforecast', { cache: "no-cache" } as RequestInit)
-                .then(response => response.json() as Promise<WeatherForecast[]>)
-                .then(data => {
-                    dispatch({ type: 'RECEIVE_WEATHER_FORECASTS', startDateIndex: startDateIndex, forecasts: data });
-                });
-
             dispatch({ type: 'REQUEST_WEATHER_FORECASTS', startDateIndex: startDateIndex });
+            return authService.getAccessToken()
+                .then(token => {
+                    return fetch('weatherforecast',
+                        {
+                            cache: "no-cache",
+                            headers: !token ? {} : { 'Authorization': `Bearer ${token}` }
+                        } as RequestInit)
+                        .then(response => response.json() as Promise<WeatherForecast[]>)
+                        .then(data => {
+                            dispatch({
+                                type: 'RECEIVE_WEATHER_FORECASTS',
+                                startDateIndex: startDateIndex,
+                                forecasts: data
+                            });
+                        });
+                });
+        } else {
+            return Promise.resolve();
         }
     }
 };

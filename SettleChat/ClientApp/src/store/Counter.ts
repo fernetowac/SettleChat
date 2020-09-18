@@ -7,6 +7,10 @@ export interface CounterState {
     count: number;
 }
 
+export const InitialCounterState: CounterState = {
+    count: 0
+}
+
 // -----------------
 // ACTIONS - These are serializable (hence replayable) descriptions of state transitions.
 // They do not themselves have any side-effects; they just describe something that is going to happen.

@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30309.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SettleChat", "SettleChat\SettleChat.csproj", "{C3CE8854-DEA8-470D-945A-98DEF5B50B61}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SettleChat", "SettleChat\SettleChat.csproj", "{C3CE8854-DEA8-470D-945A-98DEF5B50B61}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SettleChat.Persistence", "SettleChat.Persistence\SettleChat.Persistence.csproj", "{D248CDFC-273D-4AEE-8488-8869C962A04E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SettleChat.Migrations", "SettleChat.Migrations\SettleChat.Migrations.csproj", "{EC14BB14-D6ED-452E-B47C-AF37BBAB938A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{C3CE8854-DEA8-470D-945A-98DEF5B50B61}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3CE8854-DEA8-470D-945A-98DEF5B50B61}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3CE8854-DEA8-470D-945A-98DEF5B50B61}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D248CDFC-273D-4AEE-8488-8869C962A04E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D248CDFC-273D-4AEE-8488-8869C962A04E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D248CDFC-273D-4AEE-8488-8869C962A04E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D248CDFC-273D-4AEE-8488-8869C962A04E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC14BB14-D6ED-452E-B47C-AF37BBAB938A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC14BB14-D6ED-452E-B47C-AF37BBAB938A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC14BB14-D6ED-452E-B47C-AF37BBAB938A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC14BB14-D6ED-452E-B47C-AF37BBAB938A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

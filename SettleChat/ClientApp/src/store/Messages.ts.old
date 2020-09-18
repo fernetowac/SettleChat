@@ -9,7 +9,7 @@ export interface MessagesState {
 export interface Message {
     id: string;
     text: string;
-    userFrom: string;
+    userName: string;
 }
 
 export interface AddAction {
@@ -38,74 +38,59 @@ type MessageAddPipelineAction = AddAction | AddedAction
 //}
 
 export const actionCreators = {
-    requestMessages: (): AppThunkAction<KnownAction> => (dispatch, getState) => {
+    requestMessages: (): AppThunkAction<KnownAction, void> => (dispatch, getState) => {
         console.log('MessagesStore.actionCreators.requestMessages called')
         // Only load data if it's something we don't already have (and are not already loading)
         const appState = getState();
         if (appState && appState.messages) {
-            fetch(`message`, { cache: "no-cache" })
+            dispatch({ type: 'MESSAGE_REQUEST_LIST' });
+
+            return fetch(`message`, { cache: "no-cache" })
                 .then(response => response.json() as Promise<Message[]>)
                 .then(data => {
                     dispatch({ type: 'MESSAGE_RECEIVE_LIST', messages: data });
                 });
-
-            dispatch({ type: 'MESSAGE_REQUEST_LIST' });
+        } else {
+            return Promise.resolve();
         }
     },
-    addMessage: (messageInput: Message): AppThunkAction<MessageAddPipelineAction> => (dispatch, getState) => {
+    addMessage: (messageInput: Message): AppThunkAction<MessageAddPipelineAction, void> => (dispatch, getState) => {
         console.log('MessagesStore.actionCreators.addMessage called');
         console.log('messageInput1:' + JSON.stringify(messageInput));
         const appState = getState();
         if (appState && appState.messages) {
-            fetch('message', { method: 'POST', body: JSON.stringify(messageInput) })
-                .then(data => { console.log(data); })
-                .then(data => {
-                    dispatch({ type: 'MESSAGE_ADDED' })
-                })
             console.log('messageInput2:' + JSON.stringify(messageInput));
             dispatch({ type: 'MESSAGE_ADD', newMessage: messageInput });
+            return fetch('message', { method: 'POST', body: JSON.stringify(messageInput) })
+                .then(data => data.json() as Promise<Message>)
+                .then(data => {
+                    dispatch({ type: 'MESSAGE_ADDED' });
+                });
+        } else {
+            return Promise.resolve();
         }
     }
 };
 
-export const reducer: Reducer<MessagesState> = (state: MessagesState | undefined, incomingAction: Action): MessagesState => {
+export const reducer: Reducer<Message[]> = (state: Message[] | undefined, incomingAction: Action): Message[] => {
     if (!state) {
-        state = {
-            messages: [], inputMessage: <Message>{}
-        }
+        state = [];
     }
 
     const action = incomingAction as KnownAction;
 
     switch (action.type) {
         case 'MESSAGE_ADD':
-            return {
-                messages: [
-                    ...state.messages,
-                    {
-                        ...action.newMessage
-                    }],
-                inputMessage: { ...action.newMessage }
-            };
+            return [
+                ...state,
+                action.newMessage
+            ];
         case 'MESSAGE_ADDED':
-            return {
-                messages: [...state.messages],
-                inputMessage: <Message>{}
-            };
+            return [...state];
         case 'MESSAGE_RECEIVE_LIST':
-            return {
-                messages: [...action.messages],
-                inputMessage: {
-                    ...state.inputMessage
-                }
-            };
+            return [...action.messages];
         case 'MESSAGE_REQUEST_LIST':
-            return {
-                messages: [...state.messages],
-                inputMessage: {
-                    ...state.inputMessage
-                }
-            };
+            return [...state];
         default:
             return state;
     };

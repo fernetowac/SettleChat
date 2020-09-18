@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Migrations\20200818161749_InitialCreate1.cs" />
+    <Compile Remove="Migrations\20200818161749_InitialCreate1.Designer.cs" />
+    <Compile Remove="Migrations\20200829214116_IdentityServer.cs" />
+    <Compile Remove="Migrations\20200829214116_IdentityServer.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SettleChat.Persistence\SettleChat.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

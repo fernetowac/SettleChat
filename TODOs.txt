@@ -1,0 +1,59 @@
+Settle
+
+-home screen content
+	- new conversation button -> start new conversation route
+	- list userConversations stored in cookie										GET /api/user/{userId}/conversations
+- start new conversation content	
+	- optional title of conversation
+	- mandatory user name
+	- optional email
+	- checkbox "remember me on this PC" to store user conversation to cookie
+	- checkbox for push notifications
+	- checkbox for public group (anyone can join with group link)
+	- captcha?
+	- button start conversation														POST /api/conversations
+- conversation content																GET /api/conversations/{conversationId}
+	- if user loggedIn or hasUrlToken(either remembered on pc or not):					GET /api/user/{userId}/conversations/{conversationId}/
+		true
+			- editable username
+			- editable email (must be validated)
+			- checkbox checked "remember me on this PC" to store user conversation to cookie
+			- conversation title editable by creator
+			- checkbox for push notifications
+			- button invite user -> nested invite user route
+			- if public conversation
+				- display conversation link
+			- nested invite user content
+				- mandatory name
+				- either generated userConversation link with urlToken
+				- or optional email and send email button
+				- checkbox can user invite other people
+			- list of users (online, away, offline)								GET /api/conversations/{conversationId}/user
+			- scrollable list of messages										GET /api/user/{userId}/conversations/{conversationId}/messages?take=100&skip=50&sort=desc
+			- new message														POST /api/user/{userId}/conversations/{conversationId}/messages
+			- status (e.g. "Jozko is writing..")
+			- if hasUrlToken and !LoggedIn
+				- panel "Secure your conversation.."
+					- possibility to logIn
+						- by facebook openId
+						- by google openId
+						- by entering credentials
+					- registration
+						- by facebook openId
+						- by google openId
+						- by entering credentials
+			- if hasUrlToken and loggedIn
+				- panel "Secure your conversation by joining to logIn"
+		false																	GET /api/conversations/{conversationId}/
+			- display(readonly) conversation title
+			- if public conversation
+				- input mandatory username
+				- input optional email
+				- checkbox prechecked "remember me on this PC" to store user conversation to cookie
+				- button join conversation										POST /api/conversations/{conversationId}/user
+
+DB:
+	- table UserSecret must be changed to Logins
+		- user id
+		- type: googleOpenId/facebookOpenId/credentials/urlToken
+		- urlToken?
