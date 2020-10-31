@@ -3,29 +3,37 @@ import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
 
-// At runtime, Redux will merge together...
+type ConversationDetailsState = {
+    conversation: ConversationStore.ConversationDetail | null,
+    isLoading: boolean,
+};
 type ConversationDetailProps =
-    ConversationStore.ConversationDetail // ... state we've requested from the Redux store
-    & typeof ConversationStore.actionCreators; // ... plus action creators we've requested
+    ConversationDetailsState & {
+        actions: typeof ConversationStore.actionCreators
+    };
 
 const ConversationDetail = (props: ConversationDetailProps) => {
-
     return <React.Fragment>
-        <h1>Conversation {props.title}</h1>
+        <h1>Conversation {props.conversation && props.conversation.title}</h1>
         {props.isLoading &&
             <p>loading..</p>
         }
     </React.Fragment>;
 }
 
+const mapStateToProps = (state: ApplicationState): ConversationDetailsState => {
+    if (!state || !state.conversation) {
+        return {
+            conversation: null,
+            isLoading: false
+        };
+    }
+    return {
+        conversation: state && state.conversation ? state.conversation.conversation : null,
+        isLoading: state && state.conversation.ui.isConversationLoading
+    }
+};
+
 export default connect(
-    (state: ApplicationState): ConversationStore.ConversationDetail =>
-        state === undefined || state.conversation === undefined || state.conversation.conversation === undefined ?
-            {
-                id: undefined,
-                title: 'unknown',
-                isLoading: false
-            } as ConversationStore.ConversationDetail :
-            state.conversation.conversation,
-    ConversationStore.actionCreators
+    mapStateToProps
 )(ConversationDetail as any);

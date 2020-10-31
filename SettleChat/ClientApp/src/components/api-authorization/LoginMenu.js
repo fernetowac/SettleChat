@@ -33,19 +33,22 @@ export class LoginMenu extends Component {
 
     render() {
         const { isAuthenticated, userName } = this.state;
+        const registerPath = `${ApplicationPaths.Register}`;
         if (!isAuthenticated) {
-            const registerPath = `${ApplicationPaths.Register}`;
             const loginPath = `${ApplicationPaths.Login}`;
             return this.anonymousView(registerPath, loginPath);
         } else {
             const profilePath = `${ApplicationPaths.Profile}`;
             const logoutPath = { pathname: `${ApplicationPaths.LogOut}`, state: { local: true } };
-            return this.authenticatedView(userName, profilePath, logoutPath);
+            return this.authenticatedView(userName, profilePath, logoutPath, registerPath);
         }
     }
 
-    authenticatedView(userName, profilePath, logoutPath) {
+    authenticatedView(userName, profilePath, logoutPath, registerPath) {
         return (<Fragment>
+            <NavItem>
+            <NavLink tag={Link} className="text-dark" to={registerPath}>Register</NavLink>/*TODO: hide when secured user*/
+            </NavItem>
             <NavItem>
                 <NavLink tag={Link} className="text-dark" to={profilePath}>Hello {userName}</NavLink>
             </NavItem>

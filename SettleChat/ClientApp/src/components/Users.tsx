@@ -50,8 +50,8 @@ const Users = (props: UsersProps) => {
 export default connect(
     (state: ApplicationState): UsersState => {
         return {
-            conversationId: state.conversation === undefined ? undefined : state.conversation.conversation.id,
-            users: ((state.conversation === undefined ? undefined : state.conversation.users) || [])
+            users: ((state.conversation === undefined ? undefined : state.conversation.users) || []),
+            conversationId: state.conversation && state.conversation.conversation ? state.conversation.conversation.id : undefined
         } as UsersState;
     },
     ConversationStore.actionCreators

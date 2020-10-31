@@ -11,10 +11,10 @@ export interface IdentityChangedAction {
     identity: IdentityState;
 }
 
-const oidcUnloadedState: IdentityState = { isAuthenticated: false, userId: null, userName: null };
+export const unloadedState: IdentityState = { isAuthenticated: false, userId: null, userName: null };
 
-export const identityReducer: Reducer<IdentityState> = (state1: IdentityState | undefined, incomingAction: Action): IdentityState => {
-    let state: IdentityState = state1 || oidcUnloadedState;
+export const identityReducer: Reducer<IdentityState> = (state1: IdentityState = unloadedState, incomingAction: Action): IdentityState => {
+    let state: IdentityState = state1 || unloadedState;
 
     const action = incomingAction as IdentityChangedAction;
 

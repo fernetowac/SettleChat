@@ -24,7 +24,8 @@ namespace SettleChat.Controllers
         private readonly IHubContext<ConversationHub, IConversationClient> _conversationHubContext;
         private readonly ILogger<MessageController> _logger;
 
-        public MessageController(SettleChatDbContext context, IHubContext<ConversationHub, IConversationClient> conversationHubContext, ILogger<MessageController> logger)
+        public MessageController(SettleChatDbContext context,
+            IHubContext<ConversationHub, IConversationClient> conversationHubContext, ILogger<MessageController> logger)
         {
             _context = context;
             _conversationHubContext = conversationHubContext;
@@ -69,7 +70,8 @@ namespace SettleChat.Controllers
         //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         //[Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
-        public async Task<ActionResult<MessageModel>> PostMessage(Guid conversationId, [FromBody] MessageCreateModel messageCreateModel)
+        public async Task<ActionResult<MessageModel>> PostMessage(Guid conversationId,
+            [FromBody] MessageCreateModel messageCreateModel)
         {
             //TODO: check that user is authorized for the conversation
             var conversation = await _context.Conversations.FindAsync(conversationId);
@@ -82,18 +84,37 @@ namespace SettleChat.Controllers
                 Conversation = conversation
             };
             _context.Messages.Add(message);
-            await _context.SaveChangesAsync();//TODO: error handling
+            await _context.SaveChangesAsync(); //TODO: error handling
             var messageModel = new MessageModel
             {
                 Id = message.Id,
                 UserId = message.AuthorId,
                 Text = message.Text
             };
-            var toBeNotifiedUserIds = await _context.ConversationUsers.Where(x => x.ConversationId == conversationId).Select(x => x.UserId.ToString().ToLowerInvariant()).ToListAsync();
+            var toBeNotifiedUserIds = await _context.ConversationUsers.Where(x => x.ConversationId == conversationId)
+                .Select(x => x.UserId.ToString().ToLowerInvariant()).ToListAsync();
             //toBeNotifiedUserIds.Remove(User.Identity.GetSubjectId());
 
             await _conversationHubContext.Clients.Users(toBeNotifiedUserIds).NewMessage(messageModel);
             return messageModel;
+        }
+
+        [HttpPut("/api/conversations/{conversationId}/writingactivity")]
+        [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
+        public async Task<ActionResult<ConversationWritingActivityOutputModel>> UpdateWritingStatus(Guid conversationId, [FromBody] ConversationWritingActivityModel writingActivity)
+        {
+            var userId = Guid.Parse(User.Identity.GetSubjectId());
+            var conversationWritingActivityOutputModel = new ConversationWritingActivityOutputModel
+            {
+                Activity = writingActivity.Activity,
+                ConversationId = conversationId,
+                UserId = userId,
+                LastChange = writingActivity.LastChange
+            };
+            //TODO: use ISignalRGroupNameFactory
+            await _conversationHubContext.Clients.Group($"ConversationId:{conversationId}")
+                .ConversationWritingActivity(conversationWritingActivityOutputModel);
+            return conversationWritingActivityOutputModel;
         }
     }
 }

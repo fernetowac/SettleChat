@@ -1,5 +1,7 @@
 import { UserManager, WebStorageStateStore, Log, User, Profile, UserManagerSettings, SignoutResponse } from 'oidc-client';
+import AwaitLock from 'await-lock';
 import { ApplicationPaths, ApplicationName } from './ApiAuthorizationConstants';
+//import { IFrameNavigator1 } from './IFrameNavigator1';
 
 /**
  * @template TState Type of state to be propagated though authentication process and returned after successful login
@@ -12,7 +14,7 @@ export enum AuthenticationResultStatus {
 }
 
 interface Callback {
-    callback: () => any;
+    callback: (user: User | null) => any;
     subscription: number;
 }
 
@@ -20,14 +22,8 @@ export class AuthorizeService<TState> {
     private callbacks: Callback[] = [];
     private nextSubscriptionId = 0;
     private user: User | null = null;
-    private _isAuthenticated = false;
     private _userManager: UserManager | undefined;
-
-    //private get userManager(): Promise<UserManager> {
-    //    return new Promise<UserManager>(() => {
-    //        return this.ensureUserManagerInitialized();
-    //    });
-    //}
+    private userManagerLock = new AwaitLock();
 
     // By default pop ups are disabled because they don't work properly on Edge.
     // If you want to enable pop up authentication simply set this flag to false.
@@ -161,8 +157,7 @@ export class AuthorizeService<TState> {
 
     private updateState(user: User | null): void {
         this.user = user;
-        this._isAuthenticated = !!this.user;
-        this.notifySubscribers();
+        this.notifySubscribers(user);
     }
 
     /**
@@ -170,7 +165,8 @@ export class AuthorizeService<TState> {
      * @param callback To be executed when user is signed in or signed out
      * @return subscriptionId to be used for unsubscribing
      */
-    public subscribe(callback: () => any): number {
+    public subscribe(callback: (user: User | null) => any): number {
+        console.debug('AuthorizeService.subscribe()');
         this.callbacks.push({
             callback,
             subscription: this.nextSubscriptionId++
@@ -194,10 +190,10 @@ export class AuthorizeService<TState> {
         this.callbacks.splice(subscriptionIndex[0].index, 1);
     }
 
-    private notifySubscribers() {
+    private notifySubscribers(user: User | null) {
         for (let i = 0; i < this.callbacks.length; i++) {
             const callback = this.callbacks[i].callback;
-            callback();
+            callback(user);
         }
     }
 
@@ -218,34 +214,43 @@ export class AuthorizeService<TState> {
     }
 
     private async ensureUserManagerInitialized(): Promise<UserManager> {
-        if (this._userManager !== undefined) {
-            return Promise.resolve(this._userManager);
+        await this.userManagerLock.acquireAsync();
+        try {
+            if (this._userManager !== undefined) {
+                return Promise.resolve(this._userManager);
+            }
+
+            let response = await fetch(ApplicationPaths.ApiAuthorizationClientConfigurationUrl);
+            if (!response.ok) {
+                throw new Error(`Could not load settings for '${ApplicationName}'`);
+            }
+
+            let settings = await response.json();
+            settings.automaticSilentRenew = true;
+            settings.includeIdTokenInSilentRenew = true;
+            settings.userStore = new WebStorageStateStore({
+                prefix: ApplicationName
+            });
+            //settings.iframeNavigator = new IFrameNavigator1();
+
+            if (this._userManager !== undefined) {
+                return Promise.resolve(this._userManager);
+            }
+            this._userManager = new UserManager(settings as UserManagerSettings);
+            //Log.logger = console;
+            //Log.level = Log.DEBUG;
+
+            this._userManager.events.addUserSignedOut(async () => {
+                await (this._userManager as UserManager).removeUser();
+                this.updateState(null);
+            });
+            return this._userManager;
         }
-
-        let response = await fetch(ApplicationPaths.ApiAuthorizationClientConfigurationUrl);
-        if (!response.ok) {
-            throw new Error(`Could not load settings for '${ApplicationName}'`);
+        finally {
+            this.userManagerLock.release();
+            console.trace('userManager lock released');
         }
-
-        let settings = await response.json();
-        settings.automaticSilentRenew = true;
-        settings.includeIdTokenInSilentRenew = true;
-        settings.userStore = new WebStorageStateStore({
-            prefix: ApplicationName
-        });
-
-        this._userManager = new UserManager(settings as UserManagerSettings);
-        Log.logger = console;
-        Log.level = Log.INFO;
-        Log.debug('test oidc-client log');
-
-        this._userManager.events.addUserSignedOut(async () => {
-            await (this._userManager as UserManager).removeUser();
-            this.updateState(null);
-        });
-        return this._userManager;
     }
-    //static get instance() { return authService }
 }
 
 /**

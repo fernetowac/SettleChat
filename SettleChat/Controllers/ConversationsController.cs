@@ -149,6 +149,7 @@ namespace SettleChat.Controllers
         //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         //[Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
+        //[AllowAnonymous]
         public async Task<ActionResult<ConversationModel>> PostConversation(ConversationCreateModel model)
         {
             //string token =
@@ -164,6 +165,17 @@ namespace SettleChat.Controllers
             {
                 Title = model.Title
             };
+            //if (User.Identity.IsAuthenticated)
+            //{
+            //    _logger.LogDebug(new EventId(5, "Testing EventId"), "Forbid result returned");
+            //    return Forbid();
+            //}
+            //else
+            //{
+            //    _logger.LogDebug(new EventId(5, "Testing EventId"), "Challenge result returned");
+            //    return Challenge();
+            //}
+
             _context.Conversations.Add(inputDbConversation);
 
             ApplicationUser applicationUser = null;

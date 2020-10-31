@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.IO;
+using System.Net;
 using System.Net.Mime;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -56,7 +57,9 @@ namespace SettleChat
                     Configuration.GetConnectionString("DefaultConnection"),
                     builder =>
                     {
-                        builder.EnableRetryOnFailure(3);
+                        // Note: If connection resiliency is enabled by allowing retries on failure, for each transaction must be called creation of new execution strategy
+                        // to be able to retry transaction as a whole. More: https://github.com/dotnet/efcore/issues/7318
+                        //builder.EnableRetryOnFailure(3); 
                         builder.MigrationsAssembly("SettleChat.Migrations");
                     });
             });
@@ -69,7 +72,12 @@ namespace SettleChat
             //services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
             //    .AddEntityFrameworkStores<SettleChatDbContext>();
 
-            services.ConfigureApplicationCookie(cookieAuthOptions => cookieAuthOptions.LoginPath = "/Identity/Account/Login");
+            services.ConfigureApplicationCookie(cookieAuthOptions =>
+            {
+                cookieAuthOptions.LoginPath = "/Identity/Account/Login";
+                cookieAuthOptions.Events.OnRedirectToAccessDenied = ReplaceRedirector(HttpStatusCode.Forbidden, cookieAuthOptions.Events.OnRedirectToAccessDenied);
+                cookieAuthOptions.Events.OnRedirectToLogin = ReplaceRedirector(HttpStatusCode.Unauthorized, cookieAuthOptions.Events.OnRedirectToLogin);
+            });
 
             services.AddIdentityServer(setupAction =>
                 {
@@ -161,6 +169,7 @@ namespace SettleChat
                      * dotnet user-secrets set "GoogleOAuth:ClientId" "<OAuth Client ID>"
                      * dotnet user-secrets set "GoogleOAuth:ClientSecret" "<OAuth Client Secret>"
                      */
+                    // TODO: document the need for adding user-secrets somewhere
                     var googleOAuthConfigSection = Configuration.GetSection("GoogleOAuth").Get<GoogleOAuthConfigSection>();
                     options.ClientId = googleOAuthConfigSection.ClientId;
                     options.ClientSecret = googleOAuthConfigSection.ClientSecret;
@@ -184,6 +193,7 @@ namespace SettleChat
                     };
                 });
             services.AddTransient<ProblemDetailsFactory, CustomProblemDetailsFactory>();
+            services.AddSingleton<ISignalRGroupNameFactory, SignalRGroupNameFactory>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -235,6 +245,17 @@ namespace SettleChat
                 }
             });
         }
+
+        private static Func<RedirectContext<CookieAuthenticationOptions>, Task> ReplaceRedirector(HttpStatusCode statusCode, Func<RedirectContext<CookieAuthenticationOptions>, Task> existingRedirector) =>
+             context =>
+             {
+                 if (context.Request.Path.StartsWithSegments("/api"))
+                 {
+                     context.Response.StatusCode = (int)statusCode;
+                     return Task.CompletedTask;
+                 }
+                 return existingRedirector(context);
+             };
 
         public X509Certificate2 AddCertificate(IWebHostEnvironment env)
         {

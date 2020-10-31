@@ -1,9 +1,10 @@
 ﻿import { Reducer, Action } from 'redux';
-import { AppThunkAction } from './index';
-import { push, RouterAction } from 'connected-react-router';
-import { StatusCodes } from 'http-status-codes';
-import authService from '../components/api-authorization/AuthorizeService';
+import { ThunkAction } from 'redux-thunk';
+import { ApplicationState } from './index';
+import { RouterAction } from 'connected-react-router';
 import { IdentityChangedAction } from './Identity';
+import { fetchGet, fetchPost } from '../services/FetchService';
+import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
 
 export interface ConversationsState {
     conversations: Conversation[];
@@ -42,6 +43,10 @@ export interface ReceiveListAction {
     conversations: Conversation[];
 }
 
+export interface ClearListAction {
+    type: 'CONVERSATIONS_CLEAR_LIST';
+}
+
 export interface RequestListAction {
     type: 'CONVERSATIONS_REQUEST_LIST';
 }
@@ -58,77 +63,41 @@ export interface ConversationCreateResponseCreator {
     name: string;
 }
 
-type KnownAction = ConversationAddPipelineAction | ReceiveListAction | RequestListAction
-type ConversationAddPipelineAction = AddAction | AddedAction | RouterAction;
+type KnownAction = ConversationAddPipelineAction | ReceiveListAction | RequestListAction | ClearListAction
+export type ConversationAddPipelineAction = AddAction | AddedAction | RouterAction;
 
 export const actionCreators = {
-    addConversation: (conversationInput: NewConversation): AppThunkAction<ConversationAddPipelineAction, void> => (dispatch, getState) => {
-        const appState = getState();
-        if (appState && appState.conversations) {
+    addConversation: (conversationInput: NewConversation): ThunkAction<Promise<Conversation>, ApplicationState, undefined, ConversationAddPipelineAction | HttpFailStatusReceivedAction> =>
+        (dispatch, getState, extraArgument) => {
             dispatch({ type: 'CONVERSATION_ADD' });
-
-            return fetch('/api/Conversations',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(conversationInput)
-                })
-                .then(response => { /*response.status == StatusCodes.OK?*/
-                    if (response.status === StatusCodes.OK || response.status === StatusCodes.CREATED) {
-                        return response.json() as Promise<ConversationCreateResponse>;
-                    } else if (response.status === StatusCodes.UNAUTHORIZED) {
-                        dispatch(push(`/authentication/login`));
-                        return Promise.reject('Unauthorized');
-                    }
-                })
+            return fetchPost<Conversation>('/api/Conversations', conversationInput, dispatch)
                 .then(data => {
-                    if (data) {
-                        dispatch({
-                            type: 'CONVERSATION_ADDED', conversation: {
-                                id: data.id,
-                                title: data.title
-                            } as Conversation
-                        });
-                        dispatch(push(`/conversation/${data.id}`));
-                    }
-                },
-                    error => {
-                        console.error(error);
-                    })
-                .catch(error => console.log('error: ', error));
-        } else {
-            return Promise.resolve();
-        }
-    },
-    requestConversations: (): AppThunkAction<KnownAction, void> => (dispatch, getState) => {
+                    const createdConversation = {
+                        id: data.id,
+                        title: data.title
+                    } as Conversation;
+                    dispatch({ type: 'CONVERSATION_ADDED', conversation: createdConversation });
+                    return createdConversation;
+                });
+        },
+    requestConversations: (): ThunkAction<Promise<Conversation[]>, ApplicationState, undefined, RequestListAction | ReceiveListAction> => (dispatch, getState) => {
         // Only load data if it's something we don't already have (and are not already loading)
         const appState = getState();
         if (appState && appState.conversations) {
             dispatch({ type: 'CONVERSATIONS_REQUEST_LIST' });
-            return authService.getAccessToken()
-                .then(token => {
-                    //TODO: handle unauthorized when !token
-                    fetch(`/api/conversations`,
-                        {
-                            cache: "no-cache",
-                            headers: {
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            }
-                        })
-                        .then(response => response.json() as Promise<Conversation[]>)
-                        .then(data => {
-                            dispatch({ type: 'CONVERSATIONS_RECEIVED_LIST', conversations: data });
-                        })
-                        .catch((error) => console.error('Error:', error));
+            return fetchGet<Conversation[]>(`/api/conversations`, dispatch)
+                .then(data => {
+                    dispatch({ type: 'CONVERSATIONS_RECEIVED_LIST', conversations: data });
+                    return data;
                 });
         } else {
             return Promise.reject();
         }
+    },
+    clearConversations: (): ClearListAction => {
+        return {
+            type: 'CONVERSATIONS_CLEAR_LIST'
+        };
     }
 };
 
@@ -145,6 +114,10 @@ export const reducer: Reducer<ConversationsState> = (state: ConversationsState |
         case 'CONVERSATIONS_RECEIVED_LIST':
             return {
                 conversations: [...action.conversations]
+            };
+        case 'CONVERSATIONS_CLEAR_LIST':
+            return {
+                conversations: []
             };
         case 'CONVERSATIONS_REQUEST_LIST':
             return state;

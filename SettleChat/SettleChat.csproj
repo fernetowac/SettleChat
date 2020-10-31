@@ -6,7 +6,7 @@
     <TypeScriptToolsVersion>3.8</TypeScriptToolsVersion>
     <IsPackable>false</IsPackable>
     <SpaRoot>ClientApp\</SpaRoot>
-    <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**;$(SpaRoot)build\**</DefaultItemExcludes>
     <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
     <UserSecretsId>e0a73610-3f09-4fa1-bc14-fa705e003a12</UserSecretsId>
   </PropertyGroup>
@@ -29,230 +29,30 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Don't publish the SPA source files, but do show them in the project files list -->
-    <Compile Remove="%2a%2a\**" />
-    <Compile Remove="ClientApp\build\**" />
     <Content Remove="$(SpaRoot)**" />
-    <Content Remove="%2a%2a\**" />
-    <Content Remove="ClientApp\build\**" />
-    <EmbeddedResource Remove="%2a%2a\**" />
-    <EmbeddedResource Remove="ClientApp\build\**" />
     <None Remove="$(SpaRoot)**" />
-    <None Remove="%2a%2a\**" />
-    <None Remove="ClientApp\build\**" />
     <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="%2a%2a/%2a.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Remove="%2a%2a\%2a.config" />
-    <Content Remove="%2a%2a\%2a.cshtml" />
-    <Content Remove="%2a%2a\%2a.json" />
-    <Content Remove="%2a%2a\%2a.razor" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Remove="%2a%2a/%2a.resx" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="%2a%2a/%2a" />
-    <None Remove="ClientApp\build\asset-manifest.json" />
-    <None Remove="ClientApp\build\favicon.ico" />
-    <None Remove="ClientApp\build\index.html" />
-    <None Remove="ClientApp\build\manifest.json" />
-    <None Remove="ClientApp\build\precache-manifest.45e8a91d38bc4d334e6ad02ce0418bb7.js" />
-    <None Remove="ClientApp\build\service-worker.js" />
-    <None Remove="ClientApp\build\static\css\2.d6500151.chunk.css" />
-    <None Remove="ClientApp\build\static\css\2.d6500151.chunk.css.map" />
-    <None Remove="ClientApp\build\static\css\main.6636e503.chunk.css" />
-    <None Remove="ClientApp\build\static\css\main.6636e503.chunk.css.map" />
-    <None Remove="ClientApp\build\static\js\2.06db7b88.chunk.js" />
-    <None Remove="ClientApp\build\static\js\2.06db7b88.chunk.js.LICENSE.txt" />
-    <None Remove="ClientApp\build\static\js\2.06db7b88.chunk.js.map" />
-    <None Remove="ClientApp\build\static\js\main.f535adbb.chunk.js" />
-    <None Remove="ClientApp\build\static\js\main.f535adbb.chunk.js.map" />
-    <None Remove="ClientApp\build\static\js\runtime-main.f3141481.js" />
-    <None Remove="ClientApp\build\static\js\runtime-main.f3141481.js.map" />
-    <None Remove="ClientApp\src\components\AddUser.tsx" />
-    <None Remove="ClientApp\src\components\api-authorization\ApiAuthorizationConstants.ts" />
-    <None Remove="ClientApp\src\components\api-authorization\AuthorizeRoute.tsx" />
-    <None Remove="ClientApp\src\components\api-authorization\AuthorizeService.ts" />
-    <None Remove="ClientApp\src\components\api-authorization\Login.tsx" />
-    <None Remove="ClientApp\src\components\ConversationDetail.tsx" />
-    <None Remove="ClientApp\src\components\Conversations.tsx" />
-    <None Remove="ClientApp\src\components\ErrorBoundary.tsx.bak" />
-    <None Remove="ClientApp\src\components\ErrorBoundaryFallback.tsx" />
-    <None Remove="ClientApp\src\components\MessageInput.tsx" />
-    <None Remove="ClientApp\src\components\Messages - Copy.tsx.old" />
-    <None Remove="ClientApp\src\components\Messages.tsx" />
-    <None Remove="ClientApp\src\components\Messages.tsx.old" />
-    <None Remove="ClientApp\src\middlewares\IdentityMiddleware.ts" />
-    <None Remove="ClientApp\src\middlewares\SignalRMiddleware.ts" />
-    <None Remove="ClientApp\src\components\NewConversation.tsx" />
-    <None Remove="ClientApp\src\components\Users.tsx" />
-    <None Remove="ClientApp\src\store\Conversation.ts" />
-    <None Remove="ClientApp\src\store\Conversations.ts" />
-    <None Remove="ClientApp\src\store\Identity.ts" />
-    <None Remove="ClientApp\src\store\Messages.ts.old" />
-    <None Remove="MyIdentityServerCert.pfx" />
-    <None Remove="Properties\launchSettings.json.bak" />
-    <None Remove="RunProduction.bat" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Areas\Identity\IdentityHostingStartup.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\AccessDenied.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\ConfirmEmail.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\ConfirmEmailChange.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\ExternalLogin.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\ForgotPassword.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\ForgotPasswordConfirmation.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Lockout.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Login.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\LoginWith2fa.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\LoginWithRecoveryCode.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Logout.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\ChangePassword.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\DeletePersonalData.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\Disable2fa.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\DownloadPersonalData.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\Email.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\EnableAuthenticator.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\ExternalLogins.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\GenerateRecoveryCodes.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\Index.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\ManageNavPages.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\PersonalData.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\ResetAuthenticator.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\SetPassword.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\ShowRecoveryCodes.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Manage\TwoFactorAuthentication.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\Register.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\RegisterConfirmation.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\ResetPassword.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Account\ResetPasswordConfirmation.cshtml.cs" />
-    <Compile Include="Areas\Identity\Pages\Error.cshtml.cs" />
-    <Compile Include="Controllers\ConversationsController.cs" />
-    <Compile Include="Controllers\ErrorController.cs" />
-    <Compile Include="Controllers\MessageController.cs" />
-    <Compile Include="Controllers\OidcConfigurationController.cs" />
-    <Compile Include="Controllers\TokenController.cs" />
-    <Compile Include="Controllers\UserController.cs" />
-    <Compile Include="Controllers\WeatherForecastController.cs" />
-    <Compile Include="Exceptions\HttpResponseException.cs" />
-    <Compile Include="Factories\ConversationModelFactory.cs" />
-    <Compile Include="Filters\HttpResponseExceptionFilter.cs" />
-    <Compile Include="GoogleOAuthConfigSection.cs" />
-    <Compile Include="Hubs\ConversationHub.cs" />
-    <Compile Include="Message.cs" />
-    <Compile Include="Models\ConversationCreateModel.cs" />
-    <Compile Include="Models\ConversationModel.cs" />
-    <Compile Include="Models\MessageCreateModel.cs" />
-    <Compile Include="Models\MessageModel.cs" />
-    <Compile Include="Models\TokenModel.cs" />
-    <Compile Include="Models\UninvitedUserModel.cs" />
-    <Compile Include="Models\UserCreateModel.cs" />
-    <Compile Include="Models\UserModel.cs" />
-    <Compile Include="Pages\Error.cshtml.cs" />
-    <Compile Include="Program.cs" />
-    <Compile Include="Startup.cs" />
-    <Compile Include="WeatherForecast.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="appsettings.Development.json" />
-    <Content Include="appsettings.json" />
-    <Content Include="appsettings.Production.json" />
-    <Content Include="Areas\Identity\Pages\Account\AccessDenied.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\ConfirmEmail.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\ConfirmEmailChange.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\ExternalLogin.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\ForgotPassword.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\ForgotPasswordConfirmation.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Lockout.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Login.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\LoginWith2fa.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\LoginWithRecoveryCode.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Logout.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\ChangePassword.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\DeletePersonalData.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\Disable2fa.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\DownloadPersonalData.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\Email.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\EnableAuthenticator.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\ExternalLogins.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\GenerateRecoveryCodes.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\Index.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\PersonalData.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\ResetAuthenticator.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\SetPassword.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\ShowRecoveryCodes.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\TwoFactorAuthentication.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\_Layout.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\_ManageNav.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\_StatusMessage.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Manage\_ViewImports.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\Register.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\RegisterConfirmation.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\ResetPassword.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\ResetPasswordConfirmation.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\_StatusMessage.cshtml" />
-    <Content Include="Areas\Identity\Pages\Account\_ViewImports.cshtml" />
-    <Content Include="Areas\Identity\Pages\Error.cshtml" />
-    <Content Include="Areas\Identity\Pages\_ValidationScriptsPartial.cshtml" />
-    <Content Include="Areas\Identity\Pages\_ViewImports.cshtml" />
-    <Content Include="Areas\Identity\Pages\_ViewStart.cshtml" />
-    <Content Include="MyIdentityServerCert.pfx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Pages\Error.cshtml" />
-    <Content Include="Pages\Shared\_Layout.cshtml" />
-    <Content Include="Pages\Shared\_LoginPartial.cshtml" />
-    <Content Include="Pages\Shared\_ValidationScriptsPartial.cshtml" />
-    <Content Include="Pages\_ViewImports.cshtml" />
-    <Content Include="Pages\_ViewStart.cshtml" />
-    <Content Include="Properties\launchSettings.json.bak" />
-    <Content Include="RunProduction.bat">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="appsettings.Development.json.bak" />
-    <None Include="appsettings.Production.json.bak" />
-    <None Include="ScaffoldingReadMe.txt" />
-    <None Include="Startup.cs.bak" />
-    <None Include="webpack.config.js.bak" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SettleChat.Migrations\SettleChat.Migrations.csproj" />
     <ProjectReference Include="..\SettleChat.Persistence\SettleChat.Persistence.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="ClientApp\src\components\api-authorization\ApiAuthorizationConstants.ts" />
-    <TypeScriptCompile Include="ClientApp\src\components\api-authorization\AuthorizeRoute.tsx" />
-    <TypeScriptCompile Include="ClientApp\src\components\api-authorization\AuthorizeService.ts" />
-    <TypeScriptCompile Include="ClientApp\src\components\api-authorization\Login.tsx" />
-    <TypeScriptCompile Include="ClientApp\src\components\ConversationDetail.tsx" />
-    <TypeScriptCompile Include="ClientApp\src\components\ConversationDetail.tsx.old" />
-    <TypeScriptCompile Include="ClientApp\src\components\AddUser.tsx">
-      <SubType>Code</SubType>
-    </TypeScriptCompile>
-    <TypeScriptCompile Include="ClientApp\src\components\Conversations.tsx" />
-    <TypeScriptCompile Include="ClientApp\src\components\ErrorBoundary.tsx.bak" />
-    <TypeScriptCompile Include="ClientApp\src\components\ErrorBoundaryFallback.tsx" />
-    <TypeScriptCompile Include="ClientApp\src\middlewares\IdentityMiddleware.ts">
-      <SubType>Code</SubType>
-    </TypeScriptCompile>
-    <TypeScriptCompile Include="ClientApp\src\middlewares\SignalRMiddleware.ts" />
-    <TypeScriptCompile Include="ClientApp\src\components\Users.tsx" />
-    <TypeScriptCompile Include="ClientApp\src\components\Users.tsx.old" />
-    <TypeScriptCompile Include="ClientApp\src\components\Messages.tsx" />
-    <TypeScriptCompile Include="ClientApp\src\components\NewConversation.tsx">
-      <SubType>Code</SubType>
-    </TypeScriptCompile>
-    <TypeScriptCompile Include="ClientApp\src\components\MessageInput.tsx" />
-    <TypeScriptCompile Include="ClientApp\src\components\Messages.tsx.old" />
-    <TypeScriptCompile Include="ClientApp\src\store\Identity.ts" />
-    <TypeScriptCompile Include="ClientApp\src\store\Conversation.ts" />
-    <TypeScriptCompile Include="ClientApp\src\store\Conversations.ts" />
-    <TypeScriptCompile Include="ClientApp\src\store\Messages.ts.old" />
+    <TypeScriptCompile Include="$(SpaRoot)**\*.ts" />
+    <TypeScriptCompile Include="$(SpaRoot)**\*.tsx" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="ClientApp\src\actions\HttpStatusActions.ts" />
+    <None Remove="ClientApp\src\actions\SignalRActions.ts" />
+    <None Remove="ClientApp\src\components\SignalRContainer.tsx" />
+    <None Remove="ClientApp\src\hooks\usePrevious.ts" />
+    <None Remove="ClientApp\src\middlewares\ConversationMiddleware.ts" />
+    <None Remove="ClientApp\src\services\FetchService.ts" />
+    <None Remove="ClientApp\src\store\SignalR.ts" />
+    <None Remove="ClientApp\tsconfig.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ClientApp\tsconfig.json" />
   </ItemGroup>
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
     <!-- Ensure Node.js is installed -->

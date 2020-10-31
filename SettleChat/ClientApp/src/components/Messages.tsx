@@ -6,7 +6,6 @@ import * as  ConversationStore from "../store/Conversation";
 export interface MessagesState {
     messages: ConversationStore.Message[];
     users: ConversationStore.User[];
-    me: ConversationStore.User;
 }
 
 // At runtime, Redux will merge together...
@@ -37,7 +36,6 @@ export default connect(
         return {
             messages: ((state.conversation === undefined ? undefined : state.conversation.messages) || []),
             users: state.conversation && state.conversation.users ? state.conversation.users : [],
-            me: state.conversation && state.conversation.me ? state.conversation.me : {}
         } as MessagesState;
     },
     ConversationStore.actionCreators

@@ -5,12 +5,13 @@ import { ApplicationPaths, QueryParameterNames } from './ApiAuthorizationConstan
 import authService from './AuthorizeService'
 import { RouteComponentProps, match } from 'react-router';
 
-interface AuthorizeRouteProps {
+interface AuthorizeRouteProps {//TODO: maybe we could use react-router RouteProps instead
     path: string;
-    component: React.ComponentType<RouteComponentProps<any>> | React.ComponentType<any>;
+    component?: React.ComponentType<RouteComponentProps<any>> | React.ComponentType<any>;
+    render?: (props: RouteComponentProps<any>) => React.ReactNode;//typeof PropTypes.func;
 }
 interface AuthorizeRouteComputedProps extends AuthorizeRouteProps {
-    computedMatch: match;
+    computedMatch?: match;
 }
 
 interface AuthorizeRouteState {
@@ -18,8 +19,8 @@ interface AuthorizeRouteState {
     authenticated: boolean;
 }
 
-export default class AuthorizeRoute extends Component<AuthorizeRouteProps, AuthorizeRouteState> {
-    constructor(props: AuthorizeRouteProps & RouteComponentProps<{ startDateIndex: string }>) {
+export default class AuthorizeRoute extends Component<AuthorizeRouteComputedProps, AuthorizeRouteState> {
+    constructor(props: AuthorizeRouteComputedProps & RouteComponentProps<{ startDateIndex: string }>) {
         super(props);
 
         this.state = {
@@ -40,29 +41,41 @@ export default class AuthorizeRoute extends Component<AuthorizeRouteProps, Autho
     }
 
     render() {
-        console.log(`AuthorizeRoute.Render() path:${this.props.path}`)
+        console.debug(`AuthorizeRoute.Render() path:${this.props.path}`)
         const { ready, authenticated } = this.state;
-        var link = document.createElement("a");
-        link.href = this.props.path;
-        //const returnUrl = `${link.protocol}//${link.host}${link.pathname}${link.search}${link.hash}`;
-        const authorizeRouteProps = this.props as AuthorizeRouteComputedProps;
-        const returnUrl = `${link.protocol}//${link.host}${authorizeRouteProps.computedMatch.url}`;
-        const redirectUrl = `${ApplicationPaths.Login}?${QueryParameterNames.ReturnUrl}=${encodeURI(returnUrl)}`;
         if (!ready) {
-            return <div></div>;
-        } else {
-            const { component: Component, ...rest } = this.props;
-            const render = (props: RouteComponentProps<any>): React.ReactNode => {
-                if (authenticated) {
-                    return <Component {...props} />;
-                } else {
-                    console.log(`AuthorizeRoute.Render() redirect:${redirectUrl}`)
-                    return <Redirect to={redirectUrl} />;
+            return <div>Loading..</div>;
+        }
+
+        const { component: Component, ...rest } = this.props;
+        const render = (props: RouteComponentProps<any>): React.ReactNode => {
+            if (authenticated) {
+                if (!this.props.render === !Component) {
+                    throw new Error('Either render or component props must be provided. Not both, not none.');
                 }
-            };
-            console.log(`AuthorizeRoute.Render() route render`)
-            return <Route {...rest} render={render} />;
+                if (this.props.render) {
+                    return this.props.render(props);
+                }
+                if (Component) {
+                    return <Component {...props} />;
+                }
+                throw new Error('unreachable');
+            } else {
+                var link = document.createElement("a");
+                link.href = this.props.path;
+                //const returnUrl = `${link.protocol}//${link.host}${link.pathname}${link.search}${link.hash}`;
+                const authorizeRouteProps = this.props as AuthorizeRouteComputedProps;
+                if (!authorizeRouteProps.computedMatch) {
+                    throw new Error(`Switch didn't compute match for us`);
+                }
+                const returnUrl = `${link.protocol}//${link.host}${authorizeRouteProps.computedMatch.url}`;
+                const redirectUrl = `${ApplicationPaths.Login}?${QueryParameterNames.ReturnUrl}=${encodeURI(returnUrl)}`;
+                console.debug(`AuthorizeRoute.Render() redirect:${redirectUrl}`)
+                return <Redirect to={redirectUrl} />;
+            }
         };
+        console.debug(`AuthorizeRoute.Render() route render`);
+        return <Route {...rest} render={render} />;
     }
 
     private async populateAuthenticationState() {
@@ -71,6 +84,7 @@ export default class AuthorizeRoute extends Component<AuthorizeRouteProps, Autho
     }
 
     private async authenticationChanged() {
+        console.debug('AuthorizeRoute authenticationChanged');
         this.setState({ ready: false, authenticated: false });
         await this.populateAuthenticationState();
     }

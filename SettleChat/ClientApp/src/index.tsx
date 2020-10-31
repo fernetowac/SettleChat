@@ -27,7 +27,7 @@ const history = createBrowserHistory({ basename: baseUrl });
 const signalRHubUrl = `${document.location.origin}/conversationHub`;//TODO: take url from some config
 
 // Get the application-wide store instance, prepopulating with state from the server where available.
-const store = configureStore(history, signalRHubUrl, InitialApplicationState);
+const store = configureStore(history, InitialApplicationState);
 
 ReactDOM.render(
     <Provider store={store}>

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SettleChat.Hubs;
 using SettleChat.Models;
 using SettleChat.Persistence;
 using SettleChat.Persistence.Enums;
@@ -35,20 +36,21 @@ namespace SettleChat.Controllers
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
         public async Task<ActionResult<IEnumerable<UserModel>>> GetUsers(Guid conversationId)
         {
-            //TODO: authorize for specific conversation
-            return await _context.Users
+            //TODO: authorize for specific conversation (maybe with in-memory cache? is it possible with custom authorize attribute)
+            return (await _context.Users
                 .Where(x =>
                     x.ConversationUsers
                         .Any(cu => cu.ConversationId == conversationId))
+                .ToListAsync()) // if not materialized here, it was crashing in runtime (I don't remember, something related to linq, I didn't get the reason)
                 .Select(x => new UserModel
                 {
                     Id = x.Id,
                     Email = x.Email,
                     UserName = x.UserName,
-                    Status = x.Status,
+                    Status = ConversationHub.Connections.GetConnections(x.Id).Any() ? UserStatus.Online : UserStatus.Offline,// x.Status, //TODO: make it nicer
                     LastActivityTimestamp = x.LastActivityTimestamp
                 })
-                .ToListAsync();
+                .ToList();
         }
 
         // To protect from overposting attacks, enable the specific properties you want to bind to, for

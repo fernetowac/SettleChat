@@ -13,22 +13,32 @@ import { ApplicationPaths } from './components/api-authorization/ApiAuthorizatio
 import PageNotFound from './components/PageNotFound';
 import * as Sentry from "@sentry/react";
 import ErrorBoundaryFallback from './components/ErrorBoundaryFallback';
+import SignalRContainer from './components/SignalRContainer';
 
 import './custom.css'
 
 export default () => (
-    <Layout>
-        <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-            <Switch>
-                <Route exact path='/' component={Home} />
-                <Route path='/counter' component={Counter} />
-                <AuthorizeRoute path='/fetch-data/:startDateIndex?' component={FetchData} />
-                <AuthorizeRoute path='/conversation/:conversationId' component={MessagesPanel} />
-                <Route path='/start-conversation' component={NewConversation} />
-                <Route path='/token/:token' component={Token} />
-                <Route path={ApplicationPaths.ApiAuthorizationPrefix} component={ApiAuthorizationRoutes} />
-                <Route path='*' component={PageNotFound} />
-            </Switch>
-        </Sentry.ErrorBoundary>
-    </Layout>
+    <React.Fragment>
+        <Switch>
+            <Route path='/token/:token' component={Token} />
+            <Route path={ApplicationPaths.ApiAuthorizationPrefix} component={ApiAuthorizationRoutes} />
+            <Layout>
+                <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                    <Switch>
+                        <Route exact path='/' component={Home} />
+                        <Route path='/counter1' component={Counter} />
+                        <Route path='/counter' render={(props) => (
+                            <MessagesPanel {...props} />)} />
+                        <AuthorizeRoute path='/fetch-data/:startDateIndex?' component={FetchData} />
+                        <AuthorizeRoute path='/conversation/:conversationId' render={(props) => (
+                            <SignalRContainer>
+                                <MessagesPanel {...props} />
+                            </SignalRContainer>)} />
+                        <Route path='/start-conversation' component={NewConversation} />
+                        <Route path='*' component={PageNotFound} />
+                    </Switch>
+                </Sentry.ErrorBoundary>
+            </Layout>
+        </Switch>
+    </React.Fragment>
 );
