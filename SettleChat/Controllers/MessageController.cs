@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using SettleChat.Factories;
+using SettleChat.Factories.Interfaces;
 using SettleChat.Hubs;
 using SettleChat.Models;
 using SettleChat.Persistence;
@@ -22,13 +23,18 @@ namespace SettleChat.Controllers
     {
         private readonly SettleChatDbContext _context;
         private readonly IHubContext<ConversationHub, IConversationClient> _conversationHubContext;
+        private readonly ISignalRGroupNameFactory _signalRGroupNameFactory;
         private readonly ILogger<MessageController> _logger;
 
-        public MessageController(SettleChatDbContext context,
-            IHubContext<ConversationHub, IConversationClient> conversationHubContext, ILogger<MessageController> logger)
+        public MessageController(
+            SettleChatDbContext context,
+            IHubContext<ConversationHub, IConversationClient> conversationHubContext,
+            ISignalRGroupNameFactory signalRGroupNameFactory,
+            ILogger<MessageController> logger)
         {
             _context = context;
             _conversationHubContext = conversationHubContext;
+            _signalRGroupNameFactory = signalRGroupNameFactory;
             _logger = logger;
         }
 
@@ -111,8 +117,8 @@ namespace SettleChat.Controllers
                 UserId = userId,
                 LastChange = writingActivity.LastChange
             };
-            //TODO: use ISignalRGroupNameFactory
-            await _conversationHubContext.Clients.Group($"ConversationId:{conversationId}")
+            var conversationGroupName = _signalRGroupNameFactory.CreateConversationGroupName(conversationId);
+            await _conversationHubContext.Clients.Group(conversationGroupName)
                 .ConversationWritingActivity(conversationWritingActivityOutputModel);
             return conversationWritingActivityOutputModel;
         }

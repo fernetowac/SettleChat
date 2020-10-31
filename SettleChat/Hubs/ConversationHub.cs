@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SettleChat.Factories.Interfaces;
 using SettleChat.Models;
 using SettleChat.Persistence;
 using SettleChat.Persistence.Enums;
@@ -149,15 +150,5 @@ namespace SettleChat.Hubs
                 }
             }
         }
-    }
-
-    public interface ISignalRGroupNameFactory
-    {
-        string CreateConversationGroupName(Guid conversationId);
-    }
-
-    public class SignalRGroupNameFactory : ISignalRGroupNameFactory
-    {
-        public string CreateConversationGroupName(Guid conversationId) => $"ConversationId:{conversationId}";
     }
 }

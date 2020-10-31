@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
+using SettleChat.Factories.Interfaces;
 using SettleChat.Hubs;
 using SettleChat.Persistence;
 
