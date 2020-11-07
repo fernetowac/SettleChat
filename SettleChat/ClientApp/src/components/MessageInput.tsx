@@ -5,6 +5,8 @@ import * as ConversationStore from "../store/Conversation";
 import { ApplicationState } from '../store/index';
 import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
 import { usePrevious } from '../hooks/usePrevious';
+import Button from '@material-ui/core/Button';
+import { Send } from '@material-ui/icons';
 
 const writingActivityNotificationThresholdMiliseconds = 10 * 1000;
 
@@ -62,7 +64,9 @@ function MessageInput(props: MapDispatchToPropsType) {
                     Message:
                     <input type="text" value={inputMessage} onChange={inputMessageOnChange} />
                 </label>
-                <input type="submit" value="Submit" />
+                <Button type="submit" variant="contained" color="primary" size="small" startIcon={<Send />}>
+                    Send
+                </Button>
             </form>
         </React.Fragment>
     );
