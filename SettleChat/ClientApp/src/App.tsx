@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, Switch } from 'react-router';
+import { Route, Switch, RouteComponentProps } from 'react-router';
 import Layout from './components/Layout';
 import Home from './components/Home';
 import Counter from './components/Counter';
@@ -27,10 +27,10 @@ export default () => (
                     <Switch>
                         <Route exact path='/' component={Home} />
                         <Route path='/counter1' component={Counter} />
-                        <Route path='/counter' render={(props) => (
+                        <Route path='/counter' render={(props: RouteComponentProps<any>) => (
                             <MessagesPanel {...props} />)} />
                         <AuthorizeRoute path='/fetch-data/:startDateIndex?' component={FetchData} />
-                        <AuthorizeRoute path='/conversation/:conversationId' render={(props) => (
+                        <AuthorizeRoute path='/conversation/:conversationId' render={(props: RouteComponentProps<any>) => (
                             <SignalRContainer>
                                 <MessagesPanel {...props} />
                             </SignalRContainer>)} />
