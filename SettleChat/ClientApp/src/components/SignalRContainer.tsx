@@ -9,6 +9,13 @@ import authService from '../components/api-authorization/AuthorizeService';
 
 const signalRHubUrl = `${document.location.origin}/conversationHub`;//TODO: take url from some config
 
+export interface ReceivedWritingActivityData {
+    conversationId: string;
+    userId: string;
+    activity: number;
+    lastChange: string;
+}
+
 //TODO: make sure there is only one SignalRContainer component at the same time. Otherwise it can overwrite redux store connectionId of another one.
 const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType & { children: React.ReactNode }) => {
     const { identityUserId } = props.data;
@@ -57,8 +64,13 @@ const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType 
             messageAdded(message);
         });
 
-        hubConnection.on("ConversationWritingActivity", (writingActivity) => {
-            writingActivityReceived(writingActivity);
+        hubConnection.on("ConversationWritingActivity", (writingActivity: ReceivedWritingActivityData) => {
+
+            writingActivityReceived({
+                ...writingActivity,
+                lastChange: (new Date(writingActivity.lastChange) as Date),
+                activity: (writingActivity.activity as ConversationStore.WritingActivity)
+            });
         });
 
         hubConnection.on("UserStatusChanged", (userId: string, status: ConversationStore.UserStatus) => {
