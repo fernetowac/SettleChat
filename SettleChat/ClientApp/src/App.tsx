@@ -26,9 +26,7 @@ export default () => (
                 <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
                     <Switch>
                         <Route exact path='/' component={Home} />
-                        <Route path='/counter1' component={Counter} />
-                        <Route path='/counter' render={(props: RouteComponentProps<any>) => (
-                            <MessagesPanel {...props} />)} />
+                        <Route path='/counter' component={Counter} />
                         <AuthorizeRoute path='/fetch-data/:startDateIndex?' component={FetchData} />
                         <AuthorizeRoute path='/conversation/:conversationId' render={(props: RouteComponentProps<any>) => (
                             <SignalRContainer>
