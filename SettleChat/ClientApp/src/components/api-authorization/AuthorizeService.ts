@@ -248,7 +248,6 @@ export class AuthorizeService<TState> {
         }
         finally {
             this.userManagerLock.release();
-            console.trace('userManager lock released');
         }
     }
 }
