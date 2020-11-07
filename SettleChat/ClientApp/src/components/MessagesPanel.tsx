@@ -1,6 +1,7 @@
 ﻿import * as React from 'react';
 import Messages from "./Messages"
-import MessageInput from "./MessageInput";
+import MessageInput from './MessageInput';
+import OthersWritingActivity from './OthersWritingActivity';
 import { RouteComponentProps } from 'react-router';
 import { connect } from 'react-redux';
 import { ThunkDispatch } from 'redux-thunk';
@@ -46,6 +47,7 @@ const MessagesPanel = (props: ConversationProps) => {
                 <ConversationDetail />
                 <UsersPanel />
                 <Messages />
+                <OthersWritingActivity />
                 <MessageInput />
             </React.Fragment>
         ) ||
