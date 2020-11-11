@@ -9,6 +9,7 @@ import { ApplicationState } from '../store/index';
 import * as ConversationStore from "../store/Conversation";
 import ConversationDetail from './ConversationDetail';
 import UsersPanel from './UsersPanel';
+import { Grid } from '@material-ui/core';
 
 type ConversationPropsStateType = {
     conversation: ConversationStore.ConversationState | undefined;
@@ -43,13 +44,23 @@ const MessagesPanel = (props: ConversationProps) => {
 
     return <React.Fragment>
         {(props.conversation &&
-            <React.Fragment>
-                <ConversationDetail />
-                <UsersPanel />
-                <Messages />
-                <OthersWritingActivity />
-                <MessageInput />
-            </React.Fragment>
+            <Grid container spacing={3}>
+                <Grid item xs={12}>
+                    <ConversationDetail />
+                </Grid>
+                <Grid item xs={2}>
+                    <UsersPanel />
+                </Grid>
+                <Grid container xs={10}>
+                    <Grid item xs={12}>
+                        <Messages />
+                    </Grid>
+                    <Grid item xs={12}>
+                        <OthersWritingActivity />
+                        <MessageInput />
+                    </Grid>
+                </Grid>
+            </Grid>
         ) ||
             (
                 <div>Conversation not loaded</div>
