@@ -3,6 +3,9 @@ import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from '../store/Conversation';
 import { User, UserStatus } from '../store/Conversation';
+import UserAvatarBadge from './UserAvatarBadge';
+import { makeStyles } from '@material-ui/core/styles';
+import { List, ListItem, ListItemAvatar, ListItemText, Divider, Badge } from '@material-ui/core';
 
 export interface UsersState {
     conversationId: string,
@@ -28,8 +31,18 @@ function WriteStatus(status: UserStatus): string {
     }
 }
 
+const useStyles = makeStyles((theme) => ({
+    root: {
+        width: '100%',
+        maxWidth: 360,
+        backgroundColor: theme.palette.background.paper,
+    }
+}));
+
 const Users = (props: UsersProps) => {
+    const classes = useStyles();
     const { conversationId, requestUsers } = props;
+
     React.useEffect(() => {
         if (conversationId) {
             requestUsers();
@@ -38,12 +51,21 @@ const Users = (props: UsersProps) => {
 
     return <React.Fragment>
         <h1>Users ({props.users.length})</h1>
-        <ul>{
-            (props.users as User[]).map(item =>
-                <li key={item.id}>({item.userName}: {WriteStatus(item.status)})</li>
-            )
-        }
-        </ul>
+        <List className={classes.root}>
+            {
+                (props.users as User[]).map((user, index) => (
+                    <React.Fragment key={user.id}>
+                        <ListItem alignItems="flex-start" key={user.id}>
+                            <ListItemAvatar>
+                                <UserAvatarBadge {...user} />
+                            </ListItemAvatar>
+                            <ListItemText primary={user.userName} secondary={WriteStatus(user.status)} />
+                        </ListItem>
+                        {index < props.users.length - 1 ? <Divider component="li" key={`${user.id}_divider`} /> : ''}
+                    </React.Fragment>)
+                )
+            }
+        </List>
     </React.Fragment>;
 }
 
