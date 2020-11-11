@@ -14,11 +14,13 @@ import PageNotFound from './components/PageNotFound';
 import * as Sentry from "@sentry/react";
 import ErrorBoundaryFallback from './components/ErrorBoundaryFallback';
 import SignalRContainer from './components/SignalRContainer';
+import CssBaseline from '@material-ui/core/CssBaseline';
 
 import './custom.css'
 
 export default () => (
     <React.Fragment>
+        <CssBaseline />
         <Switch>
             <Route path='/token/:token' component={Token} />
             <Route path={ApplicationPaths.ApiAuthorizationPrefix} component={ApiAuthorizationRoutes} />
