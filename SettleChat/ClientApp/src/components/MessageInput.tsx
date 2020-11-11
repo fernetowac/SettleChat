@@ -7,6 +7,7 @@ import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
 import { usePrevious } from '../hooks/usePrevious';
 import Button from '@material-ui/core/Button';
 import { Send } from '@material-ui/icons';
+import { TextField } from '@material-ui/core';
 
 const writingActivityNotificationThresholdMiliseconds = 10 * 1000;
 
@@ -45,6 +46,16 @@ function MessageInput(props: MapDispatchToPropsType) {
         }
     }
 
+    const inputMessageOnKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+        if (e.keyCode === 13 && !e.shiftKey) {
+            handleSubmit(e);
+        }
+        if (e.keyCode === 9) {
+            e.preventDefault();
+            setInputMessage(inputMessage + '\t');
+        }
+    }
+
     const inputMessageOnChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
         e.preventDefault();
         setInputMessage(e.target.value);
@@ -60,10 +71,7 @@ function MessageInput(props: MapDispatchToPropsType) {
         <React.Fragment>
             <form onSubmit={handleSubmit}>
                 <div>writing activity: {writingActivity.activity}</div>
-                <label>
-                    Message:
-                    <input type="text" value={inputMessage} onChange={inputMessageOnChange} />
-                </label>
+                <TextField type="text" value={inputMessage} onKeyDown={inputMessageOnKeyDown} onChange={inputMessageOnChange} multiline rowsMax={5} label="New message" variant="outlined" />
                 <Button type="submit" variant="contained" color="primary" size="small" startIcon={<Send />}>
                     Send
                 </Button>
