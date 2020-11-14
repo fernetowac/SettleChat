@@ -224,6 +224,15 @@ const unionArray = <TIdentifiable extends Identifiable>(primaryArray: TIdentifia
     return unionArray;
 }
 
+const createMessages = (response: MessagesResponseItem[]): Message[] => response.map(
+    (messageResponseItem) => ({
+        id: messageResponseItem.id,
+        text: messageResponseItem.text,
+        userId: messageResponseItem.userId,
+        created: new Date(messageResponseItem.created as string)
+    } as Message)
+);
+
 export type ConversationKnownAction = ConversationRequestAction | ConversationReceivedAction;
 export type MessageKnownAction = MessageAddAction | MessageAddedAction | MessagesRequestListAction | MessagesReceiveListAction;
 type UserKnownAction = UserAddAction | UserAddedAction | UsersRequestListAction | UsersReceivedListAction | ConversationUserStatusChanged;
@@ -282,22 +291,7 @@ export const actionCreators = {
                 if (beforeId) {
                     url += `&beforeId=${encodeURIComponent(beforeId)}`;
                 }
-                return fetchGet<Message[]>(url, dispatch, true,
-                    (responseStreamPromise: Promise<MessagesResponseItem[]>) => {
-                        return responseStreamPromise.then((response: MessagesResponseItem[]) => response.map(
-                            (x: MessagesResponseItem) => {
-                                if (!x.created) {
-                                    throw new Error(`Missing argument 'created'`);
-                                }
-                                return {
-                                    id: x.id,
-                                    text: x.text,
-                                    userId: x.userId,
-                                    created: new Date(x.created as string)
-                                } as Message;
-                            }
-                        ));
-                    }, messagesResponseSchema)
+                return fetchGet<Message[]>(url, dispatch, true, createMessages, messagesResponseSchema)
                     .then(data => {
                         dispatch({ type: 'MESSAGES_RECEIVE_LIST', messages: data });
                         return data;

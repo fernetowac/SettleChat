@@ -37,7 +37,7 @@ export const fetchExtended =
         httpMethod: HttpMethod = HttpMethod.Get,
         requestBody: any,
         attachBearerToken: boolean = true,
-        responseFactory?: ResponseFactoryType<TResult>,
+        transformResponse?: ResponseTransformationType<TResult>,
         responseSchema?: object): Promise<TResult> => {
 
         let bearerTokenHeader: { Authorization: string } | undefined = undefined;
@@ -66,8 +66,8 @@ export const fetchExtended =
                     if (isDevelopment && responseSchema) {
                         responseStreamPromise = validateSchemaAsync(responseStreamPromise, responseSchema);
                     }
-                    if (responseFactory) {
-                        return responseFactory(responseStreamPromise) as Promise<TResult>;
+                    if (transformResponse) {
+                        return responseStreamPromise.then(transformResponse);
                     }
                     return responseStreamPromise as Promise<TResult>;
                 } else {
@@ -76,15 +76,15 @@ export const fetchExtended =
                 }
             });
     };
-export type ResponseFactoryType<TResult> = (response: any) => Promise<TResult>;
+export type ResponseTransformationType<TResult> = (response: any) => TResult;
 
 export const fetchGet = async <TResult>(
     url: string,
     dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
     attachBearerToken: boolean = true,
-    responseFactory?: ResponseFactoryType<TResult>,
+    transformResponse?: ResponseTransformationType<TResult>,
     responseSchema?: object
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Get, undefined, attachBearerToken, responseFactory, responseSchema);
+): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Get, undefined, attachBearerToken, transformResponse, responseSchema);
 
 export const fetchPost = async <TResult>(
     url: string,
