@@ -63,7 +63,7 @@ function OthersWritingActivity(props: MessageInputPropsStateType) {
             setOthersWritingTimer(setInterval(() => resetUsersWritingIfNeeded(props.othersWriting), 500));
         }
         return () => {
-            console.debug('MessageInput useEffect[props.othersWriting,othersWriting] cleanup');
+            console.debug('OthersWritingActivity useEffect[props.othersWriting,othersWriting] cleanup');
             if (othersWritingTimer) {
                 window.clearTimeout(othersWritingTimer);
                 setOthersWritingTimer(undefined);
@@ -104,6 +104,7 @@ const mapStateToProps = (state: ApplicationState): MessageInputPropsStateType =>
     )
         (state.conversation.users);
     return {
+        //TODO: use memoized selectors (https://redux.js.org/recipes/computing-derived-data)
         othersWriting: state.conversation.writingActivities
             .filter(writingActivity =>
                 writingActivity.userId !== state.identity.userId
