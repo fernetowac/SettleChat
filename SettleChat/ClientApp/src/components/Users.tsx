@@ -5,7 +5,7 @@ import * as  ConversationStore from '../store/Conversation';
 import { User, UserStatus } from '../store/Conversation';
 import UserAvatarBadge from './UserAvatarBadge';
 import { makeStyles } from '@material-ui/core/styles';
-import { List, ListItem, ListItemAvatar, ListItemText, Divider, Badge } from '@material-ui/core';
+import { List, ListItem, ListItemAvatar, ListItemText, Divider } from '@material-ui/core';
 
 export interface UsersState {
     conversationId: string,
@@ -34,7 +34,6 @@ function WriteStatus(status: UserStatus): string {
 const useStyles = makeStyles((theme) => ({
     root: {
         width: '100%',
-        maxWidth: 360,
         backgroundColor: theme.palette.background.paper,
     }
 }));
@@ -59,7 +58,11 @@ const Users = (props: UsersProps) => {
                             <ListItemAvatar>
                                 <UserAvatarBadge {...user} />
                             </ListItemAvatar>
-                            <ListItemText primary={user.userName} secondary={WriteStatus(user.status)} />
+                            <ListItemText
+                                primary={user.userName}
+                                secondary={WriteStatus(user.status)}
+                                primaryTypographyProps={{ noWrap: true }}
+                            />
                         </ListItem>
                         {index < props.users.length - 1 ? <Divider component="li" key={`${user.id}_divider`} /> : ''}
                     </React.Fragment>)
