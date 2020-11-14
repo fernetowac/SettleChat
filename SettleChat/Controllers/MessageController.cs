@@ -58,16 +58,32 @@ namespace SettleChat.Controllers
 
         [HttpGet("/api/conversations/{conversationId}/messages")]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
-        public async Task<ActionResult<MessageModel[]>> List(Guid conversationId)
+        public async Task<ActionResult<MessageModel[]>> List(Guid conversationId, Guid? beforeId, int amount = 30)
         {
-            return await _context.Messages
-                .Where(x => x.Conversation.Id == conversationId)
+            var messageQuery = _context.Messages
+                .Where(x => x.Conversation.Id == conversationId);
+            if (beforeId.HasValue)
+            {
+                var mustBeBeforeDate = _context.Messages.Where(x => x.Conversation.Id == conversationId && x.Id == beforeId).Select(x => x.Created).SingleOrDefault();
+                if (mustBeBeforeDate == default(DateTime))
+                {
+                    //TODO: handle model error nicely
+                    throw new ArgumentException($"{nameof(beforeId)} does not exist");
+                }
+
+                messageQuery = messageQuery.Where(x => x.Created < mustBeBeforeDate);
+            }
+            var messages = await messageQuery
+                .OrderByDescending(x => x.Created)
+                .Take(amount)
                 .Select(x => new MessageModel
                 {
                     Id = x.Id,
                     Text = x.Text,
-                    UserId = x.Author.Id
+                    UserId = x.Author.Id,
+                    Created = x.Created
                 }).ToArrayAsync();
+            return messages;
         }
 
         // To protect from overposting attacks, enable the specific properties you want to bind to, for

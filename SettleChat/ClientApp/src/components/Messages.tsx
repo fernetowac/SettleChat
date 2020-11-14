@@ -1,9 +1,11 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
+import { createSelector } from 'reselect';
+import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
 import UserAvatar from './UserAvatar';
-import { List, ListItem, ListItemAvatar, ListItemText, Tooltip } from '@material-ui/core';
+import { List, ListItem, ListItemAvatar, ListItemText, Tooltip, Button } from '@material-ui/core';
 import { makeStyles, Theme, createStyles } from '@material-ui/core/styles';
 
 export interface MessagesState {
@@ -15,7 +17,7 @@ export interface MessagesState {
 // At runtime, Redux will merge together...
 type MessagesProps =
     MessagesState // ... state we've requested from the Redux store
-    & typeof ConversationStore.actionCreators; // ... plus action creators we've requested
+    & MapDispatchToPropsType;
 //& RouteComponentProps<{ startDateIndex: string }>; // ... plus incoming routing parameters
 
 const useStyles = makeStyles((theme: Theme) => createStyles({
@@ -46,14 +48,34 @@ const useStyles = makeStyles((theme: Theme) => createStyles({
 }));
 
 const Messages = (props: MessagesProps) => {
+    const [loadMoreButtonEnabled, setLoadMoreButtonActive] = React.useState(true);
+
     const classes = useStyles();
     const userNameById = new Map<string, string>();
     props.users.forEach((user) => {
         userNameById.set(user.id, user.userName);
     });
 
+    const getOldestMessage = (messages: ConversationStore.Message[]): ConversationStore.Message => {
+        let oldestMessage = props.messages[0];
+        for (var i = 1; i < props.messages.length; i++) {
+            if (oldestMessage.created > props.messages[i].created) {
+                oldestMessage = props.messages[i];
+            }
+        }
+        return oldestMessage;
+    }
+
+    const onLoadMoreClicked = () => {
+        const oldestMessage = getOldestMessage(props.messages);
+        setLoadMoreButtonActive(false);
+        props.actions.requestMessages(oldestMessage.id, 2)
+            .then(messages => setLoadMoreButtonActive(true));
+    }
+
     return <React.Fragment>
         <h1>Messages ({props.messages.length})</h1>
+        <Button variant="contained" onClick={onLoadMoreClicked} disabled={!loadMoreButtonEnabled}>Load more</Button>
         <List className={classes.root}>{
             (props.messages as ConversationStore.Message[]).map(item => {
                 var userName = userNameById.get(item.userId) || 'Loading..';
@@ -81,15 +103,46 @@ const Messages = (props: MessagesProps) => {
     </React.Fragment>;
 }
 
+const messageCompareByCreatedAsc = (a: ConversationStore.Message, b: ConversationStore.Message): number => {
+    if (a.created < b.created) {
+        return -1;
+    }
+    else if (a.created > b.created) {
+        return 1;
+    }
+    return 0;
+}
+
+const getMessages = (state: ApplicationState): ConversationStore.Message[] => (state.conversation === undefined ? undefined : state.conversation.messages) || [];
+const getSortedMessages = (messages: ConversationStore.Message[]): ConversationStore.Message[] => messages.sort(messageCompareByCreatedAsc);
+
+/**
+ * Memoized sorting of messages
+ */
+const sortedMessagesSelector = createSelector([getMessages], getSortedMessages);
+
+type MapDispatchToPropsType = {
+    actions: {
+        requestMessages: (beforeId?: string, amount?: number) => Promise<ConversationStore.Message[] | void>;
+    }
+};
+const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.ConversationKnownAction>): MapDispatchToPropsType => ({
+    actions: {
+        requestMessages: (beforeId?: string, amount: number = 30) => dispatch(ConversationStore.actionCreators.requestMessages(beforeId, amount)),
+    }
+});
+
+const mapStateToProps = (state: ApplicationState): MessagesState => {
+    return {
+        messages: sortedMessagesSelector(state),
+        users: state.conversation && state.conversation.users ? state.conversation.users : [],
+        me: {
+            userId: state.identity.userId
+        }
+    } as MessagesState;
+}
+
 export default connect(
-    (state: ApplicationState): MessagesState => {
-        return {
-            messages: ((state.conversation === undefined ? undefined : state.conversation.messages) || []),
-            users: state.conversation && state.conversation.users ? state.conversation.users : [],
-            me: {
-                userId: state.identity.userId
-            }
-        } as MessagesState;
-    },
-    ConversationStore.actionCreators
+    mapStateToProps,
+    mapDispatchToProps
 )(Messages as any);

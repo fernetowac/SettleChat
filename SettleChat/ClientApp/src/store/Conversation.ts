@@ -6,6 +6,10 @@ import { IdentityChangedAction } from './Identity';
 import { fetchGet, fetchPost, fetchPut, fetchDelete } from '../services/FetchService';
 import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
 
+interface Identifiable {
+    id: string | undefined;//TODO: we should get rid of undefined
+}
+
 export interface ConversationState {
     conversation: ConversationDetail | null;
     messages: Message[];
@@ -19,16 +23,25 @@ export interface ConversationDetail {
     title: string;
 }
 
-export interface Message {
+export interface Message extends Identifiable {
     id: string | undefined;
     text: string;
     userId: string;
+    created: Date;
+}
+
+interface MessagesResponseItem {
+    id: string;
+    text: string;
+    userId: string;
+    created: string;
 }
 
 export interface MessageCreateResponse {
     id: string;
     text: string;
     userId: string;
+    created: Date;
 }
 
 export interface User {
@@ -95,6 +108,8 @@ export interface MessageAddedAction {
 
 export interface MessagesRequestListAction {
     type: 'MESSAGES_REQUEST_LIST';
+    beforeId?: string;
+    amount?: number;
 }
 
 export interface MessagesReceiveListAction {
@@ -158,6 +173,57 @@ export interface ReceivedWritingActivityStateItem {
     lastChange: Date;
 }
 
+const messagesResponseSchema = {
+    "$id": "https://example.com/person.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MessagesResponse",
+    "type": "array",
+    "items": {
+        "$ref": "#/definitions/MessageResponseItem"
+    },
+    "definitions": {
+        "MessageResponseItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            },
+            "required": [
+                "id",
+                "text",
+                "userId",
+                "created"
+            ],
+            "additionalProperties": false
+        }
+    }
+};
+
+const unionArray = <TIdentifiable extends Identifiable>(primaryArray: TIdentifiable[], secondaryArray: TIdentifiable[]) => {
+    const mergedArray = [...primaryArray, ...secondaryArray];
+    // mergedArray have duplicates, lets remove the duplicates using Set
+    let set = new Set();
+    let unionArray = mergedArray.filter(item => {
+        if (!set.has(item.id)) {
+            set.add(item.id);
+            return true;
+        }
+        return false;
+    }, set);
+    return unionArray;
+}
+
 export type ConversationKnownAction = ConversationRequestAction | ConversationReceivedAction;
 export type MessageKnownAction = MessageAddAction | MessageAddedAction | MessagesRequestListAction | MessagesReceiveListAction;
 type UserKnownAction = UserAddAction | UserAddedAction | UsersRequestListAction | UsersReceivedListAction | ConversationUserStatusChanged;
@@ -199,31 +265,42 @@ export const actionCreators = {
                     return data;
                 });
         },
-    requestMessages: (): ThunkAction<Promise<Message[] | void>, ApplicationState, undefined, MessageKnownAction> =>//AppThunkAction<MessageKnownAction, void> =>
+    /**
+     * Retrieve messages from backend
+     * @param beforeId ID of message based on which only older messages will be retrieved
+     * @param amount Maximal number of messages to retrieve.
+     * @returns {} 
+     */
+    requestMessages: (beforeId?: string, amount: number = 30): ThunkAction<Promise<Message[] | void>, ApplicationState, undefined, MessageKnownAction> =>//AppThunkAction<MessageKnownAction, void> =>
         (dispatch, getState) => {
             // Only load data if it's something we don't already have (and are not already loading)
             const appState = getState();
             if (appState && appState.conversation && appState.conversation.conversation) {
-                dispatch({ type: 'MESSAGES_REQUEST_LIST' });
+                dispatch({ type: 'MESSAGES_REQUEST_LIST', beforeId: beforeId, amount: amount });
                 const conversationId = appState.conversation.conversation.id;
-                return authService.getAccessToken()
-                    .then(token => {
-                        //TODO: handle unauthorized when !token
-                        return fetch(`/api/conversations/${conversationId}/messages`,
-                            {
-                                cache: "no-cache",
-                                headers: {
-                                    'Accept': 'application/json',
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${token}`
+                let url = `/api/conversations/${conversationId}/messages?amount=${amount}`;
+                if (beforeId) {
+                    url += `&beforeId=${encodeURIComponent(beforeId)}`;
+                }
+                return fetchGet<Message[]>(url, dispatch, true,
+                    (responseStreamPromise: Promise<MessagesResponseItem[]>) => {
+                        return responseStreamPromise.then((response: MessagesResponseItem[]) => response.map(
+                            (x: MessagesResponseItem) => {
+                                if (!x.created) {
+                                    throw new Error(`Missing argument 'created'`);
                                 }
-                            })
-                            .then(response => response.json() as Promise<Message[]>)
-                            .then(data => {
-                                dispatch({ type: 'MESSAGES_RECEIVE_LIST', messages: data });
-                                return data;
-                            })
-                            .catch(error => console.error(error.message));
+                                return {
+                                    id: x.id,
+                                    text: x.text,
+                                    userId: x.userId,
+                                    created: new Date(x.created as string)
+                                } as Message;
+                            }
+                        ));
+                    }, messagesResponseSchema)
+                    .then(data => {
+                        dispatch({ type: 'MESSAGES_RECEIVE_LIST', messages: data });
+                        return data;
                     });
             } else {
                 return Promise.reject('appState or its conversation is undefined');
@@ -241,14 +318,14 @@ export const actionCreators = {
             if (!appState.conversation || !appState.conversation.conversation) {
                 return Promise.reject('conversation not in store');
             }
-            const messageInput = { userId: appState.identity.userId, text: text } as Message;
+            const messageInput = { userId: appState.identity.userId, text: text, created: new Date() } as Message;//TODO: no need to send userId and date created, as backend can figure it out
             dispatch({ type: 'MESSAGE_ADD', newMessage: messageInput });
             const conversationId = appState.conversation.conversation.id;
             return fetchPost<MessageCreateResponse>(`/api/conversations/${conversationId}/messages`,
                 messageInput,
                 dispatch)
                 .then(data => {
-                    dispatch({ type: 'MESSAGE_ADDED', message: data });
+                    dispatch({ type: 'MESSAGE_ADDED', message: { ...data, created: (new Date(data.created) as Date) } });
                     return data;
                 });
         },
@@ -331,16 +408,12 @@ export const conversationReducer: Reducer<ConversationDetail | null> = (state: C
 }
 
 export const messagesReducer: Reducer<Message[]> = (state1: Message[] | undefined, incomingAction: Action): Message[] => {
+    // Note that items in state are not sorted. UI component manages sorting instead.
     let state: Message[] = state1 || [];
 
     const action = incomingAction as MessageKnownAction | IdentityChangedAction;
 
     switch (action.type) {
-        case 'MESSAGE_ADD':
-            return [
-                ...state/*,
-                ...action.newMessage*/
-            ];
         case 'MESSAGE_ADDED':
             // don't change state, when the message already exists in the state
             const existingMessage = state.find(x => x.id === action.message.id);
@@ -356,19 +429,16 @@ export const messagesReducer: Reducer<Message[]> = (state1: Message[] | undefine
                 {
                     id: action.message.id,
                     text: action.message.text,
-                    userId: action.message.userId
+                    userId: action.message.userId,
+                    created: action.message.created
                 }
             ];
         case 'MESSAGES_RECEIVE_LIST':
-            return [
-                ...action.messages
-            ];
-        case 'MESSAGES_REQUEST_LIST':
-            return [
-                ...state
-            ];
-        case 'IDENTITY_CHANGED':
+            return [...unionArray<Message>(action.messages, state)];
+        case 'IDENTITY_CHANGED'://TODO: clearing list of messages should be maybe called from component. Store should not be aware of logic when user identity is changed.
             return [];
+        case 'MESSAGE_ADD':
+        case 'MESSAGES_REQUEST_LIST':
         default:
             return state;
     };

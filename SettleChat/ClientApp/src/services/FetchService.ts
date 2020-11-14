@@ -1,6 +1,9 @@
 ﻿import authService from '../components/api-authorization/AuthorizeService';
 import { ThunkDispatch } from 'redux-thunk';
 import * as HttpStatusActions from '../actions/HttpStatusActions';
+import { isDevelopment } from '../helpers/development/DevDetect';
+//import  Ajv  from 'ajv';
+var ajv: any;
 
 export enum HttpMethod {
     Get = 'GET',
@@ -9,12 +12,33 @@ export enum HttpMethod {
     Delete = 'DELETE'
 }
 
+const validateSchemaAsync = async <TResponse>(responsePromise: Promise<TResponse>, responseSchema: object): Promise<TResponse> => {
+    // dynamically import ajv (json schema validation https://github.com/ajv-validator/ajv/tree/v6) module if needed
+    if (!ajv) {
+        console.debug("start importingModule", 'ajv');
+        var Ajv: any = await import('ajv');
+        console.debug("completed importingModule", 'ajv');
+        ajv = new Ajv.default({ allErrors: true });
+    }
+
+    return responsePromise.then(response => {
+        const validate = ajv.compile(responseSchema);
+        const valid = validate(response);
+        if (!valid) {
+            console.error(validate.errors, JSON.stringify(response), JSON.stringify(responseSchema));
+        }
+        return response;
+    });
+}
+
 export const fetchExtended =
     async <TResult>(url: string,
         dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
         httpMethod: HttpMethod = HttpMethod.Get,
         requestBody: any,
-        attachBearerToken: boolean = true): Promise<TResult> => {
+        attachBearerToken: boolean = true,
+        responseFactory?: ResponseFactoryType<TResult>,
+        responseSchema?: object): Promise<TResult> => {
 
         let bearerTokenHeader: { Authorization: string } | undefined = undefined;
         if (attachBearerToken) {
@@ -36,21 +60,31 @@ export const fetchExtended =
                 },
                 body: JSON.stringify(requestBody)
             })
-            .then(response => {
+            .then(async response => {
                 if (response.status === 200) {
-                    return response.json() as Promise<TResult>;
+                    let responseStreamPromise = response.json();
+                    if (isDevelopment && responseSchema) {
+                        responseStreamPromise = validateSchemaAsync(responseStreamPromise, responseSchema);
+                    }
+                    if (responseFactory) {
+                        return responseFactory(responseStreamPromise) as Promise<TResult>;
+                    }
+                    return responseStreamPromise as Promise<TResult>;
                 } else {
                     dispatch(HttpStatusActions.actionCreators.httpFailStatusReceivedAction(response.status, null));//TODO: handle HTTP_FAIL_STATUS_RECEIVED in a new reducer
                     return Promise.reject(`HttpStatus ${response.status}`);
                 }
             });
     };
+export type ResponseFactoryType<TResult> = (response: any) => Promise<TResult>;
 
 export const fetchGet = async <TResult>(
     url: string,
     dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
-    attachBearerToken: boolean = true
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Get, undefined, attachBearerToken);
+    attachBearerToken: boolean = true,
+    responseFactory?: ResponseFactoryType<TResult>,
+    responseSchema?: object
+): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Get, undefined, attachBearerToken, responseFactory, responseSchema);
 
 export const fetchPost = async <TResult>(
     url: string,

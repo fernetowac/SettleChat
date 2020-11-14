@@ -45,19 +45,21 @@ const MessagesPanel = (props: ConversationProps) => {
     return <React.Fragment>
         {(props.conversation &&
             <Grid container spacing={3}>
-                <Grid item xs={12}>
-                    <ConversationDetail />
-                </Grid>
-                <Grid item xs={2}>
+                <Grid item xs={3}>
                     <UsersPanel />
                 </Grid>
-                <Grid container xs={10}>
-                    <Grid item xs={12}>
-                        <Messages />
-                    </Grid>
-                    <Grid item xs={12}>
-                        <OthersWritingActivity />
-                        <MessageInput />
+                <Grid item xs={9}>
+                    <Grid container>
+                        <Grid item xs={12}>
+                            <ConversationDetail />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Messages />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <OthersWritingActivity />
+                            <MessageInput />
+                        </Grid>
                     </Grid>
                 </Grid>
             </Grid>
@@ -81,7 +83,7 @@ const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined,
     actions: {
         requestConversation: (conversationId: string) => dispatch(
             ConversationStore.actionCreators.requestConversation1(conversationId)),
-        requestMessages: () => dispatch(ConversationStore.actionCreators.requestMessages()),
+        requestMessages: () => dispatch(ConversationStore.actionCreators.requestMessages(undefined, 2)),
         requestUsers: () => dispatch(ConversationStore.actionCreators.requestUsers()),
         startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation(connectionId, conversationId)),
         stopListeningConversation: async (connectionId: string, conversationId: string) => await dispatch(ConversationStore.actionCreators.stopListeningConversation(connectionId, conversationId))
