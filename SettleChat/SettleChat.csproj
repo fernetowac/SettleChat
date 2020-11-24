@@ -42,13 +42,6 @@
     <TypeScriptCompile Include="$(SpaRoot)**\*.tsx" />
   </ItemGroup>
   <ItemGroup>
-    <None Remove="ClientApp\src\actions\HttpStatusActions.ts" />
-    <None Remove="ClientApp\src\actions\SignalRActions.ts" />
-    <None Remove="ClientApp\src\components\SignalRContainer.tsx" />
-    <None Remove="ClientApp\src\hooks\usePrevious.ts" />
-    <None Remove="ClientApp\src\middlewares\ConversationMiddleware.ts" />
-    <None Remove="ClientApp\src\services\FetchService.ts" />
-    <None Remove="ClientApp\src\store\SignalR.ts" />
     <None Remove="ClientApp\tsconfig.json" />
   </ItemGroup>
   <ItemGroup>
