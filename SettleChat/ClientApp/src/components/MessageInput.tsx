@@ -71,10 +71,7 @@ function MessageInput(props: MapDispatchToPropsType) {
         <React.Fragment>
             <form onSubmit={handleSubmit}>
                 <div>writing activity: {writingActivity.activity}</div>
-                <TextField type="text" value={inputMessage} onKeyDown={inputMessageOnKeyDown} onChange={inputMessageOnChange} multiline rowsMax={5} label="New message" variant="outlined" />
-                <Button type="submit" variant="contained" color="primary" size="small" startIcon={<Send />}>
-                    Send
-                </Button>
+                <TextField type="text" value={inputMessage} onKeyDown={inputMessageOnKeyDown} onChange={inputMessageOnChange} multiline rowsMax={5} label="New message" variant="outlined" fullWidth />
             </form>
         </React.Fragment>
     );
