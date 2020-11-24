@@ -20,7 +20,8 @@ class UserAvatar extends React.PureComponent<UserAvatarProps> {
     };
 
     render() {
-        return <Avatar alt={this.props.userName}>{this.getInitials(this.props.userName)}</Avatar>;
+        const { userName, ...otherProps } = this.props;
+        return <Avatar {...otherProps} alt={userName}>{this.getInitials(userName)}</Avatar>;
     }
 };
 

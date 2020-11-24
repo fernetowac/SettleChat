@@ -24,39 +24,41 @@ type ConversationProps =
     & RouteComponentProps<{ conversationId: string }>; // ... plus incoming routing parameters
 
 const MessagesPanel = (props: ConversationProps) => {
-    const { requestConversation, requestMessages, requestUsers, startListeningConversation, stopListeningConversation } = props.actions;
+    const { requestConversation, requestUsers, startListeningConversation, stopListeningConversation } = props.actions;
     const { connectionId, reconnected } = props;
     const { conversationId } = props.match.params;
 
     React.useEffect(() => {
         requestConversation(conversationId)
-            .then(() => requestMessages())
             .then(() => requestUsers()) //TODO: when user is connected, we need to update his UserStatus in users list somehow
             .catch(x => console.error(`MessagesPanel catch alert ${x}`));
-    }, [requestConversation, requestMessages, requestUsers, conversationId]);
+    }, [requestConversation, requestUsers, conversationId]);
 
     React.useEffect(() => {
         // It is always needed to restart listening to conversation when there's new connectionId (even when only reconnected), because new connectionId might be issued also due to server restart
         startListeningConversation(connectionId, conversationId)
             .catch(x => console.error(`MessagesPanel catch alert ${x}`));
-        return () => stopListeningConversation(connectionId, conversationId);
+        return () => {
+            // cleanup
+            stopListeningConversation(connectionId, conversationId);
+        };
     }, [startListeningConversation, stopListeningConversation, connectionId, reconnected, conversationId]);
 
     return <React.Fragment>
         {(props.conversation &&
-            <Grid container spacing={3}>
+            <Grid container spacing={3} direction="row" style={{ height: 'calc(100% - 73px)' }}>
                 <Grid item xs={3}>
                     <UsersPanel />
                 </Grid>
-                <Grid item xs={9}>
-                    <Grid container>
-                        <Grid item xs={12}>
+                <Grid item xs={9} style={{ display: 'flex', height: '100%' }}>
+                    <Grid container direction="column" style={{ height: '100%' }}>
+                        <Grid item xs={12} style={{ flexBasis: '48px' }}>
                             <ConversationDetail />
                         </Grid>
-                        <Grid item xs={12}>
-                            <Messages />
+                        <Grid item xs={12} style={{ overflow: 'auto', display: 'flex', flexDirection: 'column', flexBasis: 'unset', height: 'calc(100% - 156px)' }}>
+                            <Messages conversationId={conversationId} />
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid item xs={12} style={{ flexBasis: '100px' }}>
                             <OthersWritingActivity />
                             <MessageInput />
                         </Grid>
@@ -67,26 +69,26 @@ const MessagesPanel = (props: ConversationProps) => {
             (
                 <div>Conversation not loaded</div>
             )}
-    </React.Fragment>;
+    </React.Fragment >;
 }
 
 type MapDispatchToPropsType = {
     actions: {
         requestConversation: (conversationId: string) => Promise<ConversationStore.ConversationDetail | never>;
-        requestMessages: () => Promise<ConversationStore.Message[] | void>;
         requestUsers: () => Promise<ConversationStore.User[] | void>;
         startListeningConversation: (connectionId: string, conversationId: string) => Promise<void>;
-        stopListeningConversation: (connectionId: string, conversationId: string) => void;
+        stopListeningConversation: (connectionId: string, conversationId: string) => Promise<void>;
+        enableLoadingMoreMessages: () => void;
     }
 };
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.ConversationKnownAction>): MapDispatchToPropsType => ({
+const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.KnownAction>): MapDispatchToPropsType => ({
     actions: {
         requestConversation: (conversationId: string) => dispatch(
             ConversationStore.actionCreators.requestConversation1(conversationId)),
-        requestMessages: () => dispatch(ConversationStore.actionCreators.requestMessages(undefined, 2)),
         requestUsers: () => dispatch(ConversationStore.actionCreators.requestUsers()),
         startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation(connectionId, conversationId)),
-        stopListeningConversation: async (connectionId: string, conversationId: string) => await dispatch(ConversationStore.actionCreators.stopListeningConversation(connectionId, conversationId))
+        stopListeningConversation: async (connectionId: string, conversationId: string) => await dispatch(ConversationStore.actionCreators.stopListeningConversation(connectionId, conversationId)),
+        enableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.enableLoadingMoreMessages()),
     }
 });
 

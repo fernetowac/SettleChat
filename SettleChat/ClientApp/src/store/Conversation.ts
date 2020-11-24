@@ -136,13 +136,23 @@ export interface UserAddedAction {
     user: User;
 }
 
+export interface ConversationUiDisableLoadingMoreMessages {
+    type: 'CONVERSATION_UI_DISABLE_LOADING_MORE_MESSAGES';
+}
+
+export interface ConversationUiEnableLoadingMoreMessages {
+    type: 'CONVERSATION_UI_ENABLE_LOADING_MORE_MESSAGES';
+}
+
 
 interface Ui {
-    isConversationLoading: boolean
+    isConversationLoading: boolean;
+    canLoadMoreMessages: boolean;
 }
 
 const initialUi: Ui = {
-    isConversationLoading: false
+    isConversationLoading: false,
+    canLoadMoreMessages: false
 };
 
 export interface WritingActivityData {
@@ -236,7 +246,8 @@ const createMessages = (response: MessagesResponseItem[]): Message[] => response
 export type ConversationKnownAction = ConversationRequestAction | ConversationReceivedAction;
 export type MessageKnownAction = MessageAddAction | MessageAddedAction | MessagesRequestListAction | MessagesReceiveListAction;
 type UserKnownAction = UserAddAction | UserAddedAction | UsersRequestListAction | UsersReceivedListAction | ConversationUserStatusChanged;
-type KnownAction = ConversationKnownAction | MessageKnownAction;
+export type UiKnownAction = ConversationUiEnableLoadingMoreMessages | ConversationUiDisableLoadingMoreMessages;
+export type KnownAction = ConversationKnownAction | MessageKnownAction | UiKnownAction;
 
 export const actionCreators = {
     messageAdded(message: MessageCreateResponse): MessageAddedAction {
@@ -274,31 +285,35 @@ export const actionCreators = {
                     return data;
                 });
         },
+    enableLoadingMoreMessages(): ConversationUiEnableLoadingMoreMessages {
+        return {
+            type: 'CONVERSATION_UI_ENABLE_LOADING_MORE_MESSAGES'
+        }
+    },
+    disableLoadingMoreMessages(): ConversationUiDisableLoadingMoreMessages {
+        return {
+            type: 'CONVERSATION_UI_DISABLE_LOADING_MORE_MESSAGES'
+        }
+    },
     /**
      * Retrieve messages from backend
      * @param beforeId ID of message based on which only older messages will be retrieved
      * @param amount Maximal number of messages to retrieve.
      * @returns {} 
      */
-    requestMessages: (beforeId?: string, amount: number = 30): ThunkAction<Promise<Message[] | void>, ApplicationState, undefined, MessageKnownAction> =>//AppThunkAction<MessageKnownAction, void> =>
+    requestMessages: (conversationId: string, beforeId?: string, amount: number = 30): ThunkAction<Promise<Message[]>, ApplicationState, undefined, MessageKnownAction> =>//AppThunkAction<MessageKnownAction, void> =>
         (dispatch, getState) => {
             // Only load data if it's something we don't already have (and are not already loading)
-            const appState = getState();
-            if (appState && appState.conversation && appState.conversation.conversation) {
-                dispatch({ type: 'MESSAGES_REQUEST_LIST', beforeId: beforeId, amount: amount });
-                const conversationId = appState.conversation.conversation.id;
-                let url = `/api/conversations/${conversationId}/messages?amount=${amount}`;
-                if (beforeId) {
-                    url += `&beforeId=${encodeURIComponent(beforeId)}`;
-                }
-                return fetchGet<Message[]>(url, dispatch, true, createMessages, messagesResponseSchema)
-                    .then(data => {
-                        dispatch({ type: 'MESSAGES_RECEIVE_LIST', messages: data });
-                        return data;
-                    });
-            } else {
-                return Promise.reject('appState or its conversation is undefined');
+            dispatch({ type: 'MESSAGES_REQUEST_LIST', beforeId: beforeId, amount: amount });
+            let url = `/api/conversations/${conversationId}/messages?amount=${amount}`;
+            if (beforeId) {
+                url += `&beforeId=${encodeURIComponent(beforeId)}`;
             }
+            return fetchGet<Message[]>(url, dispatch, true, createMessages, messagesResponseSchema)
+                .then(data => {//TODO: we should handle here either only messages of current conversation (and prevent storing messages of unloaded conversation) or messages for all conversations (preferred).
+                    dispatch({ type: 'MESSAGES_RECEIVE_LIST', messages: data });
+                    return data;
+                });
         },
     addMessage: (text: string): ThunkAction<Promise<MessageCreateResponse>, ApplicationState, undefined, MessageKnownAction | HttpFailStatusReceivedAction> =>
         (dispatch, getState) => {
@@ -319,7 +334,7 @@ export const actionCreators = {
                 messageInput,
                 dispatch)
                 .then(data => {
-                    dispatch({ type: 'MESSAGE_ADDED', message: { ...data, created: (new Date(data.created) as Date) } });
+                    dispatch(actionCreators.messageAdded({ ...data, created: (new Date(data.created) as Date) }));
                     return data;
                 });
         },
@@ -419,7 +434,7 @@ export const messagesReducer: Reducer<Message[]> = (state1: Message[] | undefine
             }
 
             return [
-                ...state, //TODO: handle read/sent flags
+                ...state.filter(x => x.id !== action.message.id), //TODO: handle read/sent flags
                 {
                     id: action.message.id,
                     text: action.message.text,
@@ -485,6 +500,16 @@ const uiReducer: Reducer<Ui> = (state: Ui = initialUi, action: Action): Ui => {
             return {
                 ...state,
                 isConversationLoading: false
+            };
+        case 'CONVERSATION_UI_DISABLE_LOADING_MORE_MESSAGES':
+            return {
+                ...state,
+                canLoadMoreMessages: false
+            };
+        case 'CONVERSATION_UI_ENABLE_LOADING_MORE_MESSAGES':
+            return {
+                ...state,
+                canLoadMoreMessages: true
             };
         default:
             return state;

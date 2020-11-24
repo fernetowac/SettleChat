@@ -5,20 +5,26 @@ import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
 import UserAvatar from './UserAvatar';
-import { List, ListItem, ListItemAvatar, ListItemText, Tooltip, Button } from '@material-ui/core';
+import { ListItem, ListItemAvatar, ListItemText, Tooltip, Button } from '@material-ui/core';
 import { makeStyles, Theme, createStyles } from '@material-ui/core/styles';
+import { ListWithScrollDownButton } from './ListWithScrollDownButton';
 
 export interface MessagesState {
     messages: ConversationStore.Message[];
     users: ConversationStore.User[];
-    me: { userId: string };
+    me: {
+        userId: string
+    };
+    ui: {
+        canLoadMoreMessages: boolean
+    };
+    conversationId: string;
 }
 
 // At runtime, Redux will merge together...
 type MessagesProps =
     MessagesState // ... state we've requested from the Redux store
     & MapDispatchToPropsType;
-//& RouteComponentProps<{ startDateIndex: string }>; // ... plus incoming routing parameters
 
 const useStyles = makeStyles((theme: Theme) => createStyles({
     root: {
@@ -26,19 +32,19 @@ const useStyles = makeStyles((theme: Theme) => createStyles({
         //maxWidth: 360,
         backgroundColor: theme.palette.background.paper,
         position: 'relative',
-        overflow: 'auto',
-        maxHeight: 300,
+        overflow: 'auto'
     },
-    listItemTextLeft: {
-        backgroundImage: 'linear-gradient(135deg,#ffffff 10%,#f0f0f3)!important',
+    listItemTextRight: {
+        backgroundColor: '#696969',
+        color: '#fff',
         'box-shadow': '0 0.46875rem 2.1875rem rgba(59,62,102,.03), 0 0.9375rem 1.40625rem rgba(59,62,102,.03), 0 0.25rem 0.53125rem rgba(59,62,102,.05), 0 0.125rem 0.1875rem rgba(59,62,102,.03)',
         'border-radius': '0.2rem 1.3rem 1.3rem 1.3rem',
         padding: '9px 21px',
         margin: '0 5px 0 0',
         'white-space': 'pre-wrap'
     },
-    listItemTextRight: {
-        backgroundImage: 'linear-gradient(135deg,#f0f0f3 10%,#ffffff)!important',
+    listItemTextLeft: {
+        backgroundColor: '#b1b1b1',
         'box-shadow': '0 0.46875rem 2.1875rem rgba(59,62,102,.03), 0 0.9375rem 1.40625rem rgba(59,62,102,.03), 0 0.25rem 0.53125rem rgba(59,62,102,.05), 0 0.125rem 0.1875rem rgba(59,62,102,.03)',
         'border-radius': '1.3rem 0.2rem 1.3rem 1.3rem',
         padding: '9px 21px',
@@ -47,8 +53,24 @@ const useStyles = makeStyles((theme: Theme) => createStyles({
     }
 }));
 
+export interface GetTriggerOptions<TTarget extends HTMLElement | Window> {
+    disableHysteresis?: boolean;
+    target: TTarget;
+    threshold?: number;
+}
+
+export interface UseScrollTriggerOptions<TTarget extends HTMLElement | Window> {
+    disableHysteresis?: boolean;
+    target?: TTarget;
+    threshold?: number;
+    getTrigger?: (store: React.MutableRefObject<any>, options: GetTriggerOptions<TTarget>, threshold?: number) => boolean;
+}
+
 const Messages = (props: MessagesProps) => {
+    const { requestMessages, enableLoadingMoreMessages, disableLoadingMoreMessages } = props.actions;
+    const { conversationId } = props;
     const [loadMoreButtonEnabled, setLoadMoreButtonActive] = React.useState(true);
+    const [isLoading, setIsLoading] = React.useState(true);
 
     const classes = useStyles();
     const userNameById = new Map<string, string>();
@@ -56,11 +78,14 @@ const Messages = (props: MessagesProps) => {
         userNameById.set(user.id, user.userName);
     });
 
-    const getOldestMessage = (messages: ConversationStore.Message[]): ConversationStore.Message => {
-        let oldestMessage = props.messages[0];
-        for (var i = 1; i < props.messages.length; i++) {
-            if (oldestMessage.created > props.messages[i].created) {
-                oldestMessage = props.messages[i];
+    const getOldestMessage = (messages: ConversationStore.Message[]): ConversationStore.Message | undefined => {
+        if (messages.length === 0) {
+            return undefined;
+        }
+        let oldestMessage = messages[0];
+        for (var i = 1; i < messages.length; i++) {
+            if (oldestMessage.created > messages[i].created) {
+                oldestMessage = messages[i];
             }
         }
         return oldestMessage;
@@ -69,37 +94,78 @@ const Messages = (props: MessagesProps) => {
     const onLoadMoreClicked = () => {
         const oldestMessage = getOldestMessage(props.messages);
         setLoadMoreButtonActive(false);
-        props.actions.requestMessages(oldestMessage.id, 2)
-            .then(messages => setLoadMoreButtonActive(true));
+        const amountOfMessagesToLoad = 2;
+        props.actions.requestMessages(conversationId, (oldestMessage && oldestMessage.id) || undefined, amountOfMessagesToLoad)
+            .then(messages => {
+                if (messages.length < amountOfMessagesToLoad) {
+                    disableLoadingMoreMessages();
+                }
+            })
+            .finally(() => setLoadMoreButtonActive(true));
     }
+
+    React.useEffect(() => {
+        let isMounted = true;
+        const amountOfMessagesToLoad = 2;
+        requestMessages(conversationId, undefined, amountOfMessagesToLoad)
+            .then(messages => {
+                if (messages.length >= amountOfMessagesToLoad) {
+                    enableLoadingMoreMessages();
+                }
+            })
+            .finally(() => {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, [requestMessages, enableLoadingMoreMessages, conversationId]);
+
 
     return <React.Fragment>
         <h1>Messages ({props.messages.length})</h1>
-        <Button variant="contained" onClick={onLoadMoreClicked} disabled={!loadMoreButtonEnabled}>Load more</Button>
-        <List className={classes.root}>{
-            (props.messages as ConversationStore.Message[]).map(item => {
-                var userName = userNameById.get(item.userId) || 'Loading..';
+        {
+            isLoading ?
+                'Loading..' :
+                (props.messages.length === 0 ? 'No messages yet' :
+                    <ListWithScrollDownButton className={classes.root} style={{ height: 'calc(100% - 48px)' }}>
+                        <ListItem key="scroll-bottom-button" style={{ display: 'flex', justifyContent: 'center' }}>
+                            {
+                                props.ui.canLoadMoreMessages ?
+                                    <Button variant="contained" onClick={onLoadMoreClicked} disabled={!loadMoreButtonEnabled}>Load more</Button>
+                                    : 'No more messages.'
+                            }
+                        </ListItem>
+                        {
+                            (props.messages as ConversationStore.Message[]).map(item => {
+                                var userName = userNameById.get(item.userId) || 'Loading..';
 
-                if (item.userId !== props.me.userId) {
-                    return <ListItem key={item.id}>
-                        <ListItemAvatar>
-                            <Tooltip title="aaaaaaaaaaaaaaaaaaaaaaaaaa" arrow>
-                                <UserAvatar userName={userName} />
-                            </Tooltip>
-                        </ListItemAvatar>
-                        <ListItemText classes={{ root: classes.listItemTextLeft }}>{item.text}</ListItemText>
-                    </ListItem>;
-                } else {
-                    return <ListItem key={item.id}>
-                        <ListItemText classes={{ root: classes.listItemTextRight }}>{item.text}</ListItemText>
-                        <ListItemAvatar>
-                            <UserAvatar userName={userName} />
-                        </ListItemAvatar>
-                    </ListItem>;
-                }
-            })
+                                if (item.userId !== props.me.userId) {
+                                    return <ListItem key={item.id} alignItems="flex-start">
+                                        <ListItemAvatar>
+                                            <Tooltip title={userName} arrow placement="right">
+                                                <UserAvatar userName={userName} />
+                                            </Tooltip>
+                                        </ListItemAvatar>
+                                        <ListItemText classes={{ root: classes.listItemTextRight }}>{item.text}</ListItemText>
+                                    </ListItem>;
+                                } else {
+                                    return <ListItem key={item.id} alignItems="flex-start">
+                                        <ListItemText classes={{ root: classes.listItemTextLeft }}>{item.text}</ListItemText>
+                                        <ListItemAvatar>
+                                            <Tooltip title={userName} arrow placement="left">
+                                                <UserAvatar userName={userName} />
+                                            </Tooltip>
+                                        </ListItemAvatar>
+                                    </ListItem>;
+                                }
+                            })
+                        }
+                    </ListWithScrollDownButton>
+                )
         }
-        </List>
     </React.Fragment>;
 }
 
@@ -123,22 +189,34 @@ const sortedMessagesSelector = createSelector([getMessages], getSortedMessages);
 
 type MapDispatchToPropsType = {
     actions: {
-        requestMessages: (beforeId?: string, amount?: number) => Promise<ConversationStore.Message[] | void>;
+        requestMessages: (conversationId: string, beforeId?: string, amount?: number) => Promise<ConversationStore.Message[]>;
+        enableLoadingMoreMessages: () => void;
+        disableLoadingMoreMessages: () => void;
     }
 };
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.ConversationKnownAction>): MapDispatchToPropsType => ({
+const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.KnownAction>): MapDispatchToPropsType => ({
     actions: {
-        requestMessages: (beforeId?: string, amount: number = 30) => dispatch(ConversationStore.actionCreators.requestMessages(beforeId, amount)),
+        requestMessages: (conversationId, beforeId, amount = 30) => dispatch(ConversationStore.actionCreators.requestMessages(conversationId, beforeId, amount)),
+        enableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.enableLoadingMoreMessages()),
+        disableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.disableLoadingMoreMessages())
     }
 });
 
-const mapStateToProps = (state: ApplicationState): MessagesState => {
+interface OwnProps {
+    conversationId: string;
+}
+
+const mapStateToProps = (state: ApplicationState, ownProps: OwnProps): MessagesState => {
     return {
         messages: sortedMessagesSelector(state),
         users: state.conversation && state.conversation.users ? state.conversation.users : [],
         me: {
             userId: state.identity.userId
-        }
+        },
+        ui: {
+            canLoadMoreMessages: state.conversation ? state.conversation.ui.canLoadMoreMessages : false
+        },
+        conversationId: ownProps.conversationId
     } as MessagesState;
 }
 

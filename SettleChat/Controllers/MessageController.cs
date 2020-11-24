@@ -65,7 +65,7 @@ namespace SettleChat.Controllers
             if (beforeId.HasValue)
             {
                 var mustBeBeforeDate = _context.Messages.Where(x => x.Conversation.Id == conversationId && x.Id == beforeId).Select(x => x.Created).SingleOrDefault();
-                if (mustBeBeforeDate == default(DateTime))
+                if (mustBeBeforeDate == default(DateTimeOffset))
                 {
                     //TODO: handle model error nicely
                     throw new ArgumentException($"{nameof(beforeId)} does not exist");
@@ -102,7 +102,7 @@ namespace SettleChat.Controllers
             {
                 AuthorId = Guid.Parse(User.Identity.GetSubjectId()),
                 Text = messageCreateModel.Text,
-                Created = DateTime.Now,
+                Created = DateTimeOffset.Now,
                 Conversation = conversation
             };
             _context.Messages.Add(message);
@@ -111,7 +111,8 @@ namespace SettleChat.Controllers
             {
                 Id = message.Id,
                 UserId = message.AuthorId,
-                Text = message.Text
+                Text = message.Text,
+                Created = message.Created
             };
             var toBeNotifiedUserIds = await _context.ConversationUsers.Where(x => x.ConversationId == conversationId)
                 .Select(x => x.UserId.ToString().ToLowerInvariant()).ToListAsync();

@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SettleChat.Persistence;
 
 namespace SettleChat.Migrations.Migrations
 {
     [DbContext(typeof(SettleChatDbContext))]
-    partial class SettleChatDbContextModelSnapshot : ModelSnapshot
+    [Migration("20201118190555_message-dateTimeOffset")]
+    partial class messagedateTimeOffset
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -250,8 +252,8 @@ namespace SettleChat.Migrations.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<DateTimeOffset>("LastActivityTimestamp")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("LastActivityTimestamp")
+                        .HasColumnType("datetime2");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");

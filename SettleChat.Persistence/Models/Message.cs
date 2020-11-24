@@ -6,7 +6,7 @@ namespace SettleChat.Persistence.Models
     {
         public Guid Id { get; set; }
         public string Text { get; set; }
-        public DateTime Created { get; set; }
+        public DateTimeOffset Created { get; set; }
 
         public Conversation Conversation { get; set; }
         public Guid AuthorId { get; set; }

@@ -11,6 +11,6 @@ namespace SettleChat.Models
         public string UserName { get; set; }
         public string Email { get; set; }
         public UserStatus Status { get; set; }
-        public DateTime? LastActivityTimestamp { get; set; }
+        public DateTimeOffset? LastActivityTimestamp { get; set; }
     }
 }
