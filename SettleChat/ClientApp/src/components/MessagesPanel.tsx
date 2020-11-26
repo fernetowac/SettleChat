@@ -46,19 +46,19 @@ const MessagesPanel = (props: ConversationProps) => {
 
     return <React.Fragment>
         {(props.conversation &&
-            <Grid container spacing={3} direction="row" style={{ height: 'calc(100% - 73px)' }}>
-                <Grid item xs={3}>
+            <Grid container spacing={3} direction="row" style={{ minHeight: 0, flexWrap: 'initial', flexGrow: 1 }}>
+                <Grid item xs={3} style={{ display: 'flex', flexDirection: 'column' }}>
                     <UsersPanel />
                 </Grid>
-                <Grid item xs={9} style={{ display: 'flex', height: '100%' }}>
-                    <Grid container direction="column" style={{ height: '100%' }}>
-                        <Grid item xs={12} style={{ flexBasis: '48px' }}>
+                <Grid item xs={9} style={{ display: 'flex' }}>
+                    <Grid container direction="column" style={{ flexWrap: 'initial' }}>
+                        <Grid item xs={12} style={{ flexBasis: 'initial' }}>
                             <ConversationDetail />
                         </Grid>
-                        <Grid item xs={12} style={{ overflow: 'auto', display: 'flex', flexDirection: 'column', flexBasis: 'unset', height: 'calc(100% - 156px)' }}>
+                        <Grid item xs={12} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                             <Messages conversationId={conversationId} />
                         </Grid>
-                        <Grid item xs={12} style={{ flexBasis: '100px' }}>
+                        <Grid item xs={12} style={{ flexBasis: 'initial' }}>
                             <OthersWritingActivity />
                             <MessageInput />
                         </Grid>

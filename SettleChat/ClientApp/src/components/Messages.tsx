@@ -41,7 +41,8 @@ const useStyles = makeStyles((theme: Theme) => createStyles({
         'border-radius': '0.2rem 1.3rem 1.3rem 1.3rem',
         padding: '9px 21px',
         margin: '0 5px 0 0',
-        'white-space': 'pre-wrap'
+        'white-space': 'pre-wrap',
+        wordWrap: 'break-word'
     },
     listItemTextLeft: {
         backgroundColor: '#b1b1b1',
@@ -49,7 +50,8 @@ const useStyles = makeStyles((theme: Theme) => createStyles({
         'border-radius': '1.3rem 0.2rem 1.3rem 1.3rem',
         padding: '9px 21px',
         margin: '0 5px 0 0',
-        'white-space': 'pre-wrap'
+        'white-space': 'pre-wrap',
+        wordWrap: 'break-word'
     }
 }));
 
@@ -125,12 +127,12 @@ const Messages = (props: MessagesProps) => {
 
 
     return <React.Fragment>
-        <h1>Messages ({props.messages.length})</h1>
+        <h1 style={{ display: 'flex', flexGrow: 1 }}>Messages ({props.messages.length})</h1>
         {
             isLoading ?
                 'Loading..' :
                 (props.messages.length === 0 ? 'No messages yet' :
-                    <ListWithScrollDownButton className={classes.root} style={{ height: 'calc(100% - 48px)' }}>
+                    <ListWithScrollDownButton className={classes.root}>
                         <ListItem key="scroll-bottom-button" style={{ display: 'flex', justifyContent: 'center' }}>
                             {
                                 props.ui.canLoadMoreMessages ?
