@@ -9,6 +9,7 @@ export enum HttpMethod {
     Get = 'GET',
     Post = 'POST',
     Put = 'PUT',
+    Patch = 'PATCH',
     Delete = 'DELETE'
 }
 
@@ -99,6 +100,13 @@ export const fetchPut = async <TResult>(
     dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
     attachBearerToken: boolean = true
 ): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Put, requestBody, attachBearerToken);
+
+export const fetchPatch = async <TResult>(
+    url: string,
+    requestBody: any,
+    dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
+    attachBearerToken: boolean = true
+): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Patch, requestBody, attachBearerToken);
 
 export const fetchDelete = async <TResult>(
     url: string,

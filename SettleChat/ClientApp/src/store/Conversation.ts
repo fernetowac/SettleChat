@@ -3,7 +3,7 @@ import { ThunkAction } from 'redux-thunk';
 import { AppThunkAction, ApplicationState } from './index';
 import authService from '../components/api-authorization/AuthorizeService';
 import { IdentityChangedAction } from './Identity';
-import { fetchGet, fetchPost, fetchPut, fetchDelete } from '../services/FetchService';
+import { fetchGet, fetchPost, fetchPut, fetchPatch, fetchDelete } from '../services/FetchService';
 import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
 
 interface Identifiable {
@@ -21,6 +21,12 @@ export interface ConversationState {
 export interface ConversationDetail {
     id: string;
     title: string;
+    isPublic: boolean;
+}
+
+export interface ConversationPatch {
+    title?: string;
+    isPublic?: boolean;
 }
 
 export interface Message extends Identifiable {
@@ -285,6 +291,14 @@ export const actionCreators = {
                     return data;
                 });
         },
+    patchConversation: (conversationId: string, updatedProperties: ConversationPatch): ThunkAction<Promise<ConversationDetail>, ApplicationState, undefined, ConversationKnownAction | HttpFailStatusReceivedAction> =>
+        (dispatch, getState, extraArgument) =>
+            fetchPatch<ConversationDetail>(`/api/conversations/${conversationId}`, updatedProperties, dispatch)
+                .then(data => {
+                    dispatch({ type: 'CONVERSATION_RECEIVED', conversation: data });
+                    return data;
+                })
+    ,
     enableLoadingMoreMessages(): ConversationUiEnableLoadingMoreMessages {
         return {
             type: 'CONVERSATION_UI_ENABLE_LOADING_MORE_MESSAGES'
@@ -408,6 +422,7 @@ export const conversationReducer: Reducer<ConversationDetail | null> = (state: C
             return {
                 id: action.conversation.id,
                 title: action.conversation.title,
+                isPublic: action.conversation.isPublic
             };
         case 'IDENTITY_CHANGED':
             return null;

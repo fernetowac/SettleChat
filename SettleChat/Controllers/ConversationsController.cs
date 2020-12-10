@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Net;
 using System.Runtime.Serialization;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -62,7 +63,7 @@ namespace SettleChat.Controllers
         {
             Guid userId = Guid.Parse(User.Identity.GetSubjectId());
             return await _context.Conversations
-                .Where(x => x.ConversationUsers
+                .Where(x => x.IsPublic || x.ConversationUsers
                     .Any(cu => cu.UserId == userId))
                 .ToListAsync();
         }
@@ -70,7 +71,7 @@ namespace SettleChat.Controllers
         // GET: api/Conversation/5
         [HttpGet("{id}")]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
-        public async Task<ActionResult<ConversationModel>> GetConversation(Guid id)
+        public async Task<ActionResult<ConversationDetailModel>> GetConversation(Guid id)
         {
             var conversation = await _context.Conversations
                 .Include(_conversation => _conversation.ConversationUsers)
@@ -104,7 +105,7 @@ namespace SettleChat.Controllers
                 return Unauthorized();
             }
 
-            var conversationModel = new ConversationModelFactory().Create(conversation,
+            var conversationModel = new ConversationDetailModelFactory().Create(conversation,
                 conversation.ConversationUsers.Single(x => x.UserId == userId).User,
                 conversation.ConversationUsers.Where(x => x.UserId != userId).Select(x => x.User).ToList());
             return conversationModel;
@@ -142,6 +143,33 @@ namespace SettleChat.Controllers
             return NoContent();
         }
 
+        // TODO: consider alternative approach to this using JsonPatch: https://docs.microsoft.com/en-us/aspnet/core/web-api/jsonpatch?view=aspnetcore-3.0 , https://stackoverflow.com/questions/36767759/using-net-core-web-api-with-jsonpatchdocument
+        [HttpPatch("{id}")]
+        public async Task<ActionResult<ConversationModel>> PatchConversation(Guid id, ConversationPatchModel model)
+        {
+            var conversation = await _context.Conversations.SingleOrDefaultAsync(x => x.Id == id);
+            //TODO: handle authorization (user must be admin in the conversation to be able to do changes)
+            if (conversation == null)
+            {
+                return NotFound();
+            }
+
+            if (model.IsPublic.HasValue)
+            {
+                conversation.IsPublic = model.IsPublic.Value;
+            }
+
+            if (model.Title != null)
+            {
+                conversation.Title = model.Title;
+            }
+
+            await _context.SaveChangesAsync();
+
+            var updatedConversation = new ConversationModelFactory().Create(conversation);
+            return updatedConversation;
+        }
+
         // POST: api/Conversation
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
@@ -150,7 +178,7 @@ namespace SettleChat.Controllers
         //[Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
         //[AllowAnonymous]
-        public async Task<ActionResult<ConversationModel>> PostConversation(ConversationCreateModel model)
+        public async Task<ActionResult<ConversationDetailModel>> PostConversation(ConversationCreateModel model)
         {
             //string token =
             //    "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRldmVsb3BtZW50IiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE1OTg4Nzc2MDQsImV4cCI6MTU5ODg4MTIwNCwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzMDAiLCJhdWQiOiJTZXR0bGVDaGF0QVBJIiwiY2xpZW50X2lkIjoiUG9zdE1hbiIsInN1YiI6Ijg0ZGUyNzZiLTlkMTctNGExOS04YzA1LTA4ZDg0YzY5MWQzMyIsImF1dGhfdGltZSI6MTU5ODg3MDM4MCwiaWRwIjoiR29vZ2xlIiwic2NvcGUiOlsib3BlbmlkIiwicHJvZmlsZSIsIlNldHRsZUNoYXRBUEkiLCJvZmZsaW5lX2FjY2VzcyJdLCJhbXIiOlsiZXh0ZXJuYWwiXX0.QuG2g1t3zUYMUBPqEnMQ0Iy_3kVRxd205coSt9MjRaLcWcADIsczlFV5Nh1vGVRKrHiqMrVUNrHSuhmG6XIauxUj00zTiZ0d2-Fxomhb96muJhN4gGlP-lQo0upClCRKZkhT5IfDbrjjrtE-gAnCBeE6dz01i5YLM7b4U2vguk8VDwo3f952D9Loynf3e9CO4lZU4_PJQpte0RUfLc5S_eo_iUc8QAoV6USXsKAGdvOkOHtFrXyh_h71pGbbxwI1P-Em8a2XiySAExcohr1yzKkLiLuRB1GInL_r5ArgICZqL20boeDpAtISof3u081SuVs5Z62mx0POLGFeTG1NMA";
@@ -234,7 +262,7 @@ namespace SettleChat.Controllers
             //}
 
             var resultModel =
-                new ConversationModelFactory().Create(inputDbConversation, applicationUser,
+                new ConversationDetailModelFactory().Create(inputDbConversation, applicationUser,
                     new List<ApplicationUser>());
             //Response.Cookies.Append($"SettleAuth_{conversationUser.UserId}", userSecret.Secret);
 

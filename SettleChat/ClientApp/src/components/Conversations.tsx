@@ -1,10 +1,9 @@
 ﻿import * as React from 'react'
 import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { ThunkDispatch, ThunkAction } from 'redux-thunk';
-import userManager from './api-authorization/AuthorizeService';
+import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
-import { Conversation, ConversationsState, actionCreators as ConversationsActionCreators, ReceiveListAction, RequestListAction, ClearListAction } from '../store/Conversations';
+import { Conversation, ConversationsState, actionCreators as ConversationsActionCreators, ReceiveListAction, RequestListAction } from '../store/Conversations';
 
 type ConversationsComponentState = ConversationsState & { userId: string | null, isAuthenticated: boolean };
 type ConversationProps = ConversationsComponentState & MapDispatchToPropsType;
@@ -19,14 +18,8 @@ const Conversations = (props: ConversationProps) => {
         }
     }, [requestConversations, clearConversations, userId, isAuthenticated]);
 
-    const signIn = async () => {
-        await userManager.signIn({ returnUrl: '/' });
-    };
-
     return <React.Fragment>
         <h1>Conversations ({props.conversations.length})</h1>
-
-        <input onClick={() => signIn()} />aaa
 
         <ul>{
             (props.conversations as Conversation[]).map(conversation =>
