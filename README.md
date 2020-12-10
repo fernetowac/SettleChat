@@ -54,3 +54,5 @@ Publish using VisualStudio publish profile called "FolderProfile"
 $SettleChat\SettleChat\bin\Release\netcoreapp3.1\publish\RunProduction.bat
 
 
+- Postman
+Exported Postman configuration is here: ".\SettleChat local development.postman_collection.json"

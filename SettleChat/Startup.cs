@@ -93,29 +93,32 @@ namespace SettleChat
                                 .WithRedirectUri("/authentication/login-callback")
                                 .WithLogoutRedirectUri("/authentication/logout-callback");
                         });
-                    apiAuthOptions.Clients.Add(new Client
+                    if (_env.IsDevelopment())
                     {
-                        Enabled = true,
-                        AllowAccessTokensViaBrowser = true,
-                        ClientId = "PostMan",
-                        ClientName = "PostMan",
-                        RequireClientSecret = false,
-                        RedirectUris = { "https://oauth.pstmn.io/v1/callback" },
-                        PostLogoutRedirectUris = { "https://notused" },
-
-                        AllowedGrantTypes = GrantTypes.Code,
-                        AllowedScopes = { "openid", "SettleChatAPI", "profile", "email", "api" },
-                        RequireConsent = false,
-                        ClientSecrets = new List<Secret>
+                        apiAuthOptions.Clients.Add(new Client
                         {
-                            new Secret("bigsecret")//TODO:
-                        },
+                            Enabled = true,
+                            AllowAccessTokensViaBrowser = true,
+                            ClientId = "PostMan",
+                            ClientName = "PostMan",
+                            RequireClientSecret = false,
+                            RedirectUris = { "https://oauth.pstmn.io/v1/callback" },
+                            PostLogoutRedirectUris = { "https://notused" },
 
-                        AllowOfflineAccess = true,
-                        RefreshTokenUsage = TokenUsage.ReUse,
+                            AllowedGrantTypes = GrantTypes.Code,
+                            AllowedScopes = { "openid", "SettleChatAPI", "profile", "email", "api" },
+                            RequireConsent = false,
+                            ClientSecrets = new List<Secret>
+                            {
+                                new Secret("bigsecret") //TODO:
+                            },
+
+                            AllowOfflineAccess = true,
+                            RefreshTokenUsage = TokenUsage.ReUse,
 
 
-                    });
+                        });
+                    }
                 })//.AddSigningCredentials(/*AddCertificate(_env)*/)
                   //.AddInMemoryClients(new List<Client>
                   //{

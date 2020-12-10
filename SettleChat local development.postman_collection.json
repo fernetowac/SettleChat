@@ -1,0 +1,128 @@
+{
+	"info": {
+		"_postman_id": "25fe9f15-8a01-4c34-8f51-87a647dbb278",
+		"name": "SettleChat local development",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "SettleChat - create conversation",
+			"request": {
+				"auth": {
+					"type": "oauth2",
+					"oauth2": [
+						{
+							"key": "headerPrefix",
+							"value": "Bearer",
+							"type": "string"
+						},
+						{
+							"key": "tokenType",
+							"value": "Bearer",
+							"type": "string"
+						},
+						{
+							"key": "accessToken",
+							"value": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRldmVsb3BtZW50IiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE2MDc2MjEzNDAsImV4cCI6MTYwNzYyNDk0MCwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzMjgiLCJhdWQiOiJTZXR0bGVDaGF0QVBJIiwiY2xpZW50X2lkIjoiUG9zdE1hbiIsInN1YiI6IjZlMTQ1ZTM0LWRiYTgtNGE2ZC04ZDE1LTA4ZDg1NTY4NGE0ZSIsImF1dGhfdGltZSI6MTYwNzYyMDcyMSwiaWRwIjoiR29vZ2xlIiwic2NvcGUiOlsib3BlbmlkIiwicHJvZmlsZSIsIlNldHRsZUNoYXRBUEkiLCJvZmZsaW5lX2FjY2VzcyJdLCJhbXIiOlsiZXh0ZXJuYWwiXX0.ufriRCm4tlNLJdDs5fHMUS69i1W67rRGEKND2AfijsaB_erZqedFe9ToQlQtDY20-vpFJMxT8fRpHvGUtzCAITjXU8cuD2UKJxmPRSOFjuusxNnTfbHC9vTgGCPIhbyoOkDyustFeNY5YMm9Jv3GeDdnWCqgPdu-X24vJQQe1cQsky3uuuiLNQYqrei3OQ2Bru1Dfo4Kq722oE4FVfIRKKkDT7q8lAIJI1EpIXBiTydXBIkJyO5noXpvqLlzj8udnYPk3QtR4e2TJwJaCuxuiCLPuPI5VPr1LxG5t8b8expr1yLxZBHe9EdYThUJFxoNtDTAMoqxMKPht4WB1mos3g",
+							"type": "string"
+						},
+						{
+							"key": "tokenName",
+							"value": "SettleChatToken",
+							"type": "string"
+						},
+						{
+							"key": "useBrowser",
+							"value": true,
+							"type": "boolean"
+						},
+						{
+							"key": "scope",
+							"value": "openid profile SettleChatAPI offline_access",
+							"type": "string"
+						},
+						{
+							"key": "redirect_uri",
+							"value": "https://localhost:44328/signin-google",
+							"type": "string"
+						},
+						{
+							"key": "grant_type",
+							"value": "authorization_code_with_pkce",
+							"type": "string"
+						},
+						{
+							"key": "clientSecret",
+							"value": "bigsecret",
+							"type": "string"
+						},
+						{
+							"key": "clientId",
+							"value": "PostMan",
+							"type": "string"
+						},
+						{
+							"key": "authUrl",
+							"value": "https://localhost:44328/connect/authorize",
+							"type": "string"
+						},
+						{
+							"key": "client_authentication",
+							"value": "header",
+							"type": "string"
+						},
+						{
+							"key": "accessTokenUrl",
+							"value": "https://localhost:44328/connect/token",
+							"type": "string"
+						},
+						{
+							"key": "addTokenTo",
+							"value": "header",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"Title\": \"conversation title2\",\r\n    \"Creator\": {\r\n        \"Name\": \"John Doe\",\r\n        \"Email\": \"a@b.com\"\r\n    }\r\n}"
+				},
+				"url": {
+					"raw": "https://localhost:44328/api/Conversations",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44328",
+					"path": [
+						"api",
+						"Conversations"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"id": "94c96296-a2fa-4355-aa21-0153900c4d7e",
+			"key": "AccessToken",
+			"value": "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRldmVsb3BtZW50IiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE2MDc2MjE2MDcsImV4cCI6MTYwNzYyNTIwNywiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzMjgiLCJhdWQiOiJTZXR0bGVDaGF0QVBJIiwiY2xpZW50X2lkIjoiUG9zdE1hbiIsInN1YiI6IjZlMTQ1ZTM0LWRiYTgtNGE2ZC04ZDE1LTA4ZDg1NTY4NGE0ZSIsImF1dGhfdGltZSI6MTYwNzYyMDcyMSwiaWRwIjoiR29vZ2xlIiwic2NvcGUiOlsib3BlbmlkIiwicHJvZmlsZSIsIlNldHRsZUNoYXRBUEkiLCJvZmZsaW5lX2FjY2VzcyJdLCJhbXIiOlsiZXh0ZXJuYWwiXX0.uHpYsDn7ACK9Mlgs2W146JoX3DdOpl92XrrK7rcCkAwoRecL9QLqdfe9K5-gqhSngrH4Su_1EDZ8KpN93GnMF2NI17R01K5bDpcKgnedLL0yye00ixYVG4mlkEApjxxG8MkoK6hLHUc8lsaGzs8Mi8883Z8jNQ1tUlPznsSFkm9zBVKiGRAEra9aytboZ8clYrQ3n4IcT-Hhn_tXNiXCPU_vamUyQCmKlx2_57SVZgqbfYaQ_2AMzk9JjCTsX_x28vgIElQk1hlAw20lldMWRETFQUrnkCaTg5emJLV3pAElNyhnLBwf-27maym-RrxEy9JYpmkMhUuSeYYmp0kGHg"
+		}
+	],
+	"protocolProfileBehavior": {}
+}
