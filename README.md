@@ -15,18 +15,18 @@ $SettleChat\Installation\01_Database\01_RunDockerSqlServer.cmd
 
 
 # How to connect to DB:
-Host: localhost,1433
-Login: SettleAdmin
-Password: mUtLw5i4YL/oo/S4JnzNPP0ImZ7K5fx5grTC+dXMjZA=
+>**Host**: *localhost,1433*\
+**Login**: *SettleAdmin*\
+**Password**: *mUtLw5i4YL/oo/S4JnzNPP0ImZ7K5fx5grTC+dXMjZA=*
 
 # Configuration
 
 ## Create Google ClientId and ClientSecret:
 - Create `OAuth 2.0 Client IDs` (https://console.developers.google.com/apis/credentials)
 - Enter following URIs under `Authorized redirect URIs` section:
-  - https://localhost:44328/signin-google
-  - https://localhost:44328/authentication/login-callback
-
+  - *https​://localhost:44328/signin-google*
+  - *https​://localhost:44328/authentication/login-callback*
+  
 ## Create configuration files:
 - `C:\SettleChatSecrets\appsettings.json` (**optional**, can contain common secret settings)
 - `C:\SettleChatSecrets\appsettings.Development.json` (**optional**, can contain secret settings for development)
@@ -35,8 +35,7 @@ Password: mUtLw5i4YL/oo/S4JnzNPP0ImZ7K5fx5grTC+dXMjZA=
 Content of `appsettings.Production.json`:
 ```json
 {
-  "IdentityServer": {
-    // Certificate configuration for IdentityServer read by AddSigningCredentials() inside of AddApiAuthorization()
+  "IdentityServer": {    
     "Key": {
       "Type": "File",
       "FilePath": "C:\\SettleChatSecrets\\MyIdentityServerCert.pfx",
@@ -47,6 +46,8 @@ Content of `appsettings.Production.json`:
   "GoogleOAuth:ClientSecret":"<client secret from google developer console>"
 }
 ```
+>Note: Certificate configuration for IdentityServer is read by `AddSigningCredentials()` inside of `AddApiAuthorization()`
+
 `C:\SettleChatSecrets\MyIdentityServerCert.pfx` (optional - needed for IdentityServer for production - google how to create certificate for .NET Core app, e.g. https://benjii.me/2017/06/creating-self-signed-certificate-identity-server-azure/)
 
 # Publish
