@@ -14,6 +14,11 @@ Generate schema creation script:
 $SettleChat\Development\GenerateSchemaCreateScript.cmd
 
 
+- How to connect to DB:
+Host: localhost,1433
+Login: SettleAdmin
+Password: mUtLw5i4YL/oo/S4JnzNPP0ImZ7K5fx5grTC+dXMjZA=
+
 
 - Create Google ClientId and ClientSecret:
 Create OAuth 2.0 Client IDs (https://console.developers.google.com/apis/credentials)
