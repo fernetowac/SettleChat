@@ -1,40 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
-using System.Net;
-using System.Runtime.Serialization;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Xml;
-using IdentityServer4;
 using IdentityServer4.Extensions;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.JsonWebTokens;
-using Microsoft.IdentityModel.Logging;
-using Microsoft.IdentityModel.Tokens;
-using Newtonsoft.Json.Linq;
-using SettleChat.Areas.Identity.Pages.Account;
 using SettleChat.Factories;
 using SettleChat.Models;
 using SettleChat.Persistence;
 using SettleChat.Persistence.Models;
-using JwtConstants = System.IdentityModel.Tokens.Jwt.JwtConstants;
-using JwtRegisteredClaimNames = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames;
 
 namespace SettleChat.Controllers
 {
@@ -147,6 +124,11 @@ namespace SettleChat.Controllers
         [HttpPatch("{id}")]
         public async Task<ActionResult<ConversationModel>> PatchConversation(Guid id, ConversationPatchModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var conversation = await _context.Conversations.SingleOrDefaultAsync(x => x.Id == id);
             //TODO: handle authorization (user must be admin in the conversation to be able to do changes)
             if (conversation == null)
