@@ -26,10 +26,13 @@ namespace SettleChat
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder
-                        //.ConfigureAppConfiguration((webHostBuilderContext, configurationBuilder) =>
-                        //{
-                        //    configurationBuilder.AddJsonFile($"appsettings.{webHostBuilderContext.HostingEnvironment.EnvironmentName}.json");
-                        //})
+                        .ConfigureAppConfiguration((webHostBuilderContext, configurationBuilder) =>
+                        {
+                            configurationBuilder.AddJsonFile($"appsettings.json");
+                            configurationBuilder.AddJsonFile($"C:\\SettleChatSecrets\\appsettings.json", true);
+                            configurationBuilder.AddJsonFile($"appsettings.{webHostBuilderContext.HostingEnvironment.EnvironmentName}.json", true);
+                            configurationBuilder.AddJsonFile($"C:\\SettleChatSecrets\\appsettings.{webHostBuilderContext.HostingEnvironment.EnvironmentName}.json", true);
+                        })
                         .UseStartup<Startup>();
                 });
     }

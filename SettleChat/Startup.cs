@@ -164,11 +164,6 @@ namespace SettleChat
             services.AddAuthentication()
                 .AddGoogle(options =>
                 {
-                    /* Note: must be configured using app secrets (https://console.developers.google.com/apis/credentials):
-                     * dotnet user-secrets set "GoogleOAuth:ClientId" "<OAuth Client ID>"
-                     * dotnet user-secrets set "GoogleOAuth:ClientSecret" "<OAuth Client Secret>"
-                     */
-                    // TODO: document the need for adding user-secrets somewhere
                     var googleOAuthConfigSection = Configuration.GetSection("GoogleOAuth").Get<GoogleOAuthConfigSection>();
                     options.ClientId = googleOAuthConfigSection.ClientId;
                     options.ClientSecret = googleOAuthConfigSection.ClientSecret;
@@ -255,35 +250,6 @@ namespace SettleChat
                  }
                  return existingRedirector(context);
              };
-
-        public X509Certificate2 AddCertificate(IWebHostEnvironment env)
-        {
-            X509Certificate2 cert = null;
-            using (X509Store certStore = new X509Store(StoreName.My, StoreLocation.CurrentUser))
-            {
-                certStore.Open(OpenFlags.ReadOnly);
-                X509Certificate2Collection certCollection = certStore.Certificates.Find(
-                    X509FindType.FindByThumbprint,
-                    // Replace below with your cert's thumbprint
-                    "37C1E9F204B6F447EE696FF8745D49E29D1E78EF",
-                    false);
-                // Get the first cert with the thumbprint
-                if (certCollection.Count > 0)
-                {
-                    cert = certCollection[0];
-                    //Log.Logger.Information($"Successfully loaded cert from registry: {cert.Thumbprint}");
-                }
-            }
-
-            // Fallback to local file for development
-            if (cert == null)
-            {
-                cert = new X509Certificate2(Path.Combine(env.ContentRootPath, "MyIdentityServerCert.pfx"), "HesloVeslo845");
-                //Log.Logger.Information($"Falling back to cert from file. Successfully loaded: {cert.Thumbprint}");
-            }
-
-            return cert;
-        }
     }
 
     public class CustomProblemDetailsFactory : ProblemDetailsFactory
