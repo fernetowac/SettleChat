@@ -8,6 +8,7 @@ using IdentityServer4.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Internal;
 using SettleChat.Factories;
 using SettleChat.Factories.Interfaces;
 using SettleChat.Hubs;
@@ -25,17 +26,20 @@ namespace SettleChat.Controllers
         private readonly IHubContext<ConversationHub, IConversationClient> _conversationHubContext;
         private readonly ISignalRGroupNameFactory _signalRGroupNameFactory;
         private readonly ILogger<MessageController> _logger;
+        private readonly ISystemClock _systemClock;
 
         public MessageController(
             SettleChatDbContext context,
             IHubContext<ConversationHub, IConversationClient> conversationHubContext,
             ISignalRGroupNameFactory signalRGroupNameFactory,
-            ILogger<MessageController> logger)
+            ILogger<MessageController> logger,
+            ISystemClock systemClock)
         {
             _context = context;
             _conversationHubContext = conversationHubContext;
             _signalRGroupNameFactory = signalRGroupNameFactory;
             _logger = logger;
+            _systemClock = systemClock;
         }
 
         [HttpGet]
@@ -79,6 +83,7 @@ namespace SettleChat.Controllers
                 .Select(x => new MessageModel
                 {
                     Id = x.Id,
+                    ConversationId = conversationId,
                     Text = x.Text,
                     UserId = x.Author.Id,
                     Created = x.Created
@@ -102,7 +107,7 @@ namespace SettleChat.Controllers
             {
                 AuthorId = Guid.Parse(User.Identity.GetSubjectId()),
                 Text = messageCreateModel.Text,
-                Created = DateTimeOffset.Now,
+                Created = _systemClock.UtcNow,
                 Conversation = conversation
             };
             _context.Messages.Add(message);
@@ -110,6 +115,7 @@ namespace SettleChat.Controllers
             var messageModel = new MessageModel
             {
                 Id = message.Id,
+                ConversationId = message.Conversation.Id,
                 UserId = message.AuthorId,
                 Text = message.Text,
                 Created = message.Created

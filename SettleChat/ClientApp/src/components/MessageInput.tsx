@@ -77,21 +77,25 @@ function MessageInput(props: MapDispatchToPropsType) {
     );
 }
 
+interface OwnProps {
+    conversationId: string;
+}
+
 type MapDispatchToPropsType = {
     actions: {
         updateWritingActivity: (writingActivity: ConversationStore.WritingActivityData) => Promise<void>;
-        addMessage: (text: string) => Promise<ConversationStore.MessageCreateResponse>;
+        addMessage: (text: string) => Promise<ConversationStore.Message>;
     }
 };
 
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.ConversationSendWritingActivity | HttpFailStatusReceivedAction>): MapDispatchToPropsType => ({
+const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.ConversationSendWritingActivity | HttpFailStatusReceivedAction>, ownProps: OwnProps): MapDispatchToPropsType => ({
     actions: {
         updateWritingActivity: (writingActivity: ConversationStore.WritingActivityData): Promise<void> =>
             (dispatch as ThunkDispatch<ApplicationState, undefined, HttpFailStatusReceivedAction>)(
                 ConversationStore.actionCreators.updateWritingActivity(writingActivity)),
-        addMessage: (text: string): Promise<ConversationStore.MessageCreateResponse> =>
+        addMessage: (text: string): Promise<ConversationStore.Message> =>
             (dispatch as ThunkDispatch<ApplicationState, undefined, ConversationStore.ConversationSendWritingActivity>)(
-                ConversationStore.actionCreators.addMessage(text))
+                ConversationStore.actionCreators.addMessage(text, ownProps.conversationId))
     }
 });
 

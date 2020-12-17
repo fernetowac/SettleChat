@@ -91,8 +91,10 @@ export const fetchPost = async <TResult>(
     url: string,
     requestBody: any,
     dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
-    attachBearerToken: boolean = true
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Post, requestBody, attachBearerToken);
+    attachBearerToken: boolean = true,
+    transformResponse?: ResponseTransformationType<TResult>,
+    responseSchema?: object
+): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Post, requestBody, attachBearerToken, transformResponse, responseSchema);
 
 export const fetchPut = async <TResult>(
     url: string,

@@ -191,6 +191,7 @@ namespace SettleChat
                 });
             services.AddTransient<ProblemDetailsFactory, CustomProblemDetailsFactory>();
             services.AddSingleton<ISignalRGroupNameFactory, SignalRGroupNameFactory>();
+            services.AddSingleton<Microsoft.Extensions.Internal.ISystemClock, Microsoft.Extensions.Internal.SystemClock>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

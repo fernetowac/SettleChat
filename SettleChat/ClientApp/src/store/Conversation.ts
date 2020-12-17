@@ -31,6 +31,7 @@ export interface ConversationPatch {
 
 export interface Message extends Identifiable {
     id: string | undefined;
+    conversationId: string;
     text: string;
     userId: string;
     created: Date;
@@ -38,6 +39,7 @@ export interface Message extends Identifiable {
 
 interface MessagesResponseItem {
     id: string;
+    conversationId: string;
     text: string;
     userId: string;
     created: string;
@@ -45,9 +47,10 @@ interface MessagesResponseItem {
 
 export interface MessageCreateResponse {
     id: string;
+    conversationId: string;
     text: string;
     userId: string;
-    created: Date;
+    created: string;
 }
 
 export interface User {
@@ -109,7 +112,7 @@ export interface MessageAddAction {
 
 export interface MessageAddedAction {
     type: 'MESSAGE_ADDED';
-    message: MessageCreateResponse;
+    message: Message;
 }
 
 export interface MessagesRequestListAction {
@@ -204,6 +207,9 @@ const messagesResponseSchema = {
                 "id": {
                     "type": "string"
                 },
+                "conversationId": {
+                    "type": "string"
+                },
                 "text": {
                     "type": "string"
                 },
@@ -242,12 +248,16 @@ const unionArray = <TIdentifiable extends Identifiable>(primaryArray: TIdentifia
 
 const createMessages = (response: MessagesResponseItem[]): Message[] => response.map(
     (messageResponseItem) => ({
-        id: messageResponseItem.id,
-        text: messageResponseItem.text,
-        userId: messageResponseItem.userId,
+        ...messageResponseItem,
         created: new Date(messageResponseItem.created as string)
     } as Message)
 );
+
+export const transformMessageCreateResponse = (response: MessageCreateResponse): Message => (
+    {
+        ...response,
+        created: new Date(response.created as string)
+    });
 
 export type ConversationKnownAction = ConversationRequestAction | ConversationReceivedAction;
 export type MessageKnownAction = MessageAddAction | MessageAddedAction | MessagesRequestListAction | MessagesReceiveListAction;
@@ -256,7 +266,7 @@ export type UiKnownAction = ConversationUiEnableLoadingMoreMessages | Conversati
 export type KnownAction = ConversationKnownAction | MessageKnownAction | UiKnownAction;
 
 export const actionCreators = {
-    messageAdded(message: MessageCreateResponse): MessageAddedAction {
+    messageAdded(message: Message): MessageAddedAction {
         return {
             type: 'MESSAGE_ADDED',
             message: message
@@ -275,6 +285,12 @@ export const actionCreators = {
             status: status
         }
     },
+    conversationReceived(conversation: ConversationDetail): ConversationReceivedAction {
+        return {
+            type: 'CONVERSATION_RECEIVED',
+            conversation: conversation
+        }
+    },
     connectionStatusChanged: (status: UserStatus): ThunkAction<void, ApplicationState, undefined, ConversationUserStatusChanged> =>
         (dispatch, getState, extraArgument) => {
             const currentUserId = getState().identity.userId;
@@ -286,9 +302,9 @@ export const actionCreators = {
         (dispatch, getState, extraArgument) => {
             dispatch({ type: 'CONVERSATION_REQUEST', id: conversationId });
             return fetchGet<ConversationDetail>(`/api/conversations/${conversationId}`, dispatch)
-                .then(data => {
-                    dispatch({ type: 'CONVERSATION_RECEIVED', conversation: data });
-                    return data;
+                .then(conversation => {
+                    dispatch(actionCreators.conversationReceived(conversation));
+                    return conversation;
                 });
         },
     patchConversation: (conversationId: string, updatedProperties: ConversationPatch): ThunkAction<Promise<ConversationDetail>, ApplicationState, undefined, ConversationKnownAction | HttpFailStatusReceivedAction> =>
@@ -329,7 +345,7 @@ export const actionCreators = {
                     return data;
                 });
         },
-    addMessage: (text: string): ThunkAction<Promise<MessageCreateResponse>, ApplicationState, undefined, MessageKnownAction | HttpFailStatusReceivedAction> =>
+    addMessage: (text: string, conversationId: string): ThunkAction<Promise<Message>, ApplicationState, undefined, MessageKnownAction | HttpFailStatusReceivedAction> =>
         (dispatch, getState) => {
             const appState = getState();
             if (!appState) {
@@ -338,18 +354,15 @@ export const actionCreators = {
             if (!appState.identity.isAuthenticated) {
                 return Promise.reject('identity is not authenticated');
             }
-            if (!appState.conversation || !appState.conversation.conversation) {
-                return Promise.reject('conversation not in store');
-            }
+
             const messageInput = { userId: appState.identity.userId, text: text, created: new Date() } as Message;//TODO: no need to send userId and date created, as backend can figure it out
             dispatch({ type: 'MESSAGE_ADD', newMessage: messageInput });
-            const conversationId = appState.conversation.conversation.id;
-            return fetchPost<MessageCreateResponse>(`/api/conversations/${conversationId}/messages`,
+            return fetchPost<Message>(`/api/conversations/${conversationId}/messages`,
                 messageInput,
-                dispatch)
-                .then(data => {
-                    dispatch(actionCreators.messageAdded({ ...data, created: (new Date(data.created) as Date) }));
-                    return data;
+                dispatch, true, transformMessageCreateResponse)
+                .then(message => {
+                    dispatch(actionCreators.messageAdded(message));
+                    return message;
                 });
         },
     updateWritingActivity: (writingActivity: WritingActivityData): ThunkAction<Promise<void>, ApplicationState, undefined, HttpFailStatusReceivedAction> =>
@@ -439,8 +452,9 @@ export const messagesReducer: Reducer<Message[]> = (state1: Message[] | undefine
 
     switch (action.type) {
         case 'MESSAGE_ADDED':
+            const actionMessage = (action as MessageAddedAction).message;
             // don't change state, when the message already exists in the state
-            const existingMessage = state.find(x => x.id === action.message.id);
+            const existingMessage = state.find(x => x.id === actionMessage.id);
             if (existingMessage) {
                 const equals = JSON.stringify(existingMessage) === JSON.stringify(action.message);
                 if (equals) {
@@ -449,12 +463,9 @@ export const messagesReducer: Reducer<Message[]> = (state1: Message[] | undefine
             }
 
             return [
-                ...state.filter(x => x.id !== action.message.id), //TODO: handle read/sent flags
+                ...state.filter(x => x.id !== actionMessage.id), //TODO: handle read/sent flags
                 {
-                    id: action.message.id,
-                    text: action.message.text,
-                    userId: action.message.userId,
-                    created: action.message.created
+                    ...actionMessage
                 }
             ];
         case 'MESSAGES_RECEIVE_LIST':
@@ -535,11 +546,11 @@ const writingActivitiesReducer: Reducer<ReceivedWritingActivityStateItem[]> = (s
     const action = action1 as ConversationWritingActivityReceived
     switch (action.type) {
         case 'CONVERSATION_WRITING_ACTIVITY_RECEIVED':
-            const itemsOfOtherUsers = state.filter(x => x.userId !== action.writingActivityData.userId);
             const itemOfUser = state.find(x => x.userId === action.writingActivityData.userId);
 
             // update state only if there's no data for the user yet, or if action contains newer change than the one already in store for the user
             if (!itemOfUser || (itemOfUser && itemOfUser.lastChange < action.writingActivityData.lastChange)) {
+                const itemsOfOtherUsers = state.filter(x => x.userId !== action.writingActivityData.userId);
                 return [
                     ...itemsOfOtherUsers,
                     {

@@ -10,6 +10,9 @@ import * as ConversationStore from "../store/Conversation";
 import ConversationDetail from './ConversationDetail';
 import UsersPanel from './UsersPanel';
 import { Grid } from '@material-ui/core';
+import * as Sentry from "@sentry/react";
+import ErrorBoundaryFallback from './ErrorBoundaryFallback';
+import Conversations from './Conversations';
 
 type ConversationPropsStateType = {
     conversation: ConversationStore.ConversationState | undefined;
@@ -48,6 +51,9 @@ const MessagesPanel = (props: ConversationProps) => {
         {(props.conversation &&
             <Grid container spacing={3} direction="row" style={{ minHeight: 0, flexWrap: 'initial', flexGrow: 1 }}>
                 <Grid item xs={3} style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                        <Conversations />
+                    </Sentry.ErrorBoundary>
                     <UsersPanel />
                 </Grid>
                 <Grid item xs={9} style={{ display: 'flex' }}>
@@ -60,7 +66,7 @@ const MessagesPanel = (props: ConversationProps) => {
                         </Grid>
                         <Grid item xs={12} style={{ flexBasis: 'initial' }}>
                             <OthersWritingActivity />
-                            <MessageInput />
+                            <MessageInput conversationId={conversationId} />
                         </Grid>
                     </Grid>
                 </Grid>
@@ -87,7 +93,7 @@ const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined,
             ConversationStore.actionCreators.requestConversation1(conversationId)),
         requestUsers: () => dispatch(ConversationStore.actionCreators.requestUsers()),
         startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation(connectionId, conversationId)),
-        stopListeningConversation: async (connectionId: string, conversationId: string) => await dispatch(ConversationStore.actionCreators.stopListeningConversation(connectionId, conversationId)),
+        stopListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.stopListeningConversation(connectionId, conversationId)),
         enableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.enableLoadingMoreMessages()),
     }
 });

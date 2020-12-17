@@ -75,6 +75,9 @@ namespace SettleChat.Hubs
 
         [HubMethodName("UserStatusChanged")]
         public Task UserStatusChanged(Guid userId, UserStatus online);
+
+        [HubMethodName("ConversationUpdated")]
+        public Task ConversationUpdated(ConversationModel updatedConversation);
     }
 
     public interface ISessionSignalRConnection

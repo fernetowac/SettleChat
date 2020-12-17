@@ -5,14 +5,28 @@ import { RouterAction } from 'connected-react-router';
 import { IdentityChangedAction } from './Identity';
 import { fetchGet, fetchPost } from '../services/FetchService';
 import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
+import { MessageAddedAction, ConversationReceivedAction } from './Conversation';
 
 export interface ConversationsState {
-    conversations: Conversation[];
+    conversations: ConversationListItem[];
 }
 
 export const InitialConversationsState: ConversationsState = {
     conversations: []
 };
+
+export interface ConversationListItem {
+    id: string;
+    title: string;
+    lastMessageText: string;
+    users: ConversationListItemUser[];
+    lastActivityTimestamp: Date;
+}
+
+export interface ConversationListItemUser {
+    id: string;
+    userName: string;
+}
 
 export interface NewConversation {
     title: string;
@@ -35,12 +49,12 @@ export interface AddAction {
 
 export interface AddedAction {
     type: 'CONVERSATION_ADDED';
-    conversation: Conversation;
+    conversation: ConversationListItem;
 }
 
 export interface ReceiveListAction {
     type: 'CONVERSATIONS_RECEIVED_LIST';
-    conversations: Conversation[];
+    conversations: ConversationListItem[];
 }
 
 export interface ClearListAction {
@@ -63,32 +77,52 @@ export interface ConversationCreateResponseCreator {
     name: string;
 }
 
+interface ConversationsResponseItem {
+    id: string;
+    title: string;
+    lastMessageText?: string;
+    lastActivityTimestamp: string;
+    users: Array<{
+        id: string;
+        userName: string;
+    }>;
+}
+
+const createConversation = (conversationsResponseItem: ConversationsResponseItem): ConversationListItem => ({
+    id: conversationsResponseItem.id,
+    title: conversationsResponseItem.title,
+    lastMessageText: conversationsResponseItem.lastMessageText,
+    lastActivityTimestamp: new Date(conversationsResponseItem.lastActivityTimestamp as string),
+    users: conversationsResponseItem.users.map((conversationsResponseItemUser) => ({
+        id: conversationsResponseItemUser.id,
+        userName: conversationsResponseItemUser.userName
+    } as ConversationListItemUser))
+} as ConversationListItem);
+
+const createConversationListItem = (response: ConversationsResponseItem[]): ConversationListItem[] => response.map(createConversation);
+
 type KnownAction = ConversationAddPipelineAction | ReceiveListAction | RequestListAction | ClearListAction
 export type ConversationAddPipelineAction = AddAction | AddedAction | RouterAction;
 
 export const actionCreators = {
-    addConversation: (conversationInput: NewConversation): ThunkAction<Promise<Conversation>, ApplicationState, undefined, ConversationAddPipelineAction | HttpFailStatusReceivedAction> =>
+    addConversation: (conversationInput: NewConversation): ThunkAction<Promise<ConversationListItem>, ApplicationState, undefined, ConversationAddPipelineAction | HttpFailStatusReceivedAction> =>
         (dispatch, getState, extraArgument) => {
             dispatch({ type: 'CONVERSATION_ADD' });
-            return fetchPost<Conversation>('/api/Conversations', conversationInput, dispatch)
-                .then(data => {
-                    const createdConversation = {
-                        id: data.id,
-                        title: data.title
-                    } as Conversation;
+            return fetchPost<ConversationListItem>('/api/Conversations', conversationInput, dispatch, true, createConversation)
+                .then(createdConversation => {
                     dispatch({ type: 'CONVERSATION_ADDED', conversation: createdConversation });
                     return createdConversation;
                 });
         },
-    requestConversations: (): ThunkAction<Promise<Conversation[]>, ApplicationState, undefined, RequestListAction | ReceiveListAction> => (dispatch, getState) => {
+    requestConversations: (): ThunkAction<Promise<ConversationListItem[]>, ApplicationState, undefined, RequestListAction | ReceiveListAction> => (dispatch, getState) => {
         // Only load data if it's something we don't already have (and are not already loading)
         const appState = getState();
         if (appState && appState.conversations) {
             dispatch({ type: 'CONVERSATIONS_REQUEST_LIST' });
-            return fetchGet<Conversation[]>(`/api/conversations`, dispatch)
-                .then(data => {
-                    dispatch({ type: 'CONVERSATIONS_RECEIVED_LIST', conversations: data });
-                    return data;
+            return fetchGet<ConversationListItem[]>(`/api/conversations`, dispatch, true, createConversationListItem)
+                .then(conversations => {
+                    dispatch({ type: 'CONVERSATIONS_RECEIVED_LIST', conversations: conversations });
+                    return conversations;
                 });
         } else {
             return Promise.reject();
@@ -102,7 +136,7 @@ export const actionCreators = {
 };
 
 export const reducer: Reducer<ConversationsState> = (state: ConversationsState | undefined = InitialConversationsState, incomingAction: Action<any>): ConversationsState => {
-    const action = incomingAction as KnownAction | IdentityChangedAction;
+    const action = incomingAction as KnownAction | IdentityChangedAction | MessageAddedAction | ConversationReceivedAction;
     state = state as ConversationsState;
     switch (action.type) {
         case 'CONVERSATION_ADD':
@@ -124,8 +158,56 @@ export const reducer: Reducer<ConversationsState> = (state: ConversationsState |
         case 'IDENTITY_CHANGED':
             return {
                 conversations: []
+            };
+        case 'MESSAGE_ADDED':
+            {
+                const actionMessage = (action as MessageAddedAction).message;
+                const conversation: ConversationListItem | undefined =
+                    state.conversations.find(
+                        (conversation: ConversationListItem) => conversation.id === actionMessage.conversationId);
+                if (!conversation) {
+                    throw Error("Conversation for added message not found");
+                }
+                if (conversation.lastActivityTimestamp >= actionMessage.created) {
+                    return state;
+                }
+                const otherConversations: ConversationListItem[] = state.conversations.filter(
+                    (conversation: ConversationListItem) => conversation.id !== actionMessage.conversationId);
+                return {
+                    conversations: [
+                        ...otherConversations,
+                        {
+                            ...conversation,
+                            lastMessageText: actionMessage.text,
+                            lastActivityTimestamp: actionMessage.created
+                        }
+                    ]
+                };
+            }
+        case 'CONVERSATION_RECEIVED':
+            {
+                const actionConversation = (action as ConversationReceivedAction).conversation;
+                const conversation: ConversationListItem | undefined =
+                    state.conversations.find(
+                        (conversation: ConversationListItem) => conversation.id === actionConversation.id);
+                if (!conversation) {
+                    throw Error("Conversation for added message not found");
+                }
+
+                const otherConversations: ConversationListItem[] =
+                    state.conversations.filter(
+                        (conversation: ConversationListItem) => conversation.id !== actionConversation.id);
+                return {
+                    conversations: [
+                        ...otherConversations,
+                        {
+                            ...conversation,
+                            title: actionConversation.title
+                        }
+                    ]
+                };
             }
         default:
             return state;
-    };
+    }
 }

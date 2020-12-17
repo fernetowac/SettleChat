@@ -2,9 +2,6 @@
 import { connect } from 'react-redux';
 import { ThunkDispatch } from 'redux-thunk';
 import * as ConversationsStore from '../store/Conversations';
-import Conversations from './Conversations';
-import * as Sentry from "@sentry/react";
-import ErrorBoundaryFallback from './ErrorBoundaryFallback';
 import { ApplicationState } from '../store/index';
 
 const initialState = {
@@ -31,9 +28,6 @@ function NewConversation(props: MapDispatchToPropsType) {
 
     return (
         <React.Fragment>
-            <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                <Conversations />
-            </Sentry.ErrorBoundary>
             <form onSubmit={handleSubmit}>
                 <div>
                     <label>
@@ -49,11 +43,11 @@ function NewConversation(props: MapDispatchToPropsType) {
 }
 
 type MapDispatchToPropsType = {
-    addConversation: (conversationInput: ConversationsStore.NewConversation) => Promise<ConversationsStore.Conversation>;
+    addConversation: (conversationInput: ConversationsStore.NewConversation) => Promise<ConversationsStore.ConversationListItem>;
 };
 
 const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationsStore.ConversationAddPipelineAction>): MapDispatchToPropsType => ({
-    addConversation: (conversationInput: ConversationsStore.NewConversation): Promise<ConversationsStore.Conversation> => (dispatch as ThunkDispatch<ApplicationState, undefined, ConversationsStore.ConversationAddPipelineAction>)(ConversationsStore.actionCreators.addConversation(conversationInput))
+    addConversation: (conversationInput: ConversationsStore.NewConversation): Promise<ConversationsStore.ConversationListItem> => (dispatch as ThunkDispatch<ApplicationState, undefined, ConversationsStore.ConversationAddPipelineAction>)(ConversationsStore.actionCreators.addConversation(conversationInput))
 });
 
 

@@ -181,7 +181,12 @@ const messageCompareByCreatedAsc = (a: ConversationStore.Message, b: Conversatio
     return 0;
 }
 
-const getMessages = (state: ApplicationState): ConversationStore.Message[] => (state.conversation === undefined ? undefined : state.conversation.messages) || [];
+const getMessages = (state: ApplicationState, conversationId: string): ConversationStore.Message[] => (
+    state.conversation === undefined ?
+        undefined :
+        state.conversation.messages
+            .filter(message => message.conversationId === conversationId)
+) || [];
 const getSortedMessages = (messages: ConversationStore.Message[]): ConversationStore.Message[] => messages.sort(messageCompareByCreatedAsc);
 
 /**
@@ -198,7 +203,7 @@ type MapDispatchToPropsType = {
 };
 const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.KnownAction>): MapDispatchToPropsType => ({
     actions: {
-        requestMessages: (conversationId, beforeId, amount = 30) => dispatch(ConversationStore.actionCreators.requestMessages(conversationId, beforeId, amount)),
+        requestMessages: (conversationId: string, beforeId?: string, amount = 30) => dispatch(ConversationStore.actionCreators.requestMessages(conversationId, beforeId, amount)),
         enableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.enableLoadingMoreMessages()),
         disableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.disableLoadingMoreMessages())
     }
@@ -210,7 +215,7 @@ interface OwnProps {
 
 const mapStateToProps = (state: ApplicationState, ownProps: OwnProps): MessagesState => {
     return {
-        messages: sortedMessagesSelector(state),
+        messages: sortedMessagesSelector(state, ownProps.conversationId),
         users: state.conversation && state.conversation.users ? state.conversation.users : [],
         me: {
             userId: state.identity.userId

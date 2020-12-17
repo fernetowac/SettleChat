@@ -6,9 +6,12 @@ using IdentityServer4.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using SettleChat.Factories;
+using SettleChat.Hubs;
 using SettleChat.Models;
 using SettleChat.Persistence;
 using SettleChat.Persistence.Models;
@@ -23,26 +26,125 @@ namespace SettleChat.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<ConversationsController> _logger;
+        private readonly ISystemClock _systemClock;
+        private readonly IHubContext<ConversationHub, IConversationClient> _conversationHubContext;
 
-        public ConversationsController(SettleChatDbContext context, UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager, ILogger<ConversationsController> logger)
+        public ConversationsController(
+            SettleChatDbContext context,
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<ConversationsController> logger,
+            ISystemClock systemClock,
+            IHubContext<ConversationHub, IConversationClient> conversationHubContext)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
+            _systemClock = systemClock;
+            _conversationHubContext = conversationHubContext;
         }
 
         // GET: api/Conversation
         [HttpGet]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
-        public async Task<ActionResult<IEnumerable<Conversation>>> GetConversations()
+        public async Task<ActionResult<IEnumerable<ConversationListItemModel>>> GetConversations()
         {
             Guid userId = Guid.Parse(User.Identity.GetSubjectId());
-            return await _context.Conversations
+
+            var queryResult = await _context.Conversations
                 .Where(x => x.IsPublic || x.ConversationUsers
                     .Any(cu => cu.UserId == userId))
+                // Get single (if exists) latest message per conversation https://stackoverflow.com/a/2111420/1651606
+                // TODO: this solution might not be the most optimal when there are many messages per conversation, as it makes cartesian product of {messages x messages} internally
+                // left join conversation with its messages
+                .SelectMany(
+                    conversation => conversation.Messages
+                        .DefaultIfEmpty(),
+                    (conversation, message) =>
+                        new
+                        {
+                            Conversation = new
+                            {
+                                conversation.Id,
+                                conversation.Title,
+                                conversation.IsPublic,
+                                conversation.Created
+                            },
+                            Message = new
+                            {
+                                message.Id,
+                                message.Text,
+                                message.Created
+                            }
+                        })
+                // outer apply with messages that are newer as messages in previous join
+                .SelectMany(
+                    combined =>
+                        _context.Messages.Where(
+                                message =>
+                                    message.Conversation.Id == combined.Conversation.Id
+                                    && combined.Message.Created < message.Created
+                                    || (
+                                        combined.Message.Created == message.Created
+                                        && combined.Message.Id != message.Id
+                                        )
+                                    )
+                            .Select(x => x.Id)
+                            .DefaultIfEmpty(),
+                    (combined, newerMessageId) => new
+                    {
+                        combined.Conversation,
+                        combined.Message,
+                        NewerMessageId = newerMessageId
+                    })
+                // join with conversationUsers meta table
+                .Join(
+                    _context.ConversationUsers,
+                    combined => combined.Conversation.Id,
+                    conversationUser => conversationUser.ConversationId,
+                    (combined, conversationUser) => new
+                    {
+                        combined.Conversation,
+                        combined.Message,
+                        conversationUser.UserId,
+                        combined.NewerMessageId
+                    })
+                // join with users
+                .Join(
+                    _context.Users,
+                    combined => combined.UserId,
+                    user => user.Id,
+                    (combined, user) => new
+                    {
+                        combined.Conversation,
+                        combined.Message,
+                        Users = new
+                        {
+                            user.Id,
+                            user.UserName
+                        },
+                        combined.NewerMessageId
+                    })
+                // only message for which no newer message exists
+                .Where(x => x.NewerMessageId == null)
+                // materialize the query before grouping, because EF Core cannot translate it to sql otherwise
                 .ToListAsync();
+            var conversationsWithMetadata = queryResult
+                .GroupBy(x => new { x.Conversation, x.Message }) // Message can be null (is selected by left join) here even though VS doesn't thing so
+                .Select(group => new ConversationListItemModel
+                {
+                    Id = @group.Key.Conversation.Id,
+                    Title = @group.Key.Conversation.Title,
+                    LastMessageText = @group.Key.Message?.Text,
+                    LastActivityTimestamp = @group.Key.Message?.Created ?? @group.Key.Conversation.Created,
+                    Users = @group.Select(u => new ConversationListItemUserModel
+                    {
+                        Id = u.Users.Id,
+                        UserName = u.Users.UserName
+                    }).ToList()
+                }).ToList();
+            return conversationsWithMetadata;
         }
 
         // GET: api/Conversation/5
@@ -92,7 +194,7 @@ namespace SettleChat.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutConversation(Guid id, Conversation conversation)
+        public async Task<ActionResult<ConversationModel>> PutConversation(Guid id, Conversation conversation)
         {
             if (id != conversation.Id)
             {
@@ -117,7 +219,14 @@ namespace SettleChat.Controllers
                 }
             }
 
-            return NoContent();
+            // notify conversation users
+            var userIds = await _context.ConversationUsers
+                .Where(x => x.ConversationId == conversation.Id)
+                .Select(x => x.UserId.ToString().ToLowerInvariant())
+                .ToListAsync();
+            var updatedConversationModel = new ConversationModelFactory().Create(conversation);
+            await _conversationHubContext.Clients.Users(userIds).ConversationUpdated(updatedConversationModel);
+            return updatedConversationModel;
         }
 
         // TODO: consider alternative approach to this using JsonPatch: https://docs.microsoft.com/en-us/aspnet/core/web-api/jsonpatch?view=aspnetcore-3.0 , https://stackoverflow.com/questions/36767759/using-net-core-web-api-with-jsonpatchdocument
@@ -129,7 +238,7 @@ namespace SettleChat.Controllers
                 return BadRequest(ModelState);
             }
 
-            var conversation = await _context.Conversations.SingleOrDefaultAsync(x => x.Id == id);
+            var conversation = await _context.Conversations.Include(x => x.ConversationUsers).SingleOrDefaultAsync(x => x.Id == id);
             //TODO: handle authorization (user must be admin in the conversation to be able to do changes)
             if (conversation == null)
             {
@@ -149,6 +258,8 @@ namespace SettleChat.Controllers
             await _context.SaveChangesAsync();
 
             var updatedConversation = new ConversationModelFactory().Create(conversation);
+            var userIds = conversation.ConversationUsers.Select(x => x.UserId.ToString().ToLowerInvariant()).ToList();
+            await _conversationHubContext.Clients.Users(userIds).ConversationUpdated(updatedConversation);
             return updatedConversation;
         }
 
@@ -173,7 +284,8 @@ namespace SettleChat.Controllers
             //    out validatedToken);
             var inputDbConversation = new Conversation
             {
-                Title = model.Title
+                Title = model.Title,
+                Created = _systemClock.UtcNow
             };
             //if (User.Identity.IsAuthenticated)
             //{

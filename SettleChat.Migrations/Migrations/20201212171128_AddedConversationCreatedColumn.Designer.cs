@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SettleChat.Persistence;
 
 namespace SettleChat.Migrations.Migrations
 {
     [DbContext(typeof(SettleChatDbContext))]
-    partial class SettleChatDbContextModelSnapshot : ModelSnapshot
+    [Migration("20201212171128_AddedConversationCreatedColumn")]
+    partial class AddedConversationCreatedColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
