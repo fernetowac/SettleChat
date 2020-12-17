@@ -53,7 +53,7 @@ namespace SettleChat.Controllers
             Guid userId = Guid.Parse(User.Identity.GetSubjectId());
 
             var queryResult = await _context.Conversations
-                .Where(x => x.IsPublic || x.ConversationUsers
+                .Where(x => x.ConversationUsers
                     .Any(cu => cu.UserId == userId))
                 // Get single (if exists) latest message per conversation https://stackoverflow.com/a/2111420/1651606
                 // TODO: this solution might not be the most optimal when there are many messages per conversation, as it makes cartesian product of {messages x messages} internally
