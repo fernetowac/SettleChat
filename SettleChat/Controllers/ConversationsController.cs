@@ -74,6 +74,7 @@ namespace SettleChat.Controllers
                             Message = new
                             {
                                 message.Id,
+                                message.AuthorId,
                                 message.Text,
                                 message.Created
                             }
@@ -108,6 +109,7 @@ namespace SettleChat.Controllers
                         combined.Conversation,
                         combined.Message,
                         conversationUser.UserId,
+                        conversationUser.UserNickName,
                         combined.NewerMessageId
                     })
                 // join with users
@@ -122,7 +124,8 @@ namespace SettleChat.Controllers
                         Users = new
                         {
                             user.Id,
-                            user.UserName
+                            user.UserName,
+                            combined.UserNickName
                         },
                         combined.NewerMessageId
                     })
@@ -136,12 +139,14 @@ namespace SettleChat.Controllers
                 {
                     Id = @group.Key.Conversation.Id,
                     Title = @group.Key.Conversation.Title,
-                    LastMessageText = @group.Key.Message?.Text,
-                    LastActivityTimestamp = @group.Key.Message?.Created ?? @group.Key.Conversation.Created,
+                    LastMessageText = @group.Key.Message.Id == Guid.Empty ? null : @group.Key.Message.Text,
+                    LastMessageUserId = @group.Key.Message.Id == Guid.Empty ? null : (Guid?)@group.Key.Message.AuthorId,
+                    LastActivityTimestamp = @group.Key.Message.Id == Guid.Empty ? @group.Key.Conversation.Created : @group.Key.Message.Created,
                     Users = @group.Select(u => new ConversationListItemUserModel
                     {
                         Id = u.Users.Id,
-                        UserName = u.Users.UserName
+                        UserName = u.Users.UserName,
+                        UserNickName = u.Users.UserNickName
                     }).ToList()
                 }).ToList();
             return conversationsWithMetadata;

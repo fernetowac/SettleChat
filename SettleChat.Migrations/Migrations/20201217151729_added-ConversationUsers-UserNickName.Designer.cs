@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SettleChat.Persistence;
 
 namespace SettleChat.Migrations.Migrations
 {
     [DbContext(typeof(SettleChatDbContext))]
-    partial class SettleChatDbContextModelSnapshot : ModelSnapshot
+    [Migration("20201217151729_added-ConversationUsers-UserNickName")]
+    partial class addedConversationUsersUserNickName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -315,6 +317,7 @@ namespace SettleChat.Migrations.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Title")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");

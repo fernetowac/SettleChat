@@ -4,9 +4,10 @@ import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
-import { ConversationListItem, ConversationsState, actionCreators as ConversationsActionCreators, ReceiveListAction, RequestListAction } from '../store/Conversations';
+import { ConversationListItem, ConversationListItemUser, ConversationsState, actionCreators as ConversationsActionCreators, ReceiveListAction, RequestListAction } from '../store/Conversations';
 import { makeStyles } from '@material-ui/core/styles';
-import { List, ListItem, ListItemAvatar, ListItemText, Divider, Avatar } from '@material-ui/core';
+import { Box, List, ListItem, ListItemAvatar, ListItemText, Divider, Avatar, Typography } from '@material-ui/core';
+import TimeAgo from 'react-timeago';
 
 type ConversationsComponentState = ConversationsState & { userId: string | null, isAuthenticated: boolean };
 type ConversationProps = ConversationsComponentState & MapDispatchToPropsType;
@@ -18,6 +19,36 @@ const useStyles = makeStyles((theme) => ({
         overflowY: 'auto'
     }
 }));
+
+const GetUserName = (user: ConversationListItemUser) => {
+    return user.userNickName === null ? user.userName : user.userNickName;
+}
+
+const LastMessage = (props: { conversation: ConversationListItem, myIdentityUserId: string }) => {
+    const { conversation, myIdentityUserId } = props;
+    if (!conversation.lastMessageText !== !conversation.lastMessageUserId) {
+        throw Error();
+    }
+
+    if (!conversation.lastMessageText) {
+        return <React.Fragment>No messages yet</React.Fragment>;
+    }
+
+    if (conversation.lastMessageUserId === myIdentityUserId) {
+        return <React.Fragment>
+            you: {conversation.lastMessageText}
+        </React.Fragment>;
+    }
+
+    const user = conversation.users.find((user) => user.id === conversation.lastMessageUserId);
+    if (!user) {
+        throw Error(`User not found for id ${conversation.lastMessageUserId}`);
+    }
+
+    return <React.Fragment>
+        {GetUserName(user)}: {conversation.lastMessageText}
+    </React.Fragment>;
+}
 
 const Conversations = (props: ConversationProps) => {
     const classes = useStyles();
@@ -33,7 +64,7 @@ const Conversations = (props: ConversationProps) => {
     return <React.Fragment>
 
         <List className={classes.root}>
-            {
+            {isAuthenticated && userId &&
                 (props.conversations as ConversationListItem[]).map((conversation, index) => (
                     <React.Fragment key={conversation.id}>
                         <ListItem button
@@ -46,9 +77,21 @@ const Conversations = (props: ConversationProps) => {
                                 <Avatar alt={conversation.title}>{conversation.title}</Avatar>
                             </ListItemAvatar>
                             <ListItemText
-                                primary={conversation.title}
+                                primary={conversation.title == null ? conversation.users.map(GetUserName).join(', ') : conversation.title}
                                 primaryTypographyProps={{ noWrap: true }}
-                                secondary={conversation.lastMessageText}
+                                secondary={
+                                    <React.Fragment>
+                                        <Typography
+                                            component="span"
+                                            variant="body2"
+                                            display="inline"
+                                            color="textPrimary"
+                                        >
+                                            <Box><LastMessage conversation={conversation} myIdentityUserId={userId} /></Box>
+                                        </Typography>
+                                        <TimeAgo date={conversation.lastActivityTimestamp} />
+                                    </React.Fragment>}
+                                secondaryTypographyProps={{ noWrap: true }}
                             />
                         </ListItem>
                         {index < props.conversations.length - 1 ? <Divider component="li" key={`${conversation.id}_divider`} /> : ''}

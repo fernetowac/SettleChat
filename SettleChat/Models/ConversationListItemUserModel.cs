@@ -6,5 +6,6 @@ namespace SettleChat.Models
     {
         public Guid Id { get; set; }
         public string UserName { get; set; }
+        public string? UserNickName { get; set; }
     }
 }

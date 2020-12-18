@@ -17,8 +17,9 @@ export const InitialConversationsState: ConversationsState = {
 
 export interface ConversationListItem {
     id: string;
-    title: string;
-    lastMessageText: string;
+    title?: string;
+    lastMessageText?: string;
+    lastMessageUserId?: string;
     users: ConversationListItemUser[];
     lastActivityTimestamp: Date;
 }
@@ -26,6 +27,7 @@ export interface ConversationListItem {
 export interface ConversationListItemUser {
     id: string;
     userName: string;
+    userNickName?: string;
 }
 
 export interface NewConversation {
@@ -81,10 +83,12 @@ interface ConversationsResponseItem {
     id: string;
     title: string;
     lastMessageText?: string;
+    lastMessageUserId?: string;
     lastActivityTimestamp: string;
     users: Array<{
         id: string;
         userName: string;
+        userNickName?: string;
     }>;
 }
 
@@ -92,10 +96,12 @@ const createConversation = (conversationsResponseItem: ConversationsResponseItem
     id: conversationsResponseItem.id,
     title: conversationsResponseItem.title,
     lastMessageText: conversationsResponseItem.lastMessageText,
+    lastMessageUserId: conversationsResponseItem.lastMessageUserId,
     lastActivityTimestamp: new Date(conversationsResponseItem.lastActivityTimestamp as string),
     users: conversationsResponseItem.users.map((conversationsResponseItemUser) => ({
         id: conversationsResponseItemUser.id,
-        userName: conversationsResponseItemUser.userName
+        userName: conversationsResponseItemUser.userName,
+        userNickName: conversationsResponseItemUser.userNickName
     } as ConversationListItemUser))
 } as ConversationListItem);
 
@@ -179,6 +185,7 @@ export const reducer: Reducer<ConversationsState> = (state: ConversationsState |
                         {
                             ...conversation,
                             lastMessageText: actionMessage.text,
+                            lastMessageUserId: actionMessage.userId,
                             lastActivityTimestamp: actionMessage.created
                         }
                     ]
