@@ -191,6 +191,7 @@ export const reducer: Reducer<ConversationsState> = (state: ConversationsState |
                     ]
                 };
             }
+        // update conversation in the list with newer info like Title
         case 'CONVERSATION_RECEIVED':
             {
                 const actionConversation = (action as ConversationReceivedAction).conversation;
@@ -198,7 +199,8 @@ export const reducer: Reducer<ConversationsState> = (state: ConversationsState |
                     state.conversations.find(
                         (conversation: ConversationListItem) => conversation.id === actionConversation.id);
                 if (!conversation) {
-                    throw Error("Conversation for added message not found");
+                    // we don't need to handle conversation update here when received single conversation is not in the list (yet)
+                    return state;
                 }
 
                 const otherConversations: ConversationListItem[] =

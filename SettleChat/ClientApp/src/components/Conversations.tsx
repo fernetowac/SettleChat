@@ -82,16 +82,15 @@ const Conversations = (props: ConversationProps) => {
                                 secondary={
                                     <React.Fragment>
                                         <Typography
-                                            component="span"
+                                            component="div"
                                             variant="body2"
-                                            display="inline"
                                             color="textPrimary"
                                         >
-                                            <Box><LastMessage conversation={conversation} myIdentityUserId={userId} /></Box>
+                                            <LastMessage conversation={conversation} myIdentityUserId={userId} />
                                         </Typography>
                                         <TimeAgo date={conversation.lastActivityTimestamp} />
                                     </React.Fragment>}
-                                secondaryTypographyProps={{ noWrap: true }}
+                                secondaryTypographyProps={{ component: 'div', noWrap: true }}
                             />
                         </ListItem>
                         {index < props.conversations.length - 1 ? <Divider component="li" key={`${conversation.id}_divider`} /> : ''}

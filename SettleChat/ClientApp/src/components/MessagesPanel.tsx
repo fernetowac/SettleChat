@@ -61,7 +61,7 @@ const MessagesPanel = (props: ConversationProps) => {
                         <Grid item xs={12} style={{ flexBasis: 'initial' }}>
                             <ConversationDetail />
                         </Grid>
-                        <Grid item xs={12} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                        <Grid item xs={12} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', minHeight: 0 }}>
                             <Messages conversationId={conversationId} />
                         </Grid>
                         <Grid item xs={12} style={{ flexBasis: 'initial' }}>

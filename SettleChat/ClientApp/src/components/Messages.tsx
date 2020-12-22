@@ -5,9 +5,13 @@ import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
 import UserAvatar from './UserAvatar';
-import { ListItem, ListItemAvatar, ListItemText, Tooltip, Button } from '@material-ui/core';
+import DividerWithChip from './DividerWithChip';
+import { Box, ListItem, ListItemAvatar, ListItemText, Tooltip, Button } from '@material-ui/core';
 import { makeStyles, Theme, createStyles } from '@material-ui/core/styles';
 import { ListWithScrollDownButton } from './ListWithScrollDownButton';
+import TimeAgo from 'react-timeago';
+import { format, isSameDay, differenceInMinutes } from 'date-fns'
+import clsx from 'clsx';
 
 export interface MessagesState {
     messages: ConversationStore.Message[];
@@ -29,29 +33,68 @@ type MessagesProps =
 const useStyles = makeStyles((theme: Theme) => createStyles({
     root: {
         width: '100%',
-        //maxWidth: 360,
         backgroundColor: theme.palette.background.paper,
         position: 'relative',
         overflow: 'auto'
     },
-    listItemTextRight: {
-        backgroundColor: '#696969',
-        color: '#fff',
-        'box-shadow': '0 0.46875rem 2.1875rem rgba(59,62,102,.03), 0 0.9375rem 1.40625rem rgba(59,62,102,.03), 0 0.25rem 0.53125rem rgba(59,62,102,.05), 0 0.125rem 0.1875rem rgba(59,62,102,.03)',
-        'border-radius': '0.2rem 1.3rem 1.3rem 1.3rem',
+    messageBubble: {
+        boxShadow: '0 0.46875rem 2.1875rem rgba(59,62,102,.03), 0 0.9375rem 1.40625rem rgba(59,62,102,.03), 0 0.25rem 0.53125rem rgba(59,62,102,.05), 0 0.125rem 0.1875rem rgba(59,62,102,.03)',
         padding: '9px 21px',
-        margin: '0 5px 0 0',
-        'white-space': 'pre-wrap',
+        marginBottom: '1px',
+        whiteSpace: 'pre-wrap',
         wordWrap: 'break-word'
     },
-    listItemTextLeft: {
+    otherUserMessageBubble: {
+        backgroundColor: '#696969',
+        color: '#fff',
+        borderRadius: '0.2rem 1.2rem 1.2rem 0.2rem',
+        '&:first-of-type': {
+            'border-radius': '1.2rem 1.2rem 1.2rem 0.2rem'
+        }
+    },
+    myUserMessageBubble: {
         backgroundColor: '#b1b1b1',
-        'box-shadow': '0 0.46875rem 2.1875rem rgba(59,62,102,.03), 0 0.9375rem 1.40625rem rgba(59,62,102,.03), 0 0.25rem 0.53125rem rgba(59,62,102,.05), 0 0.125rem 0.1875rem rgba(59,62,102,.03)',
-        'border-radius': '1.3rem 0.2rem 1.3rem 1.3rem',
-        padding: '9px 21px',
-        margin: '0 5px 0 0',
-        'white-space': 'pre-wrap',
-        wordWrap: 'break-word'
+        boxShadow: '0 0.46875rem 2.1875rem rgba(59,62,102,.03), 0 0.9375rem 1.40625rem rgba(59,62,102,.03), 0 0.25rem 0.53125rem rgba(59,62,102,.05), 0 0.125rem 0.1875rem rgba(59,62,102,.03)',
+        borderRadius: '1.2rem 0.2rem 0.2rem 1.2rem',
+        '&:first-of-type': {
+            'border-radius': '1.2rem 1.2rem 0.2rem 1.2rem'
+        }
+    }
+}));
+
+const useStylesForMyUserMessageBubbleGroup = makeStyles(() => createStyles({
+    root: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end'
+    },
+    primary: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end'
+    },
+    secondary: {
+        textAlign: "end",
+        fontSize: "0.75rem",
+        color: "rgba(0, 0, 0, 0.54)"
+    }
+}));
+
+const useStylesForOtherUserMessageBubbleGroup = makeStyles(() => createStyles({
+    root: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start'
+    },
+    primary: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start'
+    },
+    secondary: {
+        textAlign: "end",
+        fontSize: "0.75rem",
+        color: "rgba(0, 0, 0, 0.54)"
     }
 }));
 
@@ -75,6 +118,8 @@ const Messages = (props: MessagesProps) => {
     const [isLoading, setIsLoading] = React.useState(true);
 
     const classes = useStyles();
+    const myUserMessageBubbleGroupClasses = useStylesForMyUserMessageBubbleGroup();
+    const otherUserMessageBubbleGroupClasses = useStylesForOtherUserMessageBubbleGroup();
     const userNameById = new Map<string, string>();
     props.users.forEach((user) => {
         userNameById.set(user.id, user.userName);
@@ -126,8 +171,72 @@ const Messages = (props: MessagesProps) => {
     }, [requestMessages, enableLoadingMoreMessages, conversationId]);
 
 
+    var resultListItems = [];
+    let messageGroup = Array();
+    for (let i = 0; i < props.messages.length; i++) {
+        const item = props.messages[i];
+        var userName = userNameById.get(item.userId) || 'Loading..';
+
+        if (i === 0 || !isSameDay(props.messages[i - 1].created, item.created)) {
+            resultListItems.push(<DividerWithChip component="li" key={`${item.id}_divider`} label={format(item.created, 'PPP')} />);
+        }
+
+        const maxMinutesDiffInFollowUpMessages = 3;
+        const thisMessageFollowsUp = (i > 0 && props.messages[i - 1].userId === item.userId && differenceInMinutes(item.created, props.messages[i - 1].created) < maxMinutesDiffInFollowUpMessages && isSameDay(item.created, props.messages[i - 1].created));
+        const nextMessageFollowsUp = (i + 1 < props.messages.length && props.messages[i + 1].userId === item.userId && differenceInMinutes(props.messages[i + 1].created, item.created) < maxMinutesDiffInFollowUpMessages && isSameDay(props.messages[i + 1].created, item.created));
+
+        if (!thisMessageFollowsUp) {
+            messageGroup = [];
+        }
+        let listItem = null;
+        if (item.userId !== props.me.userId) {
+            messageGroup.push(
+                <Box key={item.id} className={clsx(classes.messageBubble, classes.otherUserMessageBubble)}>
+                    {item.text}
+                </Box>
+            );
+            if (!nextMessageFollowsUp) {
+                listItem = <ListItem key={item.id} style={{ alignItems: 'flex-end' }} dense>
+                    <ListItemAvatar>
+                        <Tooltip title={userName} arrow placement="right">
+                            <UserAvatar userName={userName} />
+                        </Tooltip>
+                    </ListItemAvatar>
+                    <ListItemText
+                        classes={otherUserMessageBubbleGroupClasses}
+                        primary={messageGroup}
+                        secondary={
+                            <React.Fragment>
+                                {userName}
+                                <Box marginLeft={1} component="span">
+                                    <TimeAgo date={item.created} />
+                                </Box>
+                            </React.Fragment>
+                        }
+                    />
+                </ListItem>;
+            }
+        } else {
+            messageGroup.push(
+                <Box key={item.id} className={clsx(classes.messageBubble, classes.myUserMessageBubble)}                >
+                    {item.text}
+                </Box>);
+            if (!nextMessageFollowsUp) {
+                listItem = <ListItem key={item.id} style={{ alignItems: 'flex-end' }} dense>
+                    <ListItemText
+                        classes={myUserMessageBubbleGroupClasses}
+                        primary={messageGroup}
+                        secondary={<TimeAgo date={item.created} />}
+                    />
+                </ListItem>;
+            }
+        }
+        if (listItem != null) {
+            resultListItems.push(listItem);
+        }
+    }
+
     return <React.Fragment>
-        <h1 style={{ display: 'flex', flexGrow: 1 }}>Messages ({props.messages.length})</h1>
         {
             isLoading ?
                 'Loading..' :
@@ -140,31 +249,7 @@ const Messages = (props: MessagesProps) => {
                                     : 'No more messages.'
                             }
                         </ListItem>
-                        {
-                            (props.messages as ConversationStore.Message[]).map(item => {
-                                var userName = userNameById.get(item.userId) || 'Loading..';
-
-                                if (item.userId !== props.me.userId) {
-                                    return <ListItem key={item.id} alignItems="flex-start">
-                                        <ListItemAvatar>
-                                            <Tooltip title={userName} arrow placement="right">
-                                                <UserAvatar userName={userName} />
-                                            </Tooltip>
-                                        </ListItemAvatar>
-                                        <ListItemText classes={{ root: classes.listItemTextRight }}>{item.text}</ListItemText>
-                                    </ListItem>;
-                                } else {
-                                    return <ListItem key={item.id} alignItems="flex-start">
-                                        <ListItemText classes={{ root: classes.listItemTextLeft }}>{item.text}</ListItemText>
-                                        <ListItemAvatar>
-                                            <Tooltip title={userName} arrow placement="left">
-                                                <UserAvatar userName={userName} />
-                                            </Tooltip>
-                                        </ListItemAvatar>
-                                    </ListItem>;
-                                }
-                            })
-                        }
+                        {resultListItems}
                     </ListWithScrollDownButton>
                 )
         }

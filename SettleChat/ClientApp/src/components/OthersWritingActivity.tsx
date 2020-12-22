@@ -93,7 +93,7 @@ const mapStateToProps = (state: ApplicationState): MessageInputPropsStateType =>
         throw new Error('Identity not initialized');
     }
     if (!state.identity.userId) {
-        throw new Error('UserId not initialized');
+        throw new Error('UserId not initialized'); //TODO: I got this exception when user was not authenticated
     }
     if (!state.conversation) {
         throw new Error('Conversation not initialized');
