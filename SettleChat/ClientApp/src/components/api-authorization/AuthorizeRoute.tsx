@@ -1,16 +1,14 @@
 import * as React from 'react'
 import { Component } from 'react'
+import { RouteProps } from 'react-router'
 import { Route, Redirect } from 'react-router-dom'
 import { ApplicationPaths, QueryParameterNames } from './ApiAuthorizationConstants'
 import authService from './AuthorizeService'
 import { RouteComponentProps, match } from 'react-router';
 
-interface AuthorizeRouteProps {//TODO: maybe we could use react-router RouteProps instead
+type AuthorizeRouteComputedProps = RouteProps & {
     path: string;
-    component?: React.ComponentType<RouteComponentProps<any>> | React.ComponentType<any>;
     render?: (props: RouteComponentProps<any>) => React.ReactNode;//typeof PropTypes.func;
-}
-interface AuthorizeRouteComputedProps extends AuthorizeRouteProps {
     computedMatch?: match;
 }
 

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Route, Switch, RouteComponentProps } from 'react-router';
 import Layout from './components/Layout';
+import RecentConversationRedirection from './components/RecentConversationRedirection';
 import Home from './components/Home';
 import Counter from './components/Counter';
 import FetchData from './components/FetchData';
@@ -27,7 +28,8 @@ export default () => (
             <Layout>
                 <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
                     <Switch>
-                        <Route exact path='/' component={Home} />
+                        <AuthorizeRoute exact path='/' component={RecentConversationRedirection} />
+                        <Route exact path='/home' component={Home} />
                         <Route path='/counter' component={Counter} />
                         <AuthorizeRoute path='/fetch-data/:startDateIndex?' component={FetchData} />
                         <AuthorizeRoute path='/conversation/:conversationId' render={(props: RouteComponentProps<any>) => (
