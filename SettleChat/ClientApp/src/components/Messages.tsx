@@ -10,8 +10,12 @@ import { Box, ListItem, ListItemAvatar, ListItemText, Tooltip, Button } from '@m
 import { makeStyles, Theme, createStyles } from '@material-ui/core/styles';
 import { ListWithScrollDownButton } from './ListWithScrollDownButton';
 import TimeAgo from 'react-timeago';
+import timeAgoEnglishStrings from 'react-timeago/lib/language-strings/en'
+import timeAgoBuildFormatter from 'react-timeago/lib/formatters/buildFormatter'
 import { format, isSameDay, differenceInMinutes } from 'date-fns'
 import clsx from 'clsx';
+
+const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
 
 export interface MessagesState {
     messages: ConversationStore.Message[];
@@ -209,7 +213,7 @@ const Messages = (props: MessagesProps) => {
                             <React.Fragment>
                                 {userName}
                                 <Box marginLeft={1} component="span">
-                                    <TimeAgo date={item.created} />
+                                    <TimeAgo date={item.created} minPeriod={60} formatter={timeAgoFormatter} />
                                 </Box>
                             </React.Fragment>
                         }
@@ -226,7 +230,7 @@ const Messages = (props: MessagesProps) => {
                     <ListItemText
                         classes={myUserMessageBubbleGroupClasses}
                         primary={messageGroup}
-                        secondary={<TimeAgo date={item.created} />}
+                        secondary={<TimeAgo date={item.created} minPeriod={60} formatter={timeAgoFormatter} />}
                     />
                 </ListItem>;
             }

@@ -8,6 +8,10 @@ import { ConversationListItem, ConversationListItemUser, ConversationsState, act
 import { makeStyles } from '@material-ui/core/styles';
 import { Box, List, ListItem, ListItemAvatar, ListItemText, Divider, Avatar, Typography } from '@material-ui/core';
 import TimeAgo from 'react-timeago';
+import timeAgoEnglishStrings from 'react-timeago/lib/language-strings/en'
+import timeAgoBuildFormatter from 'react-timeago/lib/formatters/buildFormatter'
+
+const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
 
 type ConversationsComponentState = ConversationsState & { userId: string | null, isAuthenticated: boolean };
 type ConversationProps = ConversationsComponentState & MapDispatchToPropsType;
@@ -88,7 +92,7 @@ const Conversations = (props: ConversationProps) => {
                                         >
                                             <LastMessage conversation={conversation} myIdentityUserId={userId} />
                                         </Typography>
-                                        <TimeAgo date={conversation.lastActivityTimestamp} />
+                                        <TimeAgo date={conversation.lastActivityTimestamp} minPeriod={60} formatter={timeAgoFormatter} />
                                     </React.Fragment>}
                                 secondaryTypographyProps={{ component: 'div', noWrap: true }}
                             />

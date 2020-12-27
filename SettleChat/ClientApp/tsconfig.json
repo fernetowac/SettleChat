@@ -26,7 +26,8 @@
     "src",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "node_modules/redux/index.d.ts"
+    "node_modules/redux/index.d.ts",
+    "types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
