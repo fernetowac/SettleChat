@@ -165,6 +165,7 @@ export const reducer: Reducer<ConversationsState> = (state: ConversationsState |
             return {
                 conversations: []
             };
+        //TODO: handle also adding new user to conversation
         case 'MESSAGE_ADDED':
             {
                 const actionMessage = (action as MessageAddedAction).message;
@@ -206,6 +207,7 @@ export const reducer: Reducer<ConversationsState> = (state: ConversationsState |
                 const otherConversations: ConversationListItem[] =
                     state.conversations.filter(
                         (conversation: ConversationListItem) => conversation.id !== actionConversation.id);
+                //TODO: update whole conversation including users list
                 return {
                     conversations: [
                         ...otherConversations,

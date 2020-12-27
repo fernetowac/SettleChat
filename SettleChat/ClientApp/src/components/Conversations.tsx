@@ -46,6 +46,7 @@ const LastMessage = (props: { conversation: ConversationListItem, myIdentityUser
 
     const user = conversation.users.find((user) => user.id === conversation.lastMessageUserId);
     if (!user) {
+        //TODO: It may happen when there was connection issue and new users were not loaded after invitation. We should probably not raise error here. We can fallback to unspecified user name.
         throw Error(`User not found for id ${conversation.lastMessageUserId}`);
     }
 
