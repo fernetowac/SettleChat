@@ -13,6 +13,6 @@ const UsersPanel = () => {
 
 export default connect(
     (state: ApplicationState) => {
-        return { conversationId: state.conversation && state.conversation.conversation ? state.conversation.conversation.id : undefined }
+        return { conversationId: state.conversation && state.conversation.detail ? state.conversation.detail.id : undefined }
     }
 )(UsersPanel as any);

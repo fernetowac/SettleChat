@@ -11,7 +11,7 @@ interface Identifiable {
 }
 
 export interface ConversationState {
-    conversation: ConversationDetail | null;
+    detail: ConversationDetail | null;
     messages: Message[];
     users: User[];
     ui: Ui;
@@ -507,10 +507,10 @@ export const actionCreators = {
     updateWritingActivity: (writingActivity: WritingActivityData): ThunkAction<Promise<void>, ApplicationState, undefined, HttpFailStatusReceivedAction> =>
         (dispatch, getState, extraArgument) => {
             const conversationState = getState().conversation;
-            if (!conversationState || !conversationState.conversation) {
+            if (!conversationState || !conversationState.detail) {
                 return Promise.reject('Conversation must be loaded in order to notify about it');
             }
-            const conversationId = conversationState.conversation.id;
+            const conversationId = conversationState.detail.id;
             //dispatch({ type: 'CONVERSATION_SEND_WRITING_ACTIVITY', writingActivity: writingActivity });
             return fetchPut<void>(`/api/conversations/${conversationId}/writingactivity`, writingActivity, dispatch);
         },
@@ -531,9 +531,9 @@ export const actionCreators = {
     requestUsers: (): AppThunkAction<UserKnownAction, User[] | void> => (dispatch, getState) => {
         // Only load data if it's something we don't already have (and are not already loading)
         const appState = getState();
-        if (appState && appState.conversation && appState.conversation.conversation) {
+        if (appState && appState.conversation && appState.conversation.detail) {
             dispatch({ type: 'USERS_REQUEST_LIST' });
-            const conversationId = appState.conversation.conversation.id;
+            const conversationId = appState.conversation.detail.id;
             return authService.getAccessToken()
                 .then(token => {
                     //TODO: handle unauthorized when !token
@@ -592,7 +592,7 @@ export const actionCreators = {
         }
 };
 
-export const conversationReducer: Reducer<ConversationDetail | null> = (state: ConversationDetail | null = null, incomingAction: Action): ConversationDetail | null => {
+export const conversationDetailReducer: Reducer<ConversationDetail | null> = (state: ConversationDetail | null = null, incomingAction: Action): ConversationDetail | null => {
     const action = incomingAction as ConversationKnownAction | IdentityChangedAction;
 
     switch (action.type) {
@@ -767,7 +767,7 @@ export const invitationsReducer: Reducer<Invitation[]> = (state: Invitation[] = 
 }
 
 export const reducer = combineReducers<ConversationState>({
-    conversation: conversationReducer,
+    detail: conversationDetailReducer,
     messages: messagesReducer,
     users: usersReducer,
     ui: uiReducer,

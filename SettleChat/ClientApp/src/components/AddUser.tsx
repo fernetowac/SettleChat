@@ -112,7 +112,7 @@ function AddUser(props: AddUserProps) {
 
 export default connect(
     (state: ApplicationState) => {
-        return { conversationId: state.conversation && state.conversation.conversation ? state.conversation.conversation.id : undefined }
+        return { conversationId: state.conversation && state.conversation.detail ? state.conversation.detail.id : undefined }
     },
     ConversationStore.actionCreators
 )(AddUser as any);

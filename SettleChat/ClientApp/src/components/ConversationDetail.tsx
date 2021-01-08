@@ -168,7 +168,7 @@ const mapStateToProps = (state: ApplicationState): ConversationDetailsState => {
         };
     }
     return {
-        conversation: state && state.conversation ? state.conversation.conversation : null,
+        conversation: state && state.conversation ? state.conversation.detail : null,
         isLoading: state && state.conversation.ui.isConversationLoading
     }
 };

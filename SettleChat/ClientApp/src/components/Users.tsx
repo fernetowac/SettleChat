@@ -77,7 +77,7 @@ export default connect(
     (state: ApplicationState): UsersState => {
         return {
             users: ((state.conversation === undefined ? undefined : state.conversation.users) || []),
-            conversationId: state.conversation && state.conversation.conversation ? state.conversation.conversation.id : undefined
+            conversationId: state.conversation && state.conversation.detail ? state.conversation.detail.id : undefined
         } as UsersState;
     },
     ConversationStore.actionCreators
