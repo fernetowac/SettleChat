@@ -13,6 +13,7 @@ import { Grid } from '@material-ui/core';
 import * as Sentry from "@sentry/react";
 import ErrorBoundaryFallback from './ErrorBoundaryFallback';
 import Conversations from './Conversations';
+import CreateInvitationPanel from './CreateInvitationPanel';
 
 type ConversationPropsStateType = {
     conversation: ConversationStore.ConversationState | undefined;
@@ -53,6 +54,9 @@ const MessagesPanel = (props: ConversationProps) => {
                 <Grid item xs={3} style={{ display: 'flex', flexDirection: 'column' }}>
                     <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
                         <Conversations />
+                    </Sentry.ErrorBoundary>
+                    <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                        <CreateInvitationPanel conversationId={conversationId} />
                     </Sentry.ErrorBoundary>
                     <UsersPanel />
                 </Grid>

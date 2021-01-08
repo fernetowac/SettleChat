@@ -9,6 +9,8 @@
     <Compile Remove="Migrations\20200818161749_InitialCreate1.Designer.cs" />
     <Compile Remove="Migrations\20200829214116_IdentityServer.cs" />
     <Compile Remove="Migrations\20200829214116_IdentityServer.Designer.cs" />
+    <Compile Remove="Migrations\20210106220251_AddedInvitationsTable.cs" />
+    <Compile Remove="Migrations\20210106220251_AddedInvitationsTable.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>

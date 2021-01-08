@@ -16,6 +16,7 @@ export interface ConversationState {
     users: User[];
     ui: Ui;
     writingActivities: ReceivedWritingActivityStateItem[];
+    invitations: Invitation[];
 }
 
 export interface ConversationDetail {
@@ -77,6 +78,29 @@ interface UninvitedUser {
     userName: string;
     joinLink: string;
     email: string | undefined;
+}
+
+export interface NewInvitation {
+    conversationId: string;
+    isPermanent: boolean;
+}
+
+interface InvitationResponse extends Identifiable {
+    id: string;
+    conversationId: string;
+    conversationTitle?: string;
+    isActive: boolean;
+    isPermanent: boolean;
+    invitedByUserName: string;
+    invitedByUserId: string;
+    userNames: string[];
+    token: string;
+    created: string;
+}
+
+export type Invitation = Omit<InvitationResponse, "created"> &
+{
+    created: Date;
 }
 
 export interface ConversationRequestAction {
@@ -153,6 +177,25 @@ export interface ConversationUiEnableLoadingMoreMessages {
     type: 'CONVERSATION_UI_ENABLE_LOADING_MORE_MESSAGES';
 }
 
+export interface InvitationAddAction {
+    type: 'INVITATION_ADD';
+    newInvitation: NewInvitation;
+}
+
+export interface InvitationAddedAction {
+    type: 'INVITATION_ADDED';
+    invitation: Invitation;
+}
+
+export interface InvitationsRequestListAction {
+    type: 'INVITATIONS_REQUEST_LIST';
+}
+
+export interface InvitationsReceiveListAction {
+    type: 'INVITATIONS_RECEIVE_LIST';
+    invitations: Invitation[];
+}
+
 
 interface Ui {
     isConversationLoading: boolean;
@@ -193,7 +236,7 @@ export interface ReceivedWritingActivityStateItem {
 }
 
 const messagesResponseSchema = {
-    "$id": "https://example.com/person.schema.json",
+    "$id": "https://settlechat.com/schemas/messages.schema.json",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "MessagesResponse",
     "type": "array",
@@ -232,6 +275,87 @@ const messagesResponseSchema = {
     }
 };
 
+const commonSchemaDefinition = {
+    "$id": "https://settlechat.com/schemas/common.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "invitation": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "conversationId": {
+                    "type": "string"
+                },
+                "conversationTitle": {
+                    "type": ["string", "null"]
+                },
+                "token": {
+                    "type": "string"
+                },
+                "invitedByUserName": {
+                    "type": "string"
+                },
+                "isPermanent": {
+                    "type": "boolean"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "created": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "conversationUserNames": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "definitions": {
+                    "UserNameResponseItem": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "id",
+                "conversationId",
+                "token",
+                "invitedByUserName",
+                "isPermanent",
+                "isActive",
+                "created",
+                "conversationUserNames"
+            ],
+            "additionalProperties": false
+        }
+    }
+}
+
+const invitationsResponseSchema = {
+    "$id": "https://settlechat.com/schemas/invitationsResponse.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "InvitationsResponse",
+    "type": "array",
+    "items": {
+        "$ref": "common.json#/definitions/invitation"
+    },
+    "definitions": {
+        "InvitationResponseItem": commonSchemaDefinition
+    }
+};
+
+const invitationResponseSchema = {
+    "$id": "https://settlechat.com/schemas/invitationResponse.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "InvitationResponse",
+    "oneOf": [
+        { "$ref": "common.json#/definitions/invitation" }
+    ]
+};
+
 const unionArray = <TIdentifiable extends Identifiable>(primaryArray: TIdentifiable[], secondaryArray: TIdentifiable[]) => {
     const mergedArray = [...primaryArray, ...secondaryArray];
     // mergedArray have duplicates, lets remove the duplicates using Set
@@ -259,17 +383,32 @@ export const transformMessageCreateResponse = (response: MessageCreateResponse):
         created: new Date(response.created as string)
     });
 
+export const transformInvitationResponse = (response: InvitationResponse): Invitation => (
+    {
+        ...response,
+        created: new Date(response.created as string)
+    });
+
+export const transformInvitationsResponse = (response: InvitationResponse[]): Invitation[] => response.map(transformInvitationResponse);
+
 export type ConversationKnownAction = ConversationRequestAction | ConversationReceivedAction;
 export type MessageKnownAction = MessageAddAction | MessageAddedAction | MessagesRequestListAction | MessagesReceiveListAction;
 type UserKnownAction = UserAddAction | UserAddedAction | UsersRequestListAction | UsersReceivedListAction | ConversationUserStatusChanged;
 export type UiKnownAction = ConversationUiEnableLoadingMoreMessages | ConversationUiDisableLoadingMoreMessages;
 export type KnownAction = ConversationKnownAction | MessageKnownAction | UiKnownAction;
+export type InvitationKnownAction = InvitationAddAction | InvitationAddedAction | InvitationsRequestListAction | InvitationsReceiveListAction;
 
 export const actionCreators = {
     messageAdded(message: Message): MessageAddedAction {
         return {
             type: 'MESSAGE_ADDED',
             message: message
+        }
+    },
+    invitationAdded(invitation: Invitation): InvitationAddedAction {
+        return {
+            type: 'INVITATION_ADDED',
+            invitation: invitation
         }
     },
     writingActivityReceived(writingActivity: ReceivedWritingActivityData): ConversationWritingActivityReceived {
@@ -340,7 +479,7 @@ export const actionCreators = {
                 url += `&beforeId=${encodeURIComponent(beforeId)}`;
             }
             return fetchGet<Message[]>(url, dispatch, true, createMessages, messagesResponseSchema)
-                .then(data => {//TODO: we should handle here either only messages of current conversation (and prevent storing messages of unloaded conversation) or messages for all conversations (preferred).
+                .then(data => {
                     dispatch({ type: 'MESSAGES_RECEIVE_LIST', messages: data });
                     return data;
                 });
@@ -422,7 +561,35 @@ export const actionCreators = {
             type: 'USER_ADDED',
             user: user
         } as UserAddedAction;
-    }
+    },
+    createInvitation: (newInvitation: NewInvitation): ThunkAction<Promise<Invitation>, ApplicationState, undefined, InvitationKnownAction | HttpFailStatusReceivedAction> =>
+        (dispatch, getState) => {
+            dispatch({ type: 'INVITATION_ADD', newInvitation: newInvitation });
+            const url = `/api/conversations/${newInvitation.conversationId}/invitations`;
+            const payload = {
+                isPermanent: newInvitation.isPermanent
+            };
+            return fetchPost<Invitation>(url, payload, dispatch, true, transformInvitationResponse, invitationResponseSchema, commonSchemaDefinition)
+                .then(invitation => {
+                    dispatch(actionCreators.invitationAdded(invitation));
+                    return invitation;
+                });
+        },
+    /**
+     * Retrieve invitations from backend
+     * @returns array of Invitation
+     */
+    requestInvitations: (conversationId: string): ThunkAction<Promise<Invitation[]>, ApplicationState, undefined, InvitationKnownAction> =>
+        (dispatch, getState) => {
+            // Only load data if it's something we don't already have (and are not already loading)
+            dispatch({ type: 'INVITATIONS_REQUEST_LIST' });
+            const url = `/api/conversations/${conversationId}/invitations`;
+            return fetchGet<Invitation[]>(url, dispatch, true, transformInvitationsResponse, invitationsResponseSchema, commonSchemaDefinition)
+                .then(invitations => {
+                    dispatch({ type: 'INVITATIONS_RECEIVE_LIST', invitations: invitations });
+                    return invitations;
+                });
+        }
 };
 
 export const conversationReducer: Reducer<ConversationDetail | null> = (state: ConversationDetail | null = null, incomingAction: Action): ConversationDetail | null => {
@@ -566,10 +733,44 @@ const writingActivitiesReducer: Reducer<ReceivedWritingActivityStateItem[]> = (s
     }
 }
 
+export const invitationsReducer: Reducer<Invitation[]> = (state: Invitation[] = [], incomingAction: Action): Invitation[] => {
+    // Note that items in state are not sorted. UI component manages sorting instead.
+    const action = incomingAction as InvitationKnownAction | IdentityChangedAction;
+
+    switch (action.type) {
+        case 'INVITATION_ADDED':
+            const actionInvitation = (action as InvitationAddedAction).invitation;
+            // don't change state, when the invitation already exists in the state
+            const existingInvitation = state.find(x => x.id === actionInvitation.id);
+            if (existingInvitation) {
+                const equals = JSON.stringify(existingInvitation) === JSON.stringify(action.invitation);
+                if (equals) {
+                    return state;
+                }
+            }
+
+            return [
+                ...state.filter(x => x.id !== actionInvitation.id),
+                {
+                    ...actionInvitation
+                }
+            ];
+        case 'INVITATIONS_RECEIVE_LIST':
+            return [...unionArray<Invitation>(action.invitations, state)];
+        case 'IDENTITY_CHANGED'://TODO: clearing list of messages should be maybe called from component. Store should not be aware of logic when user identity is changed.
+            return [];
+        case 'INVITATION_ADD':
+        case 'INVITATIONS_REQUEST_LIST':
+        default:
+            return state;
+    };
+}
+
 export const reducer = combineReducers<ConversationState>({
     conversation: conversationReducer,
     messages: messagesReducer,
     users: usersReducer,
     ui: uiReducer,
-    writingActivities: writingActivitiesReducer
+    writingActivities: writingActivitiesReducer,
+    invitations: invitationsReducer
 });

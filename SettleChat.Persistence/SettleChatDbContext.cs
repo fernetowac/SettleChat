@@ -21,6 +21,7 @@ namespace SettleChat.Persistence
         public DbSet<Conversation> Conversations { get; set; }
         public DbSet<ConversationUser> ConversationUsers { get; set; }
         public DbSet<UserSecret> UserSecrets { get; set; }
+        public DbSet<Invitation> Invitations { get; set; }
 
         public SettleChatDbContext(
             DbContextOptions options,
@@ -80,6 +81,18 @@ namespace SettleChat.Persistence
                 .HasConversion(
                     x => x.ToUpperInvariant(),
                     x => x);
+
+            modelBuilder.Entity<Invitation>()
+                .HasOne(x => x.Conversation)
+                .WithMany(x => x.Invitations)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Invitation>()
+                .HasOne(x => x.InvitedByUser)
+                .WithMany(x => x.Invitations)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.NoAction);
         }
         /// <summary>
         /// Gets or sets the <see cref="DbSet{PersistedGrant}"/>.

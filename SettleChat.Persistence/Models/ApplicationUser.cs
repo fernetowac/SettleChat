@@ -9,7 +9,8 @@ namespace SettleChat.Persistence.Models
     {
         public UserStatus Status { get; set; } = UserStatus.Offline;
         public DateTimeOffset LastActivityTimestamp { get; set; }
-        public IEnumerable<ConversationUser> ConversationUsers { get; set; }
+        public List<ConversationUser> ConversationUsers { get; set; } = new List<ConversationUser>();
+        public List<Invitation> Invitations { get; set; } = new List<Invitation>();
 
     }
 }
