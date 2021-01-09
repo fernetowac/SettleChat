@@ -6,10 +6,12 @@ import * as ConversationStore from "../store/Conversation";
 import { ApplicationState } from '../store/index';
 import { format } from 'date-fns'
 import { List, Box, ListItem, ListItemText, Button, Checkbox, FormControl, FormControlLabel } from '@material-ui/core';
-import { Form } from 'reactstrap';
+import { Invitation, NewInvitation } from '../types/invitationTypes'
+import { InvitationKnownAction } from '../types/invitationActionTypes'
+import { createInvitation, requestInvitations } from '../thunks/invitationThunks'
 
 type CreateInvitationPanelState = {
-    invitations: ConversationStore.Invitation[];
+    invitations: Invitation[];
     conversationId: string;
 }
 type CreateInvitationPanelProps = CreateInvitationPanelState & MapDispatchToPropsType;
@@ -82,13 +84,13 @@ const compareByCreatedAsc = (a: { created: Date }, b: { created: Date }): number
     return 0;
 }
 
-const getInvitations = (state: ApplicationState, conversationId: string): ConversationStore.Invitation[] => (
+const getInvitations = (state: ApplicationState, conversationId: string): Invitation[] => (
     state.conversation === undefined ?
         undefined :
         state.conversation.invitations
             .filter(invitation => invitation.conversationId === conversationId)
 ) || [];
-const getSortedInvitations = (invitations: ConversationStore.Invitation[]): ConversationStore.Invitation[] => invitations.sort(compareByCreatedAsc);
+const getSortedInvitations = (invitations: Invitation[]): Invitation[] => invitations.sort(compareByCreatedAsc);
 
 /**
  * Memoized sorting of invitations
@@ -97,14 +99,14 @@ const sortedInvitationsSelector = createSelector([getInvitations], getSortedInvi
 
 type MapDispatchToPropsType = {
     actions: {
-        requestInvitations: (conversationId: string) => Promise<ConversationStore.Invitation[]>;
-        createInvitation: (newInvitation: ConversationStore.NewInvitation) => Promise<ConversationStore.Invitation>;
+        requestInvitations: (conversationId: string) => Promise<Invitation[]>;
+        createInvitation: (newInvitation: NewInvitation) => Promise<Invitation>;
     }
 };
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.KnownAction>): MapDispatchToPropsType => ({
+const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, InvitationKnownAction>): MapDispatchToPropsType => ({
     actions: {
-        requestInvitations: (conversationId: string) => dispatch(ConversationStore.actionCreators.requestInvitations(conversationId)),
-        createInvitation: (newInvitation: ConversationStore.NewInvitation) => dispatch(ConversationStore.actionCreators.createInvitation(newInvitation))
+        requestInvitations: (conversationId: string) => dispatch(requestInvitations(conversationId)),
+        createInvitation: (newInvitation: NewInvitation) => dispatch(createInvitation(newInvitation))
     }
 });
 

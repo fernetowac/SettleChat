@@ -2,10 +2,10 @@
 import { ThunkDispatch } from 'redux-thunk';
 import * as HttpStatusActions from '../actions/HttpStatusActions';
 import { isDevelopment } from '../helpers/development/DevDetect';
-//import  Ajv  from 'ajv';
-var Ajv: any;
+import AwaitLock from 'await-lock';
+import SchemaKind from '../schemas/SchemaKind'
 
-export enum HttpMethod {
+enum HttpMethod {
     Get = 'GET',
     Post = 'POST',
     Put = 'PUT',
@@ -13,35 +13,34 @@ export enum HttpMethod {
     Delete = 'DELETE'
 }
 
-const validateSchemaAsync = async <TResponse>(responsePromise: Promise<TResponse>, responseSchema: object, responseSchemaDependencies: object[]): Promise<TResponse> => {
-    // dynamically import ajv (json schema validation https://github.com/ajv-validator/ajv/tree/v6) module if needed
-    if (!Ajv) {
-        console.debug("start importingModule", 'ajv');
-        Ajv = await import('ajv');
-        console.debug("completed importingModule", 'ajv');
-    }
-
-    return responsePromise.then(response => {
-        const ajv = new Ajv.default({ allErrors: true });
-        responseSchemaDependencies.forEach((schema) => ajv.addSchema(schema));
-        const validate = ajv.compile(responseSchema);
-        const valid = validate(response);
-        if (!valid) {
-            console.error(validate.errors, JSON.stringify(response), JSON.stringify(responseSchema));
-        }
-        return response;
-    });
+interface SchemaValidator {
+    validateSchemaAsync: <TResponse>(responsePromise: Promise<TResponse>, responseSchemaKind: SchemaKind) => Promise<TResponse>;
 }
 
-export const fetchExtended =
+const schemaValidatorImporterLock = new AwaitLock();
+let _schemaValidator: SchemaValidator | undefined = undefined;
+const getSchemaValidator = async (): Promise<SchemaValidator> => {
+    await schemaValidatorImporterLock.acquireAsync();
+    try {
+        if (_schemaValidator) {
+            return Promise.resolve(_schemaValidator);
+        }
+        _schemaValidator = await import('../schemas/schemaValidator');
+        return _schemaValidator;
+    }
+    finally {
+        schemaValidatorImporterLock.release();
+    }
+};
+
+const fetchExtended =
     async <TResult>(url: string,
         dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
         httpMethod: HttpMethod = HttpMethod.Get,
         requestBody: any,
         attachBearerToken: boolean = true,
         transformResponse?: ResponseTransformationType<TResult>,
-        responseSchema?: object,
-        ...responseSchemaDependencies: object[]): Promise<TResult> => {
+        responseSchemaKind?: SchemaKind): Promise<TResult> => {
 
         let bearerTokenHeader: { Authorization: string } | undefined = undefined;
         if (attachBearerToken) {
@@ -66,8 +65,8 @@ export const fetchExtended =
             .then(async response => {
                 if (response.status === 200) {
                     let responseStreamPromise = response.json();
-                    if (isDevelopment && responseSchema) {
-                        responseStreamPromise = validateSchemaAsync(responseStreamPromise, responseSchema, responseSchemaDependencies);
+                    if (isDevelopment && responseSchemaKind) {
+                        responseStreamPromise = (await getSchemaValidator()).validateSchemaAsync(responseStreamPromise, responseSchemaKind);
                     }
                     if (transformResponse) {
                         return responseStreamPromise.then(transformResponse);
@@ -86,9 +85,8 @@ export const fetchGet = async <TResult>(
     dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
     attachBearerToken: boolean = true,
     transformResponse?: ResponseTransformationType<TResult>,
-    responseSchema?: object,
-    ...responseSchemaDependencies: object[]
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Get, undefined, attachBearerToken, transformResponse, responseSchema, responseSchemaDependencies);
+    responseSchemaKind?: SchemaKind
+): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Get, undefined, attachBearerToken, transformResponse, responseSchemaKind);
 
 export const fetchPost = async <TResult>(
     url: string,
@@ -96,9 +94,8 @@ export const fetchPost = async <TResult>(
     dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
     attachBearerToken: boolean = true,
     transformResponse?: ResponseTransformationType<TResult>,
-    responseSchema?: object,
-    ...responseSchemaDependencies: object[]
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Post, requestBody, attachBearerToken, transformResponse, responseSchema, responseSchemaDependencies);
+    responseSchemaKind?: SchemaKind
+): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Post, requestBody, attachBearerToken, transformResponse, responseSchemaKind);
 
 export const fetchPut = async <TResult>(
     url: string,
@@ -106,9 +103,8 @@ export const fetchPut = async <TResult>(
     dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
     attachBearerToken: boolean = true,
     transformResponse?: ResponseTransformationType<TResult>,
-    responseSchema?: object,
-    ...responseSchemaDependencies: object[]
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Put, requestBody, attachBearerToken, transformResponse, responseSchema, responseSchemaDependencies);
+    responseSchemaKind?: SchemaKind
+): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Put, requestBody, attachBearerToken, transformResponse, responseSchemaKind);
 
 export const fetchPatch = async <TResult>(
     url: string,
@@ -116,9 +112,8 @@ export const fetchPatch = async <TResult>(
     dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
     attachBearerToken: boolean = true,
     transformResponse?: ResponseTransformationType<TResult>,
-    responseSchema?: object,
-    ...responseSchemaDependencies: object[]
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Patch, requestBody, attachBearerToken, transformResponse, responseSchema, responseSchemaDependencies);
+    responseSchemaKind?: SchemaKind
+): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Patch, requestBody, attachBearerToken, transformResponse, responseSchemaKind);
 
 export const fetchDelete = async <TResult>(
     url: string,
@@ -126,6 +121,5 @@ export const fetchDelete = async <TResult>(
     dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
     attachBearerToken: boolean = true,
     transformResponse?: ResponseTransformationType<TResult>,
-    responseSchema?: object,
-    ...responseSchemaDependencies: object[]
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Delete, requestBody, attachBearerToken, transformResponse, responseSchema, responseSchemaDependencies);
+    responseSchemaKind?: SchemaKind
+): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Delete, requestBody, attachBearerToken, transformResponse, responseSchemaKind);
