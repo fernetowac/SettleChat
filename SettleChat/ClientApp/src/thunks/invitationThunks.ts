@@ -1,19 +1,12 @@
 ﻿import { ThunkAction } from 'redux-thunk';
-import { Invitation, NewInvitation, InvitationResponse } from '../types/invitationTypes'
+import { Invitation, NewInvitation } from '../types/invitationTypes'
 import { InvitationKnownAction } from '../types/invitationActionTypes'
 import { invitationAdded, invitationAdd, invitationsRequestList, invitationsReceiveList } from '../actions/invitationActions'
 import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions'
 import { ApplicationState } from '../store/index';
 import { fetchGet, fetchPost } from '../services/FetchService'
 import SchemaKind from '../schemas/SchemaKind'
-
-const transformInvitationResponse = (response: InvitationResponse): Invitation => (
-    {
-        ...response,
-        created: new Date(response.created as string)
-    });
-
-const transformInvitationsResponse = (response: InvitationResponse[]): Invitation[] => response.map(transformInvitationResponse);
+import { transformInvitationResponse, transformInvitationsResponse } from '../mappers/invitationMapper'
 
 export const createInvitation = (newInvitation: NewInvitation): ThunkAction<Promise<Invitation>, ApplicationState, undefined, InvitationKnownAction | HttpFailStatusReceivedAction> =>
     (dispatch, getState) => {

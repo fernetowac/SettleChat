@@ -12,6 +12,7 @@ import App from './App';
 import * as Sentry from "@sentry/react";
 import { Integrations } from "@sentry/tracing";
 import { InitialApplicationState } from './store/index';
+import { SnackbarProvider } from 'notistack';
 //import registerServiceWorker from './registerServiceWorker';
 
 Sentry.init({
@@ -33,7 +34,9 @@ const store = configureStore(history, InitialApplicationState);
 ReactDOM.render(
     <Provider store={store}>
         <ConnectedRouter history={history}>
-            <App />
+            <SnackbarProvider maxSnack={3}>
+                <App />
+            </SnackbarProvider>
         </ConnectedRouter>
     </Provider>,
     document.getElementById('root'));

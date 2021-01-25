@@ -18,7 +18,7 @@ export interface InvitationResponse extends Identifiable {
     isPermanent: boolean;
     invitedByUserName: string;
     invitedByUserId: string;
-    userNames: string[];
+    conversationUserNames: string[];
     token: string;
     created: string;
 }

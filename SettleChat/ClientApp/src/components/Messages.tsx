@@ -176,7 +176,7 @@ const Messages = (props: MessagesProps) => {
 
 
     var resultListItems = [];
-    let messageGroup = Array();
+    let messageGroup = [];
     for (let i = 0; i < props.messages.length; i++) {
         const item = props.messages[i];
         var userName = userNameById.get(item.userId) || 'Loading..';

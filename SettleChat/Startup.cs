@@ -91,6 +91,7 @@ namespace SettleChat
                         {
                             clientBuilder
                                 .WithRedirectUri("/authentication/login-callback")
+                                .WithRedirectUri("/silentLoginCallback.html")
                                 .WithLogoutRedirectUri("/authentication/logout-callback");
                         });
                     if (_env.IsDevelopment())

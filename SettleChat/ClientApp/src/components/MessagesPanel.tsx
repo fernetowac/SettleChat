@@ -14,6 +14,11 @@ import * as Sentry from "@sentry/react";
 import ErrorBoundaryFallback from './ErrorBoundaryFallback';
 import Conversations from './Conversations';
 import CreateInvitationPanel from './CreateInvitationPanel';
+import { Box, Slide, IconButton } from '@material-ui/core';
+import PersonAddIcon from '@material-ui/icons/PersonAdd';
+import PeopleIcon from '@material-ui/icons/People';
+import ArrowBackIcon from '@material-ui/icons/ArrowBack';
+import { useIsMounted } from '../hooks/useIsMounted'
 
 type ConversationPropsStateType = {
     conversation: ConversationStore.ConversationState | undefined;
@@ -31,12 +36,17 @@ const MessagesPanel = (props: ConversationProps) => {
     const { requestConversation, requestUsers, startListeningConversation, stopListeningConversation } = props.actions;
     const { connectionId, reconnected } = props;
     const { conversationId } = props.match.params;
+    const isMounted = useIsMounted();
 
     React.useEffect(() => {
         requestConversation(conversationId)
-            .then(() => requestUsers()) //TODO: when user is connected, we need to update his UserStatus in users list somehow
+            .then(() => {
+                if (isMounted()) {
+                    return requestUsers()
+                }
+            }) //TODO: when user is connected, we need to update his UserStatus in users list somehow
             .catch(x => console.error(`MessagesPanel catch alert ${x}`));
-    }, [requestConversation, requestUsers, conversationId]);
+    }, [requestConversation, requestUsers, conversationId, isMounted]);
 
     React.useEffect(() => {
         // It is always needed to restart listening to conversation when there's new connectionId (even when only reconnected), because new connectionId might be issued also due to server restart
@@ -52,13 +62,36 @@ const MessagesPanel = (props: ConversationProps) => {
         {(props.conversation &&
             <Grid container spacing={3} direction="row" style={{ minHeight: 0, flexWrap: 'initial', flexGrow: 1 }}>
                 <Grid item xs={3} style={{ display: 'flex', flexDirection: 'column' }}>
-                    <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                        <Conversations />
-                    </Sentry.ErrorBoundary>
-                    <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                        <CreateInvitationPanel conversationId={conversationId} />
-                    </Sentry.ErrorBoundary>
-                    <UsersPanel />
+                    <Box style={{ display: 'flex' }}>
+                        <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.displayConversationInvite}><PersonAddIcon /></IconButton>
+                        <IconButton onClick={props.actions.displayConversationUsers}><PeopleIcon /></IconButton>
+                    </Box>
+                    <Box style={{ position: 'relative', display: 'flex', flexGrow: 1, flexDirection: 'column', minHeight: '0px' }}>
+                        <Slide direction="right" in={props.conversation.ui.leftPanel.contentKind === ConversationStore.LeftPanelContentKind.ConversationInvite} mountOnEnter unmountOnExit>
+                            <Box style={{ flexGrow: 1, backgroundColor: '#dfdfdf', position: 'absolute', width: '100%', height: '100%', zIndex: 2, overflowY: 'auto' }}>
+                                <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.displayConversations}><ArrowBackIcon /></IconButton>
+                                Conversation invite
+                                <Box marginBottom={2} padding={2} style={{ backgroundColor: '#fff' }}>
+                                    <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                                        <CreateInvitationPanel conversationId={conversationId} />
+                                    </Sentry.ErrorBoundary>
+                                </Box>
+                                <Box marginBottom={2} padding={2} style={{ backgroundColor: '#fff' }}>
+                                    <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                                        <UsersPanel />
+                                    </Sentry.ErrorBoundary>
+                                </Box>
+                            </Box>
+                        </Slide>
+                        <Slide direction="right" in={props.conversation.ui.leftPanel.contentKind === ConversationStore.LeftPanelContentKind.ConversationUsers} mountOnEnter unmountOnExit>
+                            <Box style={{ flexGrow: 1, position: 'absolute', width: '100%', height: '100%', zIndex: 2 }}>
+                                <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.displayConversations}><ArrowBackIcon /></IconButton>
+                            Conversation users</Box>
+                        </Slide>
+                        <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                            <Conversations />
+                        </Sentry.ErrorBoundary>
+                    </Box>
                 </Grid>
                 <Grid item xs={9} style={{ display: 'flex' }}>
                     <Grid container direction="column" style={{ flexWrap: 'initial' }}>
@@ -89,6 +122,9 @@ type MapDispatchToPropsType = {
         startListeningConversation: (connectionId: string, conversationId: string) => Promise<void>;
         stopListeningConversation: (connectionId: string, conversationId: string) => Promise<void>;
         enableLoadingMoreMessages: () => void;
+        displayConversationInvite: () => void;
+        displayConversationUsers: () => void;
+        displayConversations: () => void;
     }
 };
 const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.KnownAction>): MapDispatchToPropsType => ({
@@ -99,6 +135,9 @@ const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined,
         startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation(connectionId, conversationId)),
         stopListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.stopListeningConversation(connectionId, conversationId)),
         enableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.enableLoadingMoreMessages()),
+        displayConversationInvite: () => dispatch(ConversationStore.actionCreators.displayConversationInvite()),
+        displayConversationUsers: () => dispatch(ConversationStore.actionCreators.displayConversationUsers()),
+        displayConversations: () => dispatch(ConversationStore.actionCreators.displayConversations())
     }
 });
 

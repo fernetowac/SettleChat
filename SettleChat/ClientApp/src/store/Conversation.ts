@@ -155,14 +155,39 @@ export interface ConversationUiEnableLoadingMoreMessages {
     type: 'CONVERSATION_UI_ENABLE_LOADING_MORE_MESSAGES';
 }
 
+export interface ConversationUiLeftPanelDisplayConversationInviteAction {
+    type: 'CONVERSATION_UI_LEFT_PANEL_DISPLAY_CONVERSATION_INVITE';
+}
+
+export interface ConversationUiLeftPanelDisplayConversationUsersAction {
+    type: 'CONVERSATION_UI_LEFT_PANEL_DISPLAY_CONVERSATION_USERS';
+}
+
+export interface ConversationUiLeftPanelDisplayConversationsAction {
+    type: 'CONVERSATION_UI_LEFT_PANEL_DISPLAY_CONVERSATIONS';
+}
+
+export enum LeftPanelContentKind {
+    Conversations,
+    ConversationUsers,
+    ConversationInvite
+}
+
+interface UiLeftPanel {
+    contentKind: LeftPanelContentKind
+}
 interface Ui {
     isConversationLoading: boolean;
     canLoadMoreMessages: boolean;
+    leftPanel: UiLeftPanel
 }
 
 const initialUi: Ui = {
     isConversationLoading: false,
-    canLoadMoreMessages: false
+    canLoadMoreMessages: false,
+    leftPanel: {
+        contentKind: LeftPanelContentKind.Conversations
+    }
 };
 
 export interface WritingActivityData {
@@ -209,7 +234,7 @@ export const transformMessageCreateResponse = (response: MessageCreateResponse):
 export type ConversationKnownAction = ConversationRequestAction | ConversationReceivedAction;
 export type MessageKnownAction = MessageAddAction | MessageAddedAction | MessagesRequestListAction | MessagesReceiveListAction;
 type UserKnownAction = UserAddAction | UserAddedAction | UsersRequestListAction | UsersReceivedListAction | ConversationUserStatusChanged;
-export type UiKnownAction = ConversationUiEnableLoadingMoreMessages | ConversationUiDisableLoadingMoreMessages;
+export type UiKnownAction = ConversationUiEnableLoadingMoreMessages | ConversationUiDisableLoadingMoreMessages | ConversationUiLeftPanelDisplayConversationInviteAction | ConversationUiLeftPanelDisplayConversationUsersAction | ConversationUiLeftPanelDisplayConversationsAction;
 export type KnownAction = ConversationKnownAction | MessageKnownAction | UiKnownAction;
 
 export const actionCreators = {
@@ -270,6 +295,21 @@ export const actionCreators = {
     disableLoadingMoreMessages(): ConversationUiDisableLoadingMoreMessages {
         return {
             type: 'CONVERSATION_UI_DISABLE_LOADING_MORE_MESSAGES'
+        }
+    },
+    displayConversationInvite(): ConversationUiLeftPanelDisplayConversationInviteAction {
+        return {
+            type: 'CONVERSATION_UI_LEFT_PANEL_DISPLAY_CONVERSATION_INVITE'
+        }
+    },
+    displayConversationUsers(): ConversationUiLeftPanelDisplayConversationUsersAction {
+        return {
+            type: 'CONVERSATION_UI_LEFT_PANEL_DISPLAY_CONVERSATION_USERS'
+        }
+    },
+    displayConversations(): ConversationUiLeftPanelDisplayConversationsAction {
+        return {
+            type: 'CONVERSATION_UI_LEFT_PANEL_DISPLAY_CONVERSATIONS'
         }
     },
     /**
@@ -484,6 +524,30 @@ const uiReducer: Reducer<Ui> = (state: Ui = initialUi, action: Action): Ui => {
                 ...state,
                 canLoadMoreMessages: true
             };
+        case 'CONVERSATION_UI_LEFT_PANEL_DISPLAY_CONVERSATION_INVITE':
+            return {
+                ...state,
+                leftPanel: {
+                    ...state.leftPanel,
+                    contentKind: LeftPanelContentKind.ConversationInvite
+                }
+            }
+        case 'CONVERSATION_UI_LEFT_PANEL_DISPLAY_CONVERSATION_USERS':
+            return {
+                ...state,
+                leftPanel: {
+                    ...state.leftPanel,
+                    contentKind: LeftPanelContentKind.ConversationUsers
+                }
+            }
+        case 'CONVERSATION_UI_LEFT_PANEL_DISPLAY_CONVERSATIONS':
+            return {
+                ...state,
+                leftPanel: {
+                    ...state.leftPanel,
+                    contentKind: LeftPanelContentKind.Conversations
+                }
+            }
         default:
             return state;
     }

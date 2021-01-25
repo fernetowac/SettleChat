@@ -18,7 +18,7 @@ interface Callback {
     subscription: number;
 }
 
-export class AuthorizeService<TState> {
+export class AuthorizeService<TState extends SignInState> {
     private callbacks: Callback[] = [];
     private nextSubscriptionId = 0;
     private user: User | null = null;
@@ -72,34 +72,38 @@ export class AuthorizeService<TState> {
             this.updateState(silentUser);
             return this.success(state);
         } catch (silentError) {
-            // User might not be authenticated, fallback to popup authentication
-            console.error("Silent authentication error: ", silentError);
+            if (silentError == 'ErrorResponse: login_required') {
+                console.debug('Silent authentication error: ', silentError);
+            } else {
+                console.error('Silent authentication error: ', silentError);
+            }
+        }
 
-            try {
-                if (AuthorizeService.popUpDisabled) {
-                    throw new Error('Popup disabled. Change \'AuthorizeService.js:AuthorizeService._popupDisabled\' to false to enable it.');
-                }
-
+        // User might not be authenticated, fallback to popup authentication
+        try {
+            if (AuthorizeService.popUpDisabled) {
+                console.debug('Popup disabled. Change \'AuthorizeService.js:AuthorizeService._popupDisabled\' to false to enable it.');
+            } else {
                 const popUpUser = await userManager.signinPopup(this.createArguments());
                 this.updateState(popUpUser);
                 return this.success(state);
-            } catch (popUpError) {
-                if (popUpError.message === "Popup window closed") {
-                    // The user explicitly cancelled the login action by closing an opened popup.
-                    return this.error("The user closed the window.");
-                } else if (!AuthorizeService.popUpDisabled) {
-                    console.error("Popup authentication error: ", popUpError);
-                }
-
-                // PopUps might be blocked by the user, fallback to redirect
-                try {
-                    await userManager.signinRedirect(this.createArguments(state));
-                    return this.redirect();
-                } catch (redirectError) {
-                    console.error("Redirect authentication error: ", redirectError);
-                    return this.error(redirectError);
-                }
             }
+        } catch (popUpError) {
+            if (popUpError.message === "Popup window closed") {
+                // The user explicitly cancelled the login action by closing an opened popup.
+                return this.error("The user closed the window.");
+            } else if (!AuthorizeService.popUpDisabled) {
+                console.debug("Popup authentication error: ", popUpError);
+            }
+        }
+
+        // PopUps might be blocked by the user, fallback to redirect
+        try {
+            await userManager.signinRedirect(this.createArguments(state));
+            return this.redirect();
+        } catch (redirectError) {
+            console.error("Redirect authentication error: ", redirectError);
+            return this.error(redirectError);
         }
     }
 
@@ -124,21 +128,21 @@ export class AuthorizeService<TState> {
         const userManager = await this.ensureUserManagerInitialized();
         try {
             if (AuthorizeService.popUpDisabled) {
-                throw new Error('Popup disabled. Change \'AuthorizeService.js:AuthorizeService._popupDisabled\' to false to enable it.');
+                console.debug('Popup disabled. Change \'AuthorizeService.js:AuthorizeService._popupDisabled\' to false to enable it.');
+            } else {
+                await userManager.signoutPopup(this.createArguments());
+                this.updateState(null);
+                return this.success(state);
             }
-
-            await userManager.signoutPopup(this.createArguments());
-            this.updateState(null);
-            return this.success(state);
         } catch (popupSignOutError) {
             console.error("Popup signOut error: ", popupSignOutError);
-            try {
-                await userManager.signoutRedirect(this.createArguments(state));
-                return this.redirect();
-            } catch (redirectSignOutError) {
-                console.log("Redirect signOut error: ", redirectSignOutError);
-                return this.error(redirectSignOutError);
-            }
+        }
+        try {
+            await userManager.signoutRedirect(this.createArguments(state));
+            return this.redirect();
+        } catch (redirectSignOutError) {
+            console.error("Redirect signOut error: ", redirectSignOutError);
+            return this.error(redirectSignOutError);
         }
     }
 
@@ -217,7 +221,7 @@ export class AuthorizeService<TState> {
         await this.userManagerLock.acquireAsync();
         try {
             if (this._userManager !== undefined) {
-                return Promise.resolve(this._userManager);
+                return this._userManager;
             }
 
             let response = await fetch(ApplicationPaths.ApiAuthorizationClientConfigurationUrl);
@@ -228,14 +232,11 @@ export class AuthorizeService<TState> {
             let settings = await response.json();
             settings.automaticSilentRenew = true;
             settings.includeIdTokenInSilentRenew = true;
+            settings.silentRequestTimeout = 20000;  // default is 10 000 ms and if reached, chrome for some reason hangs forever when it tries to remove iframe
+            settings.silent_redirect_uri = `${window.location.origin}/silentLoginCallback.html`;
             settings.userStore = new WebStorageStateStore({
                 prefix: ApplicationName
-            });
-            //settings.iframeNavigator = new IFrameNavigator1();
-
-            if (this._userManager !== undefined) {
-                return Promise.resolve(this._userManager);
-            }
+            });            
             this._userManager = new UserManager(settings as UserManagerSettings);
             //Log.logger = console;
             //Log.level = Log.DEBUG;
@@ -244,6 +245,8 @@ export class AuthorizeService<TState> {
                 await (this._userManager as UserManager).removeUser();
                 this.updateState(null);
             });
+            // TODO: stale state could be cleared periodically
+            this._userManager.clearStaleState();
             return this._userManager;
         }
         finally {

@@ -4,6 +4,8 @@ import * as Conversations from './Conversations';
 import * as Conversation from './Conversation';
 import * as Identity from './Identity';
 import * as SignalR from './SignalR';
+import { notificationsReducer } from '../reducers/notificationsReducer'
+import { Notification } from '../types/notificationTypes'
 
 // The top-level state object
 export interface ApplicationState {
@@ -13,6 +15,7 @@ export interface ApplicationState {
     conversation: Conversation.ConversationState | undefined;
     identity: Identity.IdentityState;
     signalR: SignalR.SignalRState;
+    notifications: Notification[]
 }
 
 export const InitialApplicationState: ApplicationState = {
@@ -21,7 +24,8 @@ export const InitialApplicationState: ApplicationState = {
     conversation: undefined,
     conversations: Conversations.InitialConversationsState,
     identity: Identity.unloadedState,
-    signalR: SignalR.initialSignalRState
+    signalR: SignalR.initialSignalRState,
+    notifications: []
 }
 
 // Whenever an action is dispatched, Redux will update each top-level application state property using
@@ -33,7 +37,8 @@ export const reducers = {
     conversations: Conversations.reducer,
     conversation: Conversation.reducer,
     identity: Identity.identityReducer,
-    signalR: SignalR.reducer
+    signalR: SignalR.reducer,
+    notifications: notificationsReducer
 };
 
 // This type can be used as a hint on action creators so that its 'dispatch' and 'getState' params are

@@ -1,7 +1,7 @@
-﻿import { Middleware, Action, AnyAction } from "redux";
+﻿import { HTTP_FAIL_STATUS_RECEIVED } from '../types/httpStatusTypes'
 
 export interface HttpFailStatusReceivedAction {
-    type: 'HTTP_FAIL_STATUS_RECEIVED';
+    type: typeof HTTP_FAIL_STATUS_RECEIVED;
     status: number;
     message: string | null;
 }

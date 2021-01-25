@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using IdentityServer4.Extensions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SettleChat.Models;
 using SettleChat.Persistence;
@@ -16,13 +17,17 @@ namespace SettleChat.Controllers
     public class InvitationsController : ControllerBase
     {
         private readonly SettleChatDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public InvitationsController(SettleChatDbContext context)
+        public InvitationsController(SettleChatDbContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
         {
             _context = context;
+            _userManager = userManager;
+            _signInManager = signInManager;
         }
 
-        [HttpGet]
+        [HttpGet("/api/invitations/{token}")]
         [AllowAnonymous]
         public async Task<ActionResult<InvitationModel>> GetInvitation([FromRoute] string token)
         {
@@ -41,7 +46,7 @@ namespace SettleChat.Controllers
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost("/api/conversations/{conversationId}/invitations")]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
-        public async Task<ActionResult<InvitationModel>> PostInvitation(Guid conversationId, [FromBody] InvitationCreateModel model)
+        public async Task<ActionResult<InvitationModel>> CreateInvitation(Guid conversationId, [FromBody] InvitationCreateModel model)
         {
             Guid identityUserId = Guid.Parse(User.Identity.GetSubjectId());
 
@@ -58,6 +63,82 @@ namespace SettleChat.Controllers
             await _context.SaveChangesAsync();
 
             return await RetrieveInvitationModel(dbInvitation.Entity.Id);
+        }
+
+        // To protect from overposting attacks, enable the specific properties you want to bind to, for
+        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
+        [HttpPost("/api/invitations/{token}")]
+        [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
+        [AllowAnonymous]
+        public async Task<ActionResult<InvitationModel>> AcceptInvitation(string token, [FromBody] InvitationAcceptModel model)
+        {
+            Guid? userId = null;
+            if (model.ShouldCreateAnonymousUser)
+            {
+                if (User.IsAuthenticated())
+                {
+                    //TODO: return error in json nicely
+                    throw new InvalidOperationException();
+                }
+                var user = await CreateAnonymousUser();
+                await _signInManager.SignInAsync(user, false);
+                userId = user.Id;
+            }
+            else
+            {
+                userId = Guid.Parse(User.Identity.GetSubjectId());
+            }
+
+            if (userId == null)
+            {
+                //TODO: return error in json nicely
+                throw new InvalidOperationException("user ID missing");
+            }
+
+            var dbInvitation = await _context.Invitations.Where(x => x.Token == token).SingleOrDefaultAsync();
+            if (dbInvitation == null || !dbInvitation.IsActive)
+            {
+                //TODO: return error in json nicely
+                throw new InvalidOperationException("invitation either doesn't exist or is not active anymore");
+            }
+
+            if (await _context.ConversationUsers.AnyAsync(x =>
+                x.ConversationId == dbInvitation.ConversationId && x.UserId == userId))
+            {
+                //TODO: return error in json nicely
+                throw new InvalidOperationException("user is already member of the conversation");
+            }
+
+            if (!dbInvitation.IsPermanent)
+            {
+                dbInvitation.IsActive = false;
+            }
+
+            _context.ConversationUsers.Add(new ConversationUser
+            {
+                UserId = userId.Value,
+                ConversationId = dbInvitation.ConversationId,
+                Id = Guid.NewGuid(),
+                UserNickName = model.Nickname
+            });
+            await _context.SaveChangesAsync();
+
+            return await RetrieveInvitationModel(dbInvitation.Id);
+        }
+
+        private async Task<ApplicationUser> CreateAnonymousUser()
+        {
+            var user = new ApplicationUser
+            {
+                UserName = $"Anonymous_{Guid.NewGuid():N}",
+            };
+            var result = await _userManager.CreateAsync(user);
+            if (!result.Succeeded)
+            {
+                throw new NotImplementedException(); //TODO:
+            }
+            await _context.SaveChangesAsync();
+            return user;
         }
 
         private async Task<ActionResult<InvitationModel[]>> RetrieveInvitationModels(Guid conversationId, Guid invitedByUserId)

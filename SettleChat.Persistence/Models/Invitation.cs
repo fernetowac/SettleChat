@@ -13,6 +13,7 @@ namespace SettleChat.Persistence.Models
             ConversationId = conversationId;
             InvitedByUserId = invitedByUserId;
             Token = token;
+            IsActive = true;
         }
 
         public Guid Id { get; set; }
@@ -30,7 +31,7 @@ namespace SettleChat.Persistence.Models
         }
         public string Token { get; set; }
         public bool IsPermanent { get; set; }
-        public bool IsActive { get; } = true;
+        public bool IsActive { get; set; }
         public DateTimeOffset Created { get; } = DateTimeOffset.Now;
     }
 }

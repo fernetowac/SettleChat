@@ -12,6 +12,8 @@ interface LoginState {
     message: string | null;
 }
 
+var absoluteUrlRegex = new RegExp('^(?:[a-z]+:)?//', 'i');
+
 // The main responsibility of this component is to handle the user's login process.
 // This is the starting point for the login process. Any component that needs to authenticate
 // a user can simply perform a redirect to this component with a returnUrl query parameter and
@@ -111,11 +113,15 @@ export class Login extends Component<LoginProps, LoginState> {
     private getReturnUrl(state?: SignInState): string {
         const params = new URLSearchParams(window.location.search);
         const fromQuery = params.get(QueryParameterNames.ReturnUrl);
-        if (fromQuery && !fromQuery.startsWith(`${window.location.origin}/`)) {
+        if (fromQuery && this.isUrlAbsolute(fromQuery) && !fromQuery.startsWith(`${window.location.origin}/`)) {
             // This is an extra check to prevent open redirects.
             throw new Error("Invalid return url. The return url needs to have the same origin as the current page.")
         }
         return (state && state.returnUrl) || fromQuery || `${window.location.origin}/`;
+    }
+
+    private isUrlAbsolute(url: string): boolean {
+        return absoluteUrlRegex.test(url);
     }
 
     private redirectToRegister(): void {

@@ -40,6 +40,10 @@ namespace SettleChat.Persistence
             modelBuilder.ConfigurePersistedGrantContext(_operationalStoreOptions.Value);
 
             modelBuilder.Entity<ConversationUser>()
+                .HasIndex(x => new { x.UserId, x.ConversationId })
+                .IsUnique();
+
+            modelBuilder.Entity<ConversationUser>()
                 .HasOne(x => x.User)
                 .WithMany(x => x.ConversationUsers)
                 .HasForeignKey(x => x.UserId)
@@ -81,6 +85,10 @@ namespace SettleChat.Persistence
                 .HasConversion(
                     x => x.ToUpperInvariant(),
                     x => x);
+
+            modelBuilder.Entity<Invitation>()
+                .HasIndex(x => x.Token)
+                .IsUnique();
 
             modelBuilder.Entity<Invitation>()
                 .HasOne(x => x.Conversation)

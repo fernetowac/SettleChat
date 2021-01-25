@@ -1,0 +1,23 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/oidc-client/1.10.1/oidc-client.js" integrity="sha512-t9WpEHKQ5tadkDRTatEyWBMR2bnUfjLnbWNo65YovvvQT9CRSxkR9ZDash7JvBB5xopickn6/TTN5qltoSJlCw==" crossorigin="anonymous"></script>-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/oidc-client/1.10.1/oidc-client.slim.min.js" integrity="sha512-RkbKcmQ4W5FfACrmZGUiYPn6J0oFZVXzlcpgVwAbfVE9q/Ze+5tS7OxNErdnQrKaQzsJVPRLwAAZImy1Mr/r2Q==" crossorigin="anonymous"></script>
+    <script>
+        // from https://localhost:44328/_configuration/SettleChat
+        var config = {
+            "authority": window.location.origin,
+            "client_id": "SettleChat",
+            "response_type": "code",
+            "scope": "SettleChatAPI openid profile"
+        }
+        config.userStore = new Oidc.WebStorageStateStore({
+            prefix: 'SettleChat'
+        });
+        var userManager = new Oidc.UserManager(config);
+        userManager.signinCallback(window.location.href);
+    </script>
+</head>
+<body>
+</body>
+</html>

@@ -11,6 +11,10 @@
     <Compile Remove="Migrations\20200829214116_IdentityServer.Designer.cs" />
     <Compile Remove="Migrations\20210106220251_AddedInvitationsTable.cs" />
     <Compile Remove="Migrations\20210106220251_AddedInvitationsTable.Designer.cs" />
+    <Compile Remove="Migrations\20210118173046_UniqueIndexes.cs" />
+    <Compile Remove="Migrations\20210118173046_UniqueIndexes.Designer.cs" />
+    <Compile Remove="Migrations\20210118173617_UniqueIndexes.cs" />
+    <Compile Remove="Migrations\20210118173617_UniqueIndexes.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>

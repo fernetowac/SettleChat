@@ -67,7 +67,6 @@ const Conversations = (props: ConversationProps) => {
     }, [requestConversations, clearConversations, userId, isAuthenticated]);
 
     return <React.Fragment>
-
         <List className={classes.root}>
             {isAuthenticated && userId &&
                 (props.conversations as ConversationListItem[]).map((conversation, index) => (
