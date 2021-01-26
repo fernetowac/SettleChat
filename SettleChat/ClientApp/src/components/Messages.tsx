@@ -108,13 +108,6 @@ export interface GetTriggerOptions<TTarget extends HTMLElement | Window> {
     threshold?: number;
 }
 
-export interface UseScrollTriggerOptions<TTarget extends HTMLElement | Window> {
-    disableHysteresis?: boolean;
-    target?: TTarget;
-    threshold?: number;
-    getTrigger?: (store: React.MutableRefObject<any>, options: GetTriggerOptions<TTarget>, threshold?: number) => boolean;
-}
-
 const Messages = (props: MessagesProps) => {
     const { requestMessages, enableLoadingMoreMessages, disableLoadingMoreMessages } = props.actions;
     const { conversationId } = props;
