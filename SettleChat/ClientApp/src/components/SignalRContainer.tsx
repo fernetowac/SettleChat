@@ -5,7 +5,8 @@ import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
 import { ThunkDispatch } from 'redux-thunk';
 import { actionCreators as signalRActionCreators, KnownActions as signalRKnownActions } from '../actions/SignalRActions';
-import authService from '../components/api-authorization/AuthorizeService';
+import authService from '../components/api-authorization/AuthorizeService'
+import { useIsMounted } from '../hooks/useIsMounted'
 
 const signalRHubUrl = `${document.location.origin}/conversationHub`;//TODO: take url from some config
 
@@ -21,8 +22,13 @@ const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType 
     const { identityUserId } = props.data;
     const { connectionEstablished, reconnected, disconnected, messageAdded, writingActivityReceived, userStatusChanged, conversationUpdated } = props.actions;
     const [hubConnection, setHubConnection] = React.useState<signalR.HubConnection>();
+    const isMounted = useIsMounted()
+
 
     const accessTokenFactory = (): Promise<string> => {
+        if (!isMounted()) {
+            return Promise.reject('SignalRContainer is already unloaded');
+        }
         return authService.getAccessToken().then(token => {
             if (!token) {
                 throw new Error('Access token should never be null here');
@@ -31,6 +37,7 @@ const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType 
         });
     }
 
+    //TODO: log only when development (it logs also url containing access_token!)
     const buildHubConnection = async (signalRHubUrl: string): Promise<signalR.HubConnection | undefined> => {
         const hubConnection = new signalR.HubConnectionBuilder()
             .withUrl(signalRHubUrl, { accessTokenFactory: accessTokenFactory } as signalR.IHttpConnectionOptions)
@@ -40,7 +47,7 @@ const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType 
 
         hubConnection.start()
             .then(() => {
-                console.log(`SignalRMiddleware: HUB connected; connectionId: ${hubConnection.connectionId}`);
+                console.log(`SignalRContainer: HUB connected; connectionId: ${hubConnection.connectionId}`);
                 connectionEstablished(hubConnection.connectionId as string);
             })
             .catch(err => console.error(err));
@@ -48,15 +55,21 @@ const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType 
         hubConnection.onreconnecting(error => { console.error(`SignalRMiddleware: HUB reconnecting; error: ${error}`) });
 
         hubConnection.onreconnected((connectionId: string | undefined) => {
-            console.log(`SignalRMiddleware: HUB reconnected; connectionId: ${connectionId}`);
+            console.log(`SignalRContainer: HUB reconnected. ConnectionId: ${connectionId}`);
             if (!connectionId) {
-                window.alert('SignalRMiddleware: HUB reconnected with undefined connectionId');
+                console.error('SignalRContainer: HUB reconnected with undefined connectionId');
                 return;
             }
             reconnected(connectionId);
         });
+
         hubConnection.onclose(error => {
-            console.error(`SignalRMiddleware: HUB closed; error: ${error}`);
+            if (error) {
+                console.error(`SignalRContainer: connection closed. Error: ${error}`);
+            }
+            else {
+                console.debug('SignalRContainer: connection closed');
+            }
             disconnected();
         });
 
@@ -79,14 +92,30 @@ const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType 
     }
 
     React.useEffect(() => {
-        buildHubConnection(signalRHubUrl)
-            .then(setHubConnection);
+        // cleanup of hubConnection
         return () => {
-            if (hubConnection) {
-                hubConnection.stop().then(() => {
-                    setHubConnection(undefined);
-                });
+            if (!isMounted()) {
+                if (hubConnection) {
+                    // Note: We must handle stopping hubConnection in useEffect that listens to hubConnection. Otherwise (in other useEffect), hubConnection woult be undefined.
+                    hubConnection.stop()
+                        .then(() => console.debug('SignalRContainer hubConnection gracefully stopped'))
+                        .catch(() => console.debug('SignalRContainer hubConnection stopped ugly'))
+                }
             }
+        };
+    }, [hubConnection]);
+
+    React.useEffect(() => {
+        // initialize hubConnection
+        buildHubConnection(signalRHubUrl)
+            .then(connection => {
+                console.debug('SignalRContainer built connection', connection)
+                if (connection !== undefined) {
+                    setHubConnection(connection)
+                }
+            });
+        return () => {
+            console.debug('SignalRContainer cleanup')
         };
     }, []);
 
