@@ -5,8 +5,6 @@ import * as ConversationStore from "../store/Conversation";
 import { ApplicationState } from '../store/index';
 import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
 import { usePrevious } from '../hooks/usePrevious';
-import Button from '@material-ui/core/Button';
-import { Send } from '@material-ui/icons';
 import { TextField } from '@material-ui/core';
 
 const writingActivityNotificationThresholdMiliseconds = 10 * 1000;
@@ -22,29 +20,6 @@ function MessageInput(props: MapDispatchToPropsType) {
         props.actions.addMessage(inputMessage);
         setInputMessage('');
     };
-
-    const handleWritingActivity = (inputValue: string): void => {
-        if (timer) {
-            window.clearTimeout(timer);
-        }
-        if (inputValue === '') {
-            const newWritingActivity = { activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() } as ConversationStore.WritingActivityData;
-            setWritingActivity(newWritingActivity);
-            props.actions.updateWritingActivity(newWritingActivity);
-        } else {
-            const previousWritingActivity = writingActivity;
-            const newWritingActivity = { activity: ConversationStore.WritingActivity.IsWriting, lastChange: new Date() } as ConversationStore.WritingActivityData;
-            setWritingActivity(newWritingActivity);
-            if (previousWritingActivity.activity != ConversationStore.WritingActivity.IsWriting || new Date().getTime() - previousWritingActivity.lastChange.getTime() > writingActivityNotificationThresholdMiliseconds) {
-                props.actions.updateWritingActivity(newWritingActivity);
-            }
-            setTimer(setTimeout(() => {
-                const newWritingActivity = { activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() } as ConversationStore.WritingActivityData;
-                setWritingActivity(newWritingActivity);
-                props.actions.updateWritingActivity(newWritingActivity);
-            }, writingActivityNotificationThresholdMiliseconds));
-        }
-    }
 
     const inputMessageOnKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
         if (e.keyCode === 13 && !e.shiftKey) {
@@ -62,9 +37,35 @@ function MessageInput(props: MapDispatchToPropsType) {
     }
 
     React.useEffect(() => {
+        // handle writing activity (notify others when started writing, when message's been emptied or when not writing for longer time)
         if (previousInputMessage !== undefined) {
-            handleWritingActivity(inputMessage);
+            if (inputMessage === '') {
+                // set and send stopped writing activity
+                const newWritingActivity = { activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() } as ConversationStore.WritingActivityData;
+                setWritingActivity(newWritingActivity);
+                props.actions.updateWritingActivity(newWritingActivity);
+            } else {
+                // set isWriting writing activity
+                const previousWritingActivity = writingActivity;
+                const newWritingActivity = { activity: ConversationStore.WritingActivity.IsWriting, lastChange: new Date() } as ConversationStore.WritingActivityData;
+                setWritingActivity(newWritingActivity);
+                // and send it if time threshold reached
+                if (previousWritingActivity.activity != ConversationStore.WritingActivity.IsWriting || new Date().getTime() - previousWritingActivity.lastChange.getTime() > writingActivityNotificationThresholdMiliseconds) {
+                    props.actions.updateWritingActivity(newWritingActivity);
+                }
+                // and plan setting and sending stopped writing activity after some time
+                setTimer(setTimeout(() => {
+                    const newWritingActivity = { activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() } as ConversationStore.WritingActivityData;
+                    setWritingActivity(newWritingActivity);
+                    props.actions.updateWritingActivity(newWritingActivity);
+                }, writingActivityNotificationThresholdMiliseconds));
+            }
         }
+        return () => {
+            if (timer) {
+                window.clearTimeout(timer);
+            }
+        };
     }, [inputMessage]);
 
     return (
