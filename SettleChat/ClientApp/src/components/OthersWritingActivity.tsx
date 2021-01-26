@@ -2,9 +2,11 @@
 import { connect } from 'react-redux';
 import * as ConversationStore from "../store/Conversation";
 import { ApplicationState } from '../store/index';
+import { useIsMounted } from '../hooks/useIsMounted';
 
 type MessageInputPropsStateType = {
-    othersWriting: UserWriting[]
+    othersWriting: UserWriting[];
+    isAuthenticated: boolean;
 }
 
 interface UserWriting {
@@ -40,6 +42,7 @@ function equalArrays(array1: string[], array2: string[]) {
 function OthersWritingActivity(props: MessageInputPropsStateType) {
     const [userNamesWriting, setUserNamesWriting] = React.useState(new Array<string>());
     const [othersWritingTimer, setOthersWritingTimer] = React.useState<ReturnType<typeof setTimeout>>();
+    const isMounted = useIsMounted();
 
     const getUserNamesCurrentlyWriting = (usersWriting: UserWriting[]): string[] => {
         return usersWriting
@@ -60,13 +63,19 @@ function OthersWritingActivity(props: MessageInputPropsStateType) {
     React.useEffect(() => {
         const userNamesCurrentlyWriting = resetUsersWritingIfNeeded(props.othersWriting);
         if (userNamesCurrentlyWriting.length) {
-            setOthersWritingTimer(setInterval(() => resetUsersWritingIfNeeded(props.othersWriting), 500));
+            setOthersWritingTimer(setInterval(() => {
+                if (isMounted()) {
+                    resetUsersWritingIfNeeded(props.othersWriting);
+                }
+            }, 500));
         }
         return () => {
             console.debug('OthersWritingActivity useEffect[props.othersWriting,othersWriting] cleanup');
             if (othersWritingTimer) {
                 window.clearTimeout(othersWritingTimer);
-                setOthersWritingTimer(undefined);
+                if (isMounted()) {
+                    setOthersWritingTimer(undefined);
+                }
             }
         }
     }, [props.othersWriting, userNamesWriting]);
@@ -82,9 +91,10 @@ function OthersWritingActivity(props: MessageInputPropsStateType) {
         }
     }
 
-    return (
-        <React.Fragment>{renderUsersCurrentlyWriting(userNamesWriting)}</React.Fragment>
-    );
+    if (!props.isAuthenticated) {
+        return 'User must be authenticated'
+    }
+    return renderUsersCurrentlyWriting(userNamesWriting);
 }
 
 // Selects which state properties are merged into the component's props
@@ -93,7 +103,10 @@ const mapStateToProps = (state: ApplicationState): MessageInputPropsStateType =>
         throw new Error('Identity not initialized');
     }
     if (!state.identity.userId) {
-        throw new Error('UserId not initialized'); //TODO: I got this exception when user was not authenticated
+        return {
+            othersWriting: [],
+            isAuthenticated: false
+        }
     }
     if (!state.conversation) {
         throw new Error('Conversation not initialized');
@@ -117,7 +130,8 @@ const mapStateToProps = (state: ApplicationState): MessageInputPropsStateType =>
                         name: writingActivityUser ? writingActivityUser.userName : '',
                         lastTimeWriting: writingActivity.lastChange
                     }
-                })
+                }),
+        isAuthenticated: true
     };
 };
 
