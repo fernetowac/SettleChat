@@ -1,5 +1,5 @@
 ﻿import * as React from 'react';
-import Messages from "./Messages"
+import MessagesContainer from "./MessagesContainer"
 import MessageInput from './MessageInput';
 import OthersWritingActivity from './OthersWritingActivity';
 import { RouteComponentProps } from 'react-router';
@@ -99,7 +99,7 @@ const MessagesPanel = (props: ConversationProps) => {
                             <ConversationDetail />
                         </Grid>
                         <Grid item xs={12} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', minHeight: 0 }}>
-                            <Messages conversationId={conversationId} />
+                            <MessagesContainer conversationId={conversationId} />
                         </Grid>
                         <Grid item xs={12} style={{ flexBasis: 'initial' }}>
                             <OthersWritingActivity />

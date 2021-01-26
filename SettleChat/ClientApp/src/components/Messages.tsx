@@ -1,8 +1,4 @@
 ﻿import * as React from 'react';
-import { connect } from 'react-redux';
-import { createSelector } from 'reselect';
-import { ThunkDispatch } from 'redux-thunk';
-import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
 import UserAvatar from './UserAvatar';
 import DividerWithChip from './DividerWithChip';
@@ -17,7 +13,7 @@ import clsx from 'clsx';
 
 const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
 
-export interface MessagesState {
+export interface MessagesProps {
     messages: ConversationStore.Message[];
     users: ConversationStore.User[];
     me: {
@@ -27,12 +23,10 @@ export interface MessagesState {
         canLoadMoreMessages: boolean
     };
     conversationId: string;
+    isLoading: boolean;
+    loadMoreButtonEnabled: boolean;
+    onLoadMoreClicked: () => void;
 }
-
-// At runtime, Redux will merge together...
-type MessagesProps =
-    MessagesState // ... state we've requested from the Redux store
-    & MapDispatchToPropsType;
 
 const useStyles = makeStyles((theme: Theme) => createStyles({
     root: {
@@ -102,71 +96,15 @@ const useStylesForOtherUserMessageBubbleGroup = makeStyles(() => createStyles({
     }
 }));
 
-export interface GetTriggerOptions<TTarget extends HTMLElement | Window> {
-    disableHysteresis?: boolean;
-    target: TTarget;
-    threshold?: number;
-}
-
-const Messages = (props: MessagesProps) => {
-    const { requestMessages, enableLoadingMoreMessages, disableLoadingMoreMessages } = props.actions;
-    const { conversationId } = props;
-    const [loadMoreButtonEnabled, setLoadMoreButtonActive] = React.useState(true);
-    const [isLoading, setIsLoading] = React.useState(true);
-
+export const Messages = (props: MessagesProps) => {
     const classes = useStyles();
     const myUserMessageBubbleGroupClasses = useStylesForMyUserMessageBubbleGroup();
     const otherUserMessageBubbleGroupClasses = useStylesForOtherUserMessageBubbleGroup();
+
     const userNameById = new Map<string, string>();
     props.users.forEach((user) => {
         userNameById.set(user.id, user.userName);
     });
-
-    const getOldestMessage = (messages: ConversationStore.Message[]): ConversationStore.Message | undefined => {
-        if (messages.length === 0) {
-            return undefined;
-        }
-        let oldestMessage = messages[0];
-        for (var i = 1; i < messages.length; i++) {
-            if (oldestMessage.created > messages[i].created) {
-                oldestMessage = messages[i];
-            }
-        }
-        return oldestMessage;
-    }
-
-    const onLoadMoreClicked = () => {
-        const oldestMessage = getOldestMessage(props.messages);
-        setLoadMoreButtonActive(false);
-        const amountOfMessagesToLoad = 2;
-        props.actions.requestMessages(conversationId, (oldestMessage && oldestMessage.id) || undefined, amountOfMessagesToLoad)
-            .then(messages => {
-                if (messages.length < amountOfMessagesToLoad) {
-                    disableLoadingMoreMessages();
-                }
-            })
-            .finally(() => setLoadMoreButtonActive(true));
-    }
-
-    React.useEffect(() => {
-        let isMounted = true;
-        const amountOfMessagesToLoad = 2;
-        requestMessages(conversationId, undefined, amountOfMessagesToLoad)
-            .then(messages => {
-                if (messages.length >= amountOfMessagesToLoad) {
-                    enableLoadingMoreMessages();
-                }
-            })
-            .finally(() => {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            });
-        return () => {
-            isMounted = false;
-        };
-    }, [requestMessages, enableLoadingMoreMessages, conversationId]);
-
 
     var resultListItems = [];
     let messageGroup = [];
@@ -215,7 +153,7 @@ const Messages = (props: MessagesProps) => {
             }
         } else {
             messageGroup.push(
-                <Box key={item.id} className={clsx(classes.messageBubble, classes.myUserMessageBubble)}                >
+                <Box key={item.id} className={clsx(classes.messageBubble, classes.myUserMessageBubble)} >
                     {item.text}
                 </Box>);
             if (!nextMessageFollowsUp) {
@@ -235,14 +173,14 @@ const Messages = (props: MessagesProps) => {
 
     return <React.Fragment>
         {
-            isLoading ?
+            props.isLoading ?
                 'Loading..' :
                 (props.messages.length === 0 ? 'No messages yet' :
                     <ListWithScrollDownButton className={classes.root}>
                         <ListItem key="scroll-bottom-button" style={{ display: 'flex', justifyContent: 'center' }}>
                             {
                                 props.ui.canLoadMoreMessages ?
-                                    <Button variant="contained" onClick={onLoadMoreClicked} disabled={!loadMoreButtonEnabled}>Load more</Button>
+                                    <Button variant="contained" onClick={props.onLoadMoreClicked} disabled={!props.loadMoreButtonEnabled}>Load more</Button>
                                     : 'No more messages.'
                             }
                         </ListItem>
@@ -252,64 +190,3 @@ const Messages = (props: MessagesProps) => {
         }
     </React.Fragment>;
 }
-
-const messageCompareByCreatedAsc = (a: ConversationStore.Message, b: ConversationStore.Message): number => {
-    if (a.created < b.created) {
-        return -1;
-    }
-    else if (a.created > b.created) {
-        return 1;
-    }
-    return 0;
-}
-
-const getMessages = (state: ApplicationState, conversationId: string): ConversationStore.Message[] => (
-    state.conversation === undefined ?
-        undefined :
-        state.conversation.messages
-            .filter(message => message.conversationId === conversationId)
-) || [];
-const getSortedMessages = (messages: ConversationStore.Message[]): ConversationStore.Message[] => messages.sort(messageCompareByCreatedAsc);
-
-/**
- * Memoized sorting of messages
- */
-const sortedMessagesSelector = createSelector([getMessages], getSortedMessages);
-
-type MapDispatchToPropsType = {
-    actions: {
-        requestMessages: (conversationId: string, beforeId?: string, amount?: number) => Promise<ConversationStore.Message[]>;
-        enableLoadingMoreMessages: () => void;
-        disableLoadingMoreMessages: () => void;
-    }
-};
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.KnownAction>): MapDispatchToPropsType => ({
-    actions: {
-        requestMessages: (conversationId: string, beforeId?: string, amount = 30) => dispatch(ConversationStore.actionCreators.requestMessages(conversationId, beforeId, amount)),
-        enableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.enableLoadingMoreMessages()),
-        disableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.disableLoadingMoreMessages())
-    }
-});
-
-interface OwnProps {
-    conversationId: string;
-}
-
-const mapStateToProps = (state: ApplicationState, ownProps: OwnProps): MessagesState => {
-    return {
-        messages: sortedMessagesSelector(state, ownProps.conversationId),
-        users: state.conversation && state.conversation.users ? state.conversation.users : [],
-        me: {
-            userId: state.identity.userId
-        },
-        ui: {
-            canLoadMoreMessages: state.conversation ? state.conversation.ui.canLoadMoreMessages : false
-        },
-        conversationId: ownProps.conversationId
-    } as MessagesState;
-}
-
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(Messages as any);
