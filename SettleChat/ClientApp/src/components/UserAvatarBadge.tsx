@@ -41,7 +41,7 @@ const useBadgeStyles = makeStyles((theme: Theme) => ({
     }*/
 }));
 
-const UserAvatarBadge = (props: User) => {
+const UserAvatarBadge = React.memo((props: User) => {
     const badgeClasses = useBadgeStyles();
 
     return <Badge
@@ -61,6 +61,6 @@ const UserAvatarBadge = (props: User) => {
         variant="dot">
         <UserAvatar userName={props.userName} />
     </Badge>;
-};
+});
 
 export default UserAvatarBadge;
