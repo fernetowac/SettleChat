@@ -103,7 +103,7 @@ const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType 
                 }
             }
         };
-    }, [hubConnection]);
+    }, [hubConnection, isMounted]);
 
     React.useEffect(() => {
         // initialize hubConnection

@@ -175,7 +175,7 @@ const InvitationPanel = (props: InvitationPanelProps) => {
                     setActiveStep(activeStep - 1)
                 });
         }
-    }, [isMounted, activeStep, previousStep, steps, nickname, isAuthenticated, acceptInvitationAsync]);
+    }, [isMounted, activeStep, previousStep, nickname, isAuthenticated, acceptInvitationAsync, enqueueSnackbar]);
 
     function getStepContent(stepIndex: number, invitation: Invitation) {
         switch (stepIndex) {
