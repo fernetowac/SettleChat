@@ -8,7 +8,7 @@ import FetchData from './components/FetchData';
 import MessagesPanel from './components/MessagesPanel';
 import NewConversation from './components/NewConversation';
 import Token from './components/Token';
-import InvitationPanel from './components/InvitationPanel';
+import InvitationAcceptanceContainer from './components/InvitationAcceptanceContainer';
 import AuthorizeRoute from './components/api-authorization/AuthorizeRoute';
 import ApiAuthorizationRoutes from './components/api-authorization/ApiAuthorizationRoutes';
 import { ApplicationPaths } from './components/api-authorization/ApiAuthorizationConstants';
@@ -34,7 +34,7 @@ export default () => (
             <Route exact
                 path='/invitation/:token/:step?'
                 render={
-                    (props) => <InvitationPanel token={props.match.params.token} step={parseInt(props.match.params.step || '0')} />
+                    (props) => <InvitationAcceptanceContainer token={props.match.params.token} step={parseInt(props.match.params.step || '0')} />
                 }
             />
             <Route path={ApplicationPaths.ApiAuthorizationPrefix} component={ApiAuthorizationRoutes} />
