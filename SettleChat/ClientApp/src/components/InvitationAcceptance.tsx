@@ -113,10 +113,7 @@ export const InvitationAcceptance = (props: InvitationAcceptanceProps) => {
                                         </Link>
                                         {
                                             props.activeStep === 1 && props.identity.isAuthenticated &&
-                                            <Button
-                                                variant="contained"
-                                                onClick={props.handleChangeAccountButtonOnClick}
-                                            >
+                                            <Button onClick={props.handleChangeAccountButtonOnClick}>
                                                 switch account
                                             </Button>
                                         }
