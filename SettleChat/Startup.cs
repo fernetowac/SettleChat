@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
-using System.IO;
 using System.Net;
-using System.Net.Mime;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using IdentityServer4.Extensions;
 using IdentityServer4.Models;
@@ -12,12 +10,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.EntityFrameworkCore;
@@ -28,10 +22,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Logging;
 using SettleChat.Factories;
 using SettleChat.Factories.Interfaces;
-using SettleChat.Filters;
 using SettleChat.Hubs;
 using SettleChat.Persistence;
 using SettleChat.Persistence.Models;
+using Hellang.Middleware.ProblemDetails;
 
 namespace SettleChat
 {
@@ -82,10 +76,8 @@ namespace SettleChat
                 {
                     setupAction.UserInteraction.LoginUrl = "/Identity/Account/Login";
                 })
-                //.AddAspNetIdentity<ApplicationUser>()
                 .AddApiAuthorization<ApplicationUser, SettleChatDbContext>(apiAuthOptions =>
                 {
-                    //apiAuthOptions.SigningCredential.Kid =;
                     apiAuthOptions.Clients.AddIdentityServerSPA("SettleChat",
                         clientBuilder =>
                         {
@@ -120,44 +112,16 @@ namespace SettleChat
 
                         });
                     }
-                })//.AddSigningCredentials(/*AddCertificate(_env)*/)
-                  //.AddInMemoryClients(new List<Client>
-                  //{
-                  //    new Client
-                  //    {
-                  //        Enabled = true,
-                  //        AllowAccessTokensViaBrowser = true,
-                  //        ClientId = "PostMan",
-                  //        ClientName = "PostMan",
-                  //        RequireClientSecret = false,
-                  //        RedirectUris = { "https://oauth.pstmn.io/v1/callback" },
-                  //        PostLogoutRedirectUris = { "https://notused" },
-
-                //        AllowedGrantTypes = GrantTypes.Code,
-                //        AllowedScopes = { "openid", "SettleChatAPI", "profile", "email", "api" },
-                //        RequireConsent = false,
-                //        ClientSecrets = new List<Secret>
-                //        {
-                //            new Secret("bigsecret")//TODO:
-                //        },
-
-                //        AllowOfflineAccess = true,
-                //        RefreshTokenUsage = TokenUsage.ReUse,
-
-
-                //    }
-                //})
-                ;
+                });
 
             services.AddAuthentication()
                 .AddIdentityServerJwt()
                 .AddJwtBearer(jwtBearerOptions =>
                 {
-                    jwtBearerOptions.Authority = Configuration["OidcAuthority"];// "https://localhost:44328";
+                    jwtBearerOptions.Authority = Configuration["OidcAuthority"]; // "https://localhost:44328";
                     jwtBearerOptions.Audience = "SettleChatAPI";
                 });
-            services.AddControllersWithViews();
-            services.AddRazorPages();
+            services.AddMvc();
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
@@ -176,21 +140,13 @@ namespace SettleChat
             services.AddScoped<IEmailSender, EmailSender>();
             services.AddSingleton<IUserIdProvider, SignalRUserIdProvider>();
             services.AddSignalR();
-            IdentityModelEventSource.ShowPII = true;
-            services.AddControllers(options => options.Filters.Add(new HttpResponseExceptionFilter()))
-                .ConfigureApiBehaviorOptions(options =>
-                {
-                    options.InvalidModelStateResponseFactory = context =>
+            IdentityModelEventSource.ShowPII = _env.IsDevelopment();
+            services.AddProblemDetails(options =>
+                    options.OnBeforeWriteDetails = (httpContext, problem) =>
                     {
-                        var result = new BadRequestObjectResult(context.ModelState);
-
-                        result.ContentTypes.Add(MediaTypeNames.Application.Json);
-                        result.ContentTypes.Add(MediaTypeNames.Application.Xml);
-
-                        return result;
-                    };
-                });
-            services.AddTransient<ProblemDetailsFactory, CustomProblemDetailsFactory>();
+                        problem.Extensions["traceId"] = Activity.Current?.Id ?? httpContext.TraceIdentifier;
+                    }
+                );
             services.AddSingleton<ISignalRGroupNameFactory, SignalRGroupNameFactory>();
             services.AddSingleton<Microsoft.Extensions.Internal.ISystemClock, Microsoft.Extensions.Internal.SystemClock>();
         }
@@ -198,6 +154,7 @@ namespace SettleChat
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
+            app.UseProblemDetails();
             if (env.IsDevelopment())
             {
                 //app.UseDeveloperExceptionPage();
@@ -240,53 +197,24 @@ namespace SettleChat
                 if (env.IsDevelopment())
                 {
                     spa.UseReactDevelopmentServer(npmScript: "start");
-                    //spa.UseProxyToSpaDevelopmentServer("https://localhost:3000");
                 }
             });
         }
 
-        private static Func<RedirectContext<CookieAuthenticationOptions>, Task> ReplaceRedirector(HttpStatusCode statusCode, Func<RedirectContext<CookieAuthenticationOptions>, Task> existingRedirector) =>
-             context =>
-             {
-                 if (context.Request.Path.StartsWithSegments("/api"))
-                 {
-                     context.Response.StatusCode = (int)statusCode;
-                     return Task.CompletedTask;
-                 }
-                 return existingRedirector(context);
-             };
+        private static Func<RedirectContext<CookieAuthenticationOptions>, Task> ReplaceRedirector(
+            HttpStatusCode statusCode, Func<RedirectContext<CookieAuthenticationOptions>, Task> existingRedirector) =>
+            context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api"))
+                {
+                    context.Response.StatusCode = (int)statusCode;
+                    return Task.CompletedTask;
+                }
+
+                return existingRedirector(context);
+            };
     }
 
-    public class CustomProblemDetailsFactory : ProblemDetailsFactory
-    {
-        public override ProblemDetails CreateProblemDetails(HttpContext httpContext, int? statusCode = null, string title = null,
-            string type = null, string detail = null, string instance = null)
-        {
-            return new ProblemDetails
-            {
-                Detail = detail,
-                Instance = instance,
-                Status = statusCode,
-                Title = title,
-                Type = type
-            };
-        }
-
-        public override ValidationProblemDetails CreateValidationProblemDetails(HttpContext httpContext,
-            ModelStateDictionary modelStateDictionary, int? statusCode = null, string title = null, string type = null,
-            string detail = null, string instance = null)
-        {
-            return new ValidationProblemDetails(modelStateDictionary)
-            {
-                Status = statusCode,
-                Type = type,
-                Title = title,
-                Instance = instance,
-                Detail = detail
-
-            };
-        }
-    }
 
     public class EmailSender : IEmailSender
     {

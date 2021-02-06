@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -18,10 +14,10 @@ namespace SettleChat
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureLogging(logging =>
+                .ConfigureLogging(loggingBuilder =>
                 {
-                    logging.ClearProviders();
-                    logging.AddConsole();
+                    loggingBuilder.ClearProviders();
+                    loggingBuilder.AddConsole(options => options.IncludeScopes = true);
                 })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {

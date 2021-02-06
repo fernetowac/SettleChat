@@ -6,6 +6,7 @@ using IdentityServer4.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SettleChat.Models;
 using SettleChat.Persistence;
 using SettleChat.Persistence.Models;
@@ -19,19 +20,29 @@ namespace SettleChat.Controllers
         private readonly SettleChatDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ILogger<InvitationsController> _logger;
 
-        public InvitationsController(SettleChatDbContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public InvitationsController(SettleChatDbContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ILogger<InvitationsController> logger)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
+            _logger = logger;
         }
 
         [HttpGet("/api/invitations/{token}")]
         [AllowAnonymous]
         public async Task<ActionResult<InvitationModel>> GetInvitation([FromRoute] string token)
         {
-            return await RetrieveInvitationModel(token);
+            try
+            {
+                return await RetrieveInvitationModel(token);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Receiving invitation for token '{token}'", token);
+                return Problem();
+            }
         }
 
         [HttpGet("/api/conversations/{conversationId}/invitations")]
@@ -72,15 +83,18 @@ namespace SettleChat.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<InvitationModel>> AcceptInvitation(string token, [FromBody] InvitationAcceptModel model)
         {
-            Guid? userId = null;
+            Guid? userId;
             if (model.ShouldCreateAnonymousUser)
             {
                 if (User.IsAuthenticated())
                 {
-                    //TODO: return error in json nicely
-                    throw new InvalidOperationException();
+                    return ValidationProblem("Anonymous account cannot be created when user is already signed in");
                 }
                 var user = await CreateAnonymousUser();
+                if (user == null)
+                {
+                    return Problem("Could not create anonymous user");
+                }
                 await _signInManager.SignInAsync(user, false);
                 userId = user.Id;
             }
@@ -89,24 +103,16 @@ namespace SettleChat.Controllers
                 userId = Guid.Parse(User.Identity.GetSubjectId());
             }
 
-            if (userId == null)
-            {
-                //TODO: return error in json nicely
-                throw new InvalidOperationException("user ID missing");
-            }
-
             var dbInvitation = await _context.Invitations.Where(x => x.Token == token).SingleOrDefaultAsync();
             if (dbInvitation == null || !dbInvitation.IsActive)
             {
-                //TODO: return error in json nicely
-                throw new InvalidOperationException("invitation either doesn't exist or is not active anymore");
+                return ValidationProblem("The invitation either doesn't exist or is not active anymore");
             }
 
             if (await _context.ConversationUsers.AnyAsync(x =>
-                x.ConversationId == dbInvitation.ConversationId && x.UserId == userId))
+                x.ConversationId == dbInvitation.ConversationId && x.UserId == userId.Value))
             {
-                //TODO: return error in json nicely
-                throw new InvalidOperationException("user is already member of the conversation");
+                return ValidationProblem("The user is already a member of the conversation");
             }
 
             if (!dbInvitation.IsPermanent)
@@ -126,7 +132,7 @@ namespace SettleChat.Controllers
             return await RetrieveInvitationModel(dbInvitation.Id);
         }
 
-        private async Task<ApplicationUser> CreateAnonymousUser()
+        private async Task<ApplicationUser?> CreateAnonymousUser()
         {
             var user = new ApplicationUser
             {
@@ -135,7 +141,7 @@ namespace SettleChat.Controllers
             var result = await _userManager.CreateAsync(user);
             if (!result.Succeeded)
             {
-                throw new NotImplementedException(); //TODO:
+                return null;
             }
             await _context.SaveChangesAsync();
             return user;

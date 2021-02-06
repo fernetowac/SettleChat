@@ -33,6 +33,40 @@ const getSchemaValidator = async (): Promise<SchemaValidator> => {
     }
 };
 
+
+export interface Errors {
+    [key: string]: string | string[];
+}
+
+
+export interface ProblemDetails {
+    type: string
+    title: string
+    status: number
+    traceId: string
+    detail?: string
+    errors?: Errors
+}
+
+const aaaa: ProblemDetails = {
+    "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+    "title": "One or more validation errors occurred.",
+    "status": 400,
+    "traceId": "|2d658605-44ee0c9ba5d257aa.",
+    "detail": "aa",
+    "errors": {
+        "aa": "aaa",
+        "": [
+            "The Nickname field is required.",
+            "The field Nickname must be at least 3 characters long."
+        ],
+        "Nickname": [
+            "The Nickname field is required.",
+            "The field Nickname must be at least 3 characters long."
+        ]
+    }
+}
+
 const fetchExtended =
     async <TResult>(url: string,
         dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
@@ -62,19 +96,21 @@ const fetchExtended =
                 },
                 body: JSON.stringify(requestBody)
             })
-            .then(async response => {
-                if (response.status === 200) {
-                    let responseStreamPromise = response.json();
+            .then(async responseStream => {
+                let responsePromise = responseStream.json();
+                if (responseStream.status === 200) {
                     if (isDevelopment && responseSchemaKind) {
-                        responseStreamPromise = (await getSchemaValidator()).validateSchemaAsync(responseStreamPromise, responseSchemaKind);
+                        responsePromise = (await getSchemaValidator()).validateSchemaAsync(responsePromise, responseSchemaKind);
                     }
                     if (transformResponse) {
-                        return responseStreamPromise.then(transformResponse);
+                        return responsePromise.then(transformResponse);
                     }
-                    return responseStreamPromise as Promise<TResult>;
+                    return responsePromise as Promise<TResult>;
                 } else {
-                    dispatch(HttpStatusActions.actionCreators.httpFailStatusReceivedAction(response.status, null));//TODO: handle HTTP_FAIL_STATUS_RECEIVED in a new reducer
-                    return Promise.reject(`HttpStatus ${response.status}`);
+                    return responsePromise.then(response => {
+                        dispatch(HttpStatusActions.actionCreators.httpFailStatusReceivedAction(responseStream.status, null));//TODO: handle HTTP_FAIL_STATUS_RECEIVED in a new reducer
+                        return Promise.reject(response)
+                    });
                 }
             });
     };
