@@ -3,14 +3,14 @@ import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
-import { Divider, Snackbar, InputAdornment, List, Box, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Button, Checkbox, FormControl, FormControlLabel, TextField } from '@material-ui/core';
+import { Divider, InputAdornment, List, Box, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Button, Checkbox, FormControl, FormControlLabel, TextField } from '@material-ui/core';
 import { Invitation, NewInvitation } from '../types/invitationTypes'
 import { InvitationKnownAction } from '../types/invitationActionTypes'
 import { createInvitation, requestInvitations } from '../thunks/invitationThunks'
-import CloseIcon from '@material-ui/icons/Close';
 import LinkIcon from '@material-ui/icons/Link';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
-import { useSnackbar } from 'notistack'
+import { addNotification } from '../actions/notificationActions'
+import { NotificationAddAction, NotificationAddActionInput } from '../types/notificationActionTypes'
 
 type CreateInvitationPanelState = {
     invitations: Invitation[];
@@ -21,10 +21,8 @@ type CreateInvitationPanelProps = CreateInvitationPanelState & MapDispatchToProp
 function CreateInvitationPanel(props: CreateInvitationPanelProps) {
     const [isPermanent, setIsPermanent] = React.useState(true);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [coppiedToClipboardSnackbarOpened, setCoppiedToClipboardSnackbarOpened] = React.useState(false);
     const { conversationId } = props;
-    const { requestInvitations } = props.actions;
-    const { enqueueSnackbar } = useSnackbar();
+    const { requestInvitations, addNotification } = props.actions;
 
     const handleAddInvitationSubmit = (evt: React.MouseEvent<HTMLButtonElement>) => {
         props.actions.createInvitation({ conversationId: conversationId, isPermanent: isPermanent });
@@ -36,12 +34,7 @@ function CreateInvitationPanel(props: CreateInvitationPanelProps) {
 
     const handleOnCopyLink = (link: string) => {
         navigator.clipboard.writeText(link)
-        setCoppiedToClipboardSnackbarOpened(true);
-        enqueueSnackbar("Coppied to clipboard");
-    }
-
-    const handleOnCoppiedToClipboardSnackbarClose = () => {
-        setCoppiedToClipboardSnackbarOpened(false);
+        addNotification("Coppied to clipboard");
     }
 
     const buildTokenLink = (token: string): string => `${window.location.origin}/invitation/${token}`
@@ -113,22 +106,6 @@ function CreateInvitationPanel(props: CreateInvitationPanelProps) {
                         )
                 }
             </Box>
-            <Snackbar
-                anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'left',
-                }}
-                open={coppiedToClipboardSnackbarOpened}
-                autoHideDuration={4000}
-                onClose={handleOnCoppiedToClipboardSnackbarClose}
-                message="Coppied to clipboard"
-                action={
-                    <IconButton size="small" aria-label="close" color="inherit" onClick={handleOnCoppiedToClipboardSnackbarClose}>
-                        <CloseIcon fontSize="small" />
-                    </IconButton>
-                }
-            />
-
         </div>
     );
 }
@@ -160,12 +137,14 @@ type MapDispatchToPropsType = {
     actions: {
         requestInvitations: (conversationId: string) => Promise<Invitation[]>;
         createInvitation: (newInvitation: NewInvitation) => Promise<Invitation>;
+        addNotification: (message: NotificationAddActionInput | string) => void;
     }
 };
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, InvitationKnownAction>): MapDispatchToPropsType => ({
+const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, InvitationKnownAction | NotificationAddAction>): MapDispatchToPropsType => ({
     actions: {
         requestInvitations: (conversationId: string) => dispatch(requestInvitations(conversationId)),
-        createInvitation: (newInvitation: NewInvitation) => dispatch(createInvitation(newInvitation))
+        createInvitation: (newInvitation: NewInvitation) => dispatch(createInvitation(newInvitation)),
+        addNotification: (message) => dispatch(addNotification(message))
     }
 });
 

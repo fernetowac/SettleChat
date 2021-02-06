@@ -11,14 +11,14 @@ import * as HttpStatusActions from '../actions/HttpStatusActions';
 import { IdentityState } from '../store/Identity';
 import authService from '../components/api-authorization/AuthorizeService'
 import { ApplicationPaths, QueryParameterNames } from './api-authorization/ApiAuthorizationConstants'
-import { useSnackbar } from 'notistack'
 import { usePrevious } from '../hooks/usePrevious';
 import { useIsMounted } from '../hooks/useIsMounted';
 import { InvitationAcceptance, steps } from './InvitationAcceptance'
 import { ValidationError } from '../types/commonTypes'
 import { nicknameValidationKey } from '../types/invitationAcceptanceTypes'
-import { isDevelopment } from '../helpers/development/DevDetect'
-import { Button } from '@material-ui/core'
+import { tryAddProblemDetailNotification } from '../thunks/notificationThunks'
+import { addNotification } from '../actions/notificationActions'
+import { NotificationAddAction, NotificationAddActionInput } from '../types/notificationActionTypes';
 
 interface InvitationAcceptanceContainerPropsData {
     identity: IdentityState;
@@ -30,6 +30,8 @@ interface InvitationAcceptanceContainerPropsActions {
     actions: {
         requestInvitationByToken: () => Promise<Invitation>;
         acceptInvitationAsync: (nickname: string, shouldCreateAnonymousUser: boolean) => Promise<Invitation>;
+        tryAddProblemDetailNotification: (problemDetails: ProblemDetails) => boolean;
+        addNotification: (notification: NotificationAddActionInput | string) => void;
     }
 };
 
@@ -40,10 +42,12 @@ interface OwnProps {
     step: number;
 }
 
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, HttpStatusActions.HttpFailStatusReceivedAction>, ownProps: OwnProps): InvitationAcceptanceContainerPropsActions => ({
+const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, HttpStatusActions.HttpFailStatusReceivedAction | NotificationAddAction>, ownProps: OwnProps): InvitationAcceptanceContainerPropsActions => ({
     actions: {
         requestInvitationByToken: () => getInvitationByTokenAsync(ownProps.token, dispatch),
-        acceptInvitationAsync: (nickname: string, shouldCreateAnonymousUser: boolean) => dispatch(acceptInvitationAsync(ownProps.token, nickname, shouldCreateAnonymousUser))
+        acceptInvitationAsync: (nickname, shouldCreateAnonymousUser) => dispatch(acceptInvitationAsync(ownProps.token, nickname, shouldCreateAnonymousUser)),
+        tryAddProblemDetailNotification: (problemDetails) => dispatch(tryAddProblemDetailNotification(problemDetails)),
+        addNotification: (notification) => dispatch(addNotification(notification))
     }
 });
 
@@ -65,70 +69,8 @@ const acceptInvitationAsync = (token: string, nickname: string, shouldCreateAnon
         return fetchPost<Invitation>(url, { nickname: nickname, shouldCreateAnonymousUser: shouldCreateAnonymousUser }, dispatch, true, transformInvitationResponse, SchemaKind.InvitationGetResponse)
     }
 
-const parseErrors = (response: ProblemDetails): string[] => {
-    const problemDetails = response as ProblemDetails;
-    const genericErrorMessage = "Ooops. Something went wrong."
-
-    if (problemDetails.status === 500) {
-        if (isDevelopment && problemDetails.title) {
-            return [problemDetails.title]
-        }
-        else {
-            return [genericErrorMessage]
-        }
-    }
-
-    if (problemDetails.errors) {
-        const errors: string[] = [];
-        const errorKeys = Object.keys(problemDetails.errors);
-        for (let i = 0; i < errorKeys.length; i++) {
-            const errorValue = problemDetails.errors[errorKeys[i]];
-            if (Array.isArray(errorValue)) {
-                for (let j = 0; j < errorValue.length; j++) {
-                    errors.push(errorValue[j])
-                }
-            }
-            else {
-                errors.push(errorValue)
-            }
-        }
-        if (errors.length > 0) {
-            return errors;
-        }
-    }
-
-    if (problemDetails.detail) {
-        return [problemDetails.detail]
-    }
-    if (problemDetails.title) {
-        return [problemDetails.title]
-    }
-    return [genericErrorMessage]
-}
-
-const problemDetailsToSnackbar = (problemDetails: ProblemDetails, enqueueSnackbar: (message: string | React.ReactNode, options?: any) => any, closeSnackbar: any) => {
-    const errorMessages = parseErrors(problemDetails)
-    if (errorMessages.length > 0) {
-        enqueueSnackbar(
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {
-                    errorMessages.map((errorMessage, index) => <div key={index}>{errorMessage}</div>)
-                }
-            </div>,
-            {
-                key: new Date().getTime() + Math.random(),
-                variant: 'error',
-                persist: true,
-                action: (key: number) => (
-                    <Button onClick={() => closeSnackbar(key)}>dismiss me</Button>
-                )
-            }
-        )
-    }
-}
-
 const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
-    const { requestInvitationByToken, acceptInvitationAsync } = props.actions;
+    const { requestInvitationByToken, acceptInvitationAsync, tryAddProblemDetailNotification, addNotification } = props.actions;
     const { isAuthenticated } = props.identity;
     const [invitation, setInvitation] = React.useState<Invitation | undefined>();
     const [redirectTo, setRedirectTo] = React.useState<string | null>(null);
@@ -139,7 +81,6 @@ const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
     const [isJoiningConversation, setIsJoiningConversation] = React.useState(false);
     const [nickname, setNickname] = React.useState<string | null>(props.identity.userName);
     const [validationErrors, setValidationErrors] = React.useState<ValidationError[]>([]);
-    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const isMounted = useIsMounted();
     const match = useRouteMatch();
     const history = useHistory();
@@ -241,7 +182,7 @@ const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
                     setInvitation(invitation);
                 }
             })
-            .catch((problemDetails) => problemDetailsToSnackbar(problemDetails, enqueueSnackbar, closeSnackbar))
+            .catch(tryAddProblemDetailNotification)
             .finally(() =>
                 setIsLoadingInvitation(false)
             );
@@ -266,7 +207,7 @@ const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
             const allValidationErrors = getValidationErrors()
             setValidationErrors(allValidationErrors)
             if (allValidationErrors.length > 0) {
-                enqueueSnackbar('Please check for validation errors')
+                addNotification('Please check for validation errors')
                 setRedirectTo(redirectToPreviousStepUrl);
             }
             else {
@@ -278,7 +219,7 @@ const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
                         }
                     })
                     .catch((problemDetails) => {
-                        problemDetailsToSnackbar(problemDetails, enqueueSnackbar, closeSnackbar);
+                        tryAddProblemDetailNotification(problemDetails);
                         if (!isMounted()) {
                             return;
                         }
@@ -287,7 +228,7 @@ const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
                     });
             }
         }
-    }, [isMounted, activeStep, previousStep, nickname, isAuthenticated, acceptInvitationAsync, enqueueSnackbar, closeSnackbar]);
+    }, [isMounted, activeStep, previousStep, nickname, isAuthenticated, acceptInvitationAsync]);
 
     // redirect if asked for
     if (redirectTo !== null) {

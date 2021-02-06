@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Route, Switch, RouteComponentProps } from 'react-router';
 import Layout from './components/Layout';
+import Notifier from './components/Notifier';
 import RecentConversationRedirection from './components/RecentConversationRedirection';
 import Home from './components/Home';
 import Counter from './components/Counter';
@@ -29,6 +30,7 @@ const theme = responsiveFontSizes(createMuiTheme({
 export default () => (
     <ThemeProvider theme={theme}>
         <CssBaseline />
+        <Notifier />
         <Switch>
             <Route path='/token/:token' component={Token} />
             <Route exact

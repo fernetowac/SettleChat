@@ -1,11 +1,13 @@
-﻿export const NOTIFICATION_REMOVE = 'NOTIFICATION_REMOVE'
-
-export enum NotificationType {
-    Error
+﻿export enum NotificationType {
+    Error,
+    Info
 }
 
 export interface Notification {
-    id: number;
+    key: number;
     type: NotificationType,
-    message: string
+    dismissed: boolean,
+    messageLines: string[],
+    hasCloseButton: boolean,
+    shouldPersist: boolean
 }
