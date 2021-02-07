@@ -17,10 +17,22 @@ namespace SettleChat.Models
         public Guid ConversationId { get; }
         public string? ConversationTitle { get; set; }
         public string InvitedByUserName { get; }
-        public List<string> ConversationUserNames { get; set; } = new List<string>();
+        public List<InvitationConversationUser> ConversationUsers { get; set; } = new List<InvitationConversationUser>();
         public bool IsActive { get; set; }
         public bool IsPermanent { get; set; }
         public DateTimeOffset Created { get; set; }
         public string Token { get; set; }
+
+        public class InvitationConversationUser
+        {
+            public InvitationConversationUser(Guid id, string nickname)
+            {
+                Id = id;
+                Nickname = nickname;
+            }
+
+            public Guid Id { get; set; }
+            public string Nickname { get; set; }
+        }
     }
 }

@@ -191,9 +191,9 @@ namespace SettleChat.Controllers
                 ConversationTitle = dbInvitationMetadata.Conversation.Title,
                 IsPermanent = dbInvitationMetadata.IsPermanent,
                 IsActive = dbInvitationMetadata.IsActive,
-                ConversationUserNames = dbInvitationMetadata.Conversation
+                ConversationUsers = dbInvitationMetadata.Conversation
                     .ConversationUsers
-                    .Select(x => x.UserNickName ?? x.User.UserName)
+                    .Select(x => new InvitationModel.InvitationConversationUser(x.UserId, x.UserNickName ?? x.User.UserName))
                     .ToList()
             };
         }

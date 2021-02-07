@@ -84,6 +84,7 @@ const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
     const isMounted = useIsMounted();
     const match = useRouteMatch();
     const history = useHistory();
+    const isAlreadyMember = props.identity.isAuthenticated && invitation !== void 0 && invitation.conversationUsers.some(x => x.id === props.identity.userId);
 
     /**
      * Log off, then redirect to client-side log in (should be done automatically in iframe), then redirect back to invitation
@@ -229,6 +230,14 @@ const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
             }
         }
     }, [isMounted, activeStep, previousStep, nickname, isAuthenticated, acceptInvitationAsync]);
+
+    if (isAlreadyMember) {
+        if (!invitation) {
+            // typescript is not that clever
+            throw Error('this cannot happen')
+        }
+        return <Redirect to={`/conversation/${invitation.conversationId}`} />
+    }
 
     // redirect if asked for
     if (redirectTo !== null) {

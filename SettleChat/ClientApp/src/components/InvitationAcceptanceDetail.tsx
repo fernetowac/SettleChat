@@ -9,13 +9,13 @@ export const InvitationAcceptanceDetail = (props: { invitation: Invitation }) =>
         <Typography variant="h2">Members:</Typography>
         <List>
             {
-                (props.invitation.conversationUserNames).map((userName, index) =>
+                (props.invitation.conversationUsers).map((user, index) =>
                     <ListItem alignItems="flex-start" key={index}>
                         <ListItemAvatar>
-                            <UserAvatar userName={userName} />
+                            <UserAvatar userName={user.nickname} />
                         </ListItemAvatar>
                         <ListItemText
-                            primary={userName}
+                            primary={user.nickname}
                             primaryTypographyProps={{ noWrap: true }}
                         />
                     </ListItem>
