@@ -1,8 +1,7 @@
 # Database setup
 
 ## Run docker SQL Server
-$SettleChat\Installation\01_Database\01_RunDockerSqlServer.cmd
-
+`$SettleChat\Installation\01_Database\01_RunDockerSqlServer.cmd`
 
 >[Extra] Command for removal of docker SQL Server (in case needed to restart with clean DB)**
 `.\Installation\01_Database\__01_RemoveDockerSqlServer.cmd`
@@ -18,6 +17,14 @@ $SettleChat\Installation\01_Database\01_RunDockerSqlServer.cmd
 >**Host**: *localhost,1433*\
 **Login**: *SettleAdmin*\
 **Password**: *mUtLw5i4YL/oo/S4JnzNPP0ImZ7K5fx5grTC+dXMjZA=*
+
+# Logging setup
+## Run docker SEQ server
+Create empty folder for persisting Seq data: *C:\SettleChatSecrets\seq*
+
+`$SettleChat\Installation\02_Logging\01_RunDockerSeq.cmd`
+
+Go to http://127.0.0.1:5340 and enable authentication under *Settings -> USERS*
 
 # Configuration
 

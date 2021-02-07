@@ -26,6 +26,7 @@ using SettleChat.Hubs;
 using SettleChat.Persistence;
 using SettleChat.Persistence.Models;
 using Hellang.Middleware.ProblemDetails;
+using Serilog;
 
 namespace SettleChat
 {
@@ -160,7 +161,6 @@ namespace SettleChat
                 //app.UseDeveloperExceptionPage();
                 //app.UseDatabaseErrorPage();
                 app.UseExceptionHandler("/error-local-development");
-                loggerFactory.AddFile("Logs/my-log-{Date}.txt");
             }
             else
             {
@@ -169,10 +169,12 @@ namespace SettleChat
                 app.UseHsts();
             }
 
+            // This must appear before handlers such as MVC
+            app.UseSerilogRequestLogging();
+
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseSpaStaticFiles();
-
             app.UseRouting();
 
             // Note: Removed Microsoft's strange mapping that removed "sub" claim type and mapped userId into "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" claim type: https://github.com/IdentityServer/IdentityServer4/issues/2968
