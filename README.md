@@ -26,6 +26,9 @@ Create empty folder for persisting Seq data: *C:\SettleChatSecrets\seq*
 
 Go to http://127.0.0.1:5340 and enable authentication under *Settings -> USERS*
 
+## Sentry
+Update Sentry DSN in `$\SettleChat\ClientApp\src\index.tsx`
+
 # Configuration
 
 ## Create Google ClientId and ClientSecret:

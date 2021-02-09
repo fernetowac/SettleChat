@@ -128,7 +128,7 @@ namespace SettleChat.Controllers
                 UserNickName = model.Nickname
             });
             await _context.SaveChangesAsync();
-
+            //TODO: signalr notify user added to conversation (otherwise it can crash in javascript when user writes new message and there's no user for that userId)
             return await RetrieveInvitationModel(dbInvitation.Id);
         }
 

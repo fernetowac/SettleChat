@@ -24,7 +24,12 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const GetUserName = (user: ConversationListItemUser) => {
+const getUserNicknameWithFallback = (user?: ConversationListItemUser) => {
+    // It can happen that user is not loaded correctly in other signalr or fetch response (e.g. due to connection issues). 
+    // In such case we don't want the app to crash.
+    if (!user) {
+        return 'unknown'
+    }
     return user.userNickName === null ? user.userName : user.userNickName;
 }
 
@@ -45,13 +50,9 @@ const LastMessage = (props: { conversation: ConversationListItem, myIdentityUser
     }
 
     const user = conversation.users.find((user) => user.id === conversation.lastMessageUserId);
-    if (!user) {
-        //TODO: It may happen when there was connection issue and new users were not loaded after invitation. We should probably not raise error here. We can fallback to unspecified user name.
-        throw Error(`User not found for id ${conversation.lastMessageUserId}`);
-    }
 
     return <React.Fragment>
-        {GetUserName(user)}: {conversation.lastMessageText}
+        {getUserNicknameWithFallback(user)}: {conversation.lastMessageText}
     </React.Fragment>;
 }
 
@@ -81,7 +82,7 @@ const Conversations = (props: ConversationProps) => {
                                 <Avatar alt={conversation.title}>{conversation.title}</Avatar>
                             </ListItemAvatar>
                             <ListItemText
-                                primary={conversation.title == null ? conversation.users.map(GetUserName).join(', ') : conversation.title}
+                                primary={conversation.title == null ? conversation.users.map(getUserNicknameWithFallback).join(', ') : conversation.title}
                                 primaryTypographyProps={{ noWrap: true }}
                                 secondary={
                                     <React.Fragment>

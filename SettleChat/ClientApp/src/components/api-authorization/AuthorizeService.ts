@@ -1,6 +1,7 @@
 import { UserManager, WebStorageStateStore, Log, User, Profile, UserManagerSettings, SignoutResponse } from 'oidc-client';
 import AwaitLock from 'await-lock';
 import { ApplicationPaths, ApplicationName } from './ApiAuthorizationConstants';
+import { calculateSessionStateResult } from './sessionChecker'
 //import { IFrameNavigator1 } from './IFrameNavigator1';
 
 /**
@@ -41,7 +42,12 @@ export class AuthorizeService<TState extends SignInState> {
 
         const userManager = await this.ensureUserManagerInitialized();
         const user = await userManager.getUser();
-        return user && user.profile;
+        // If user has been logged out before accessing this page, we cannot use his user profile. We have to check if idsrv.session cookie matches user session_state from local storage.
+        // More: https://github.com/IdentityModel/oidc-client-js/issues/979
+        if (user && user.session_state && calculateSessionStateResult(window.location.origin, `${userManager.settings.client_id} ${user.session_state}`) === 'unchanged') {
+            return user && user.profile;
+        }
+        return null
     }
 
     public async getAccessToken(): Promise<string | null> {
@@ -236,7 +242,7 @@ export class AuthorizeService<TState extends SignInState> {
             settings.silent_redirect_uri = `${window.location.origin}/silentLoginCallback.html`;
             settings.userStore = new WebStorageStateStore({
                 prefix: ApplicationName
-            });            
+            });
             this._userManager = new UserManager(settings as UserManagerSettings);
             //Log.logger = console;
             //Log.level = Log.DEBUG;
