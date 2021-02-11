@@ -5,8 +5,11 @@ using System.Threading.Tasks;
 using IdentityServer4.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SettleChat.Factories.Interfaces;
+using SettleChat.Hubs;
 using SettleChat.Models;
 using SettleChat.Persistence;
 using SettleChat.Persistence.Models;
@@ -21,13 +24,23 @@ namespace SettleChat.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<InvitationsController> _logger;
+        private readonly IHubContext<ConversationHub, IConversationClient> _conversationHubContext;
+        private readonly ISignalRGroupNameFactory _signalRGroupNameFactory;
 
-        public InvitationsController(SettleChatDbContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ILogger<InvitationsController> logger)
+        public InvitationsController(
+            SettleChatDbContext context,
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<InvitationsController> logger,
+            IHubContext<ConversationHub, IConversationClient> conversationHubContext,
+            ISignalRGroupNameFactory signalRGroupNameFactory)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
+            _conversationHubContext = conversationHubContext;
+            _signalRGroupNameFactory = signalRGroupNameFactory;
         }
 
         [HttpGet("/api/invitations/{token}")]
@@ -128,7 +141,20 @@ namespace SettleChat.Controllers
                 UserNickName = model.Nickname
             });
             await _context.SaveChangesAsync();
-            //TODO: signalr notify user added to conversation (otherwise it can crash in javascript when user writes new message and there's no user for that userId)
+            var conversationUserModel = _context.ConversationUsers.Include(x => x.User)
+                .Where(x => x.ConversationId == dbInvitation.ConversationId && x.UserId == userId.Value).Select(x => new ConversationUserModel
+                {
+                    UserId = x.UserId,
+                    ConversationId = x.ConversationId,
+                    UserName = x.User.UserName,
+                    Nickname = x.UserNickName,
+                    Email = x.User.Email,
+                    LastActivityTimestamp = x.User.LastActivityTimestamp,
+                    Status = x.User.Status
+                }).Single();
+            await _conversationHubContext.Clients
+                .Group(_signalRGroupNameFactory.CreateConversationGroupName(dbInvitation.ConversationId))
+                .ConversationUserAdded(conversationUserModel);
             return await RetrieveInvitationModel(dbInvitation.Id);
         }
 

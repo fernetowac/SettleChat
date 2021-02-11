@@ -20,7 +20,7 @@ export interface ReceivedWritingActivityData {
 //TODO: make sure there is only one SignalRContainer component at the same time. Otherwise it can overwrite redux store connectionId of another one.
 const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType & { children: React.ReactNode }) => {
     const { identityUserId } = props.data;
-    const { connectionEstablished, reconnected, disconnected, messageAdded, writingActivityReceived, userStatusChanged, conversationUpdated } = props.actions;
+    const { connectionEstablished, reconnected, disconnected, messageAdded, writingActivityReceived, userStatusChanged, conversationUpdated, conversationUserAdded } = props.actions;
     const [hubConnection, setHubConnection] = React.useState<signalR.HubConnection>();
     const isMounted = useIsMounted()
 
@@ -88,6 +88,8 @@ const SignalRContainer = (props: SignalRContainerState & MapDispatchToPropsType 
 
         hubConnection.on("ConversationUpdated", conversationUpdated);
 
+        hubConnection.on("ConversationUserAdded", conversationUserAdded);
+
         return hubConnection;
     }
 
@@ -132,9 +134,10 @@ type MapDispatchToPropsType = {
         writingActivityReceived: (writingActivity: ConversationStore.ReceivedWritingActivityData) => void;
         userStatusChanged: (userId: string, status: ConversationStore.UserStatus) => void;
         conversationUpdated: (conversation: ConversationStore.ConversationDetail) => void;
+        conversationUserAdded: (user: ConversationStore.ConversationUser) => void;
     }
 };
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, (signalRKnownActions | ConversationStore.MessageAddedAction | ConversationStore.ConversationWritingActivityReceived | ConversationStore.ConversationUserStatusChanged | ConversationStore.ConversationReceivedAction)>): MapDispatchToPropsType => ({
+const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, (signalRKnownActions | ConversationStore.MessageAddedAction | ConversationStore.ConversationWritingActivityReceived | ConversationStore.ConversationUserStatusChanged | ConversationStore.ConversationUserAdded | ConversationStore.ConversationReceivedAction)>): MapDispatchToPropsType => ({
     actions: {
         connectionEstablished: (connectionId: string) => dispatch(signalRActionCreators.connectionEstablished(connectionId)),
         reconnected: (connectionId: string) => dispatch(signalRActionCreators.reconnected(connectionId)),
@@ -142,7 +145,8 @@ const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined,
         messageAdded: (message: ConversationStore.MessageCreateResponse) => dispatch(ConversationStore.actionCreators.messageAdded(ConversationStore.transformMessageCreateResponse(message))),
         writingActivityReceived: (writingActivity: ConversationStore.ReceivedWritingActivityData) => dispatch(ConversationStore.actionCreators.writingActivityReceived(writingActivity)),
         userStatusChanged: (userId: string, status: ConversationStore.UserStatus) => dispatch(ConversationStore.actionCreators.userStatusChanged(userId, status)),
-        conversationUpdated: (conversation: ConversationStore.ConversationDetail) => dispatch(ConversationStore.actionCreators.conversationReceived(conversation))
+        conversationUpdated: (conversation: ConversationStore.ConversationDetail) => dispatch(ConversationStore.actionCreators.conversationReceived(conversation)),
+        conversationUserAdded: (user) => dispatch(ConversationStore.actionCreators.conversationUserAdded(user))
     }
 });
 

@@ -15,7 +15,7 @@ const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
 
 export interface MessagesProps {
     messages: ConversationStore.Message[];
-    users: ConversationStore.User[];
+    users: ConversationStore.ConversationUser[];
     me: {
         userId: string
     };
@@ -103,7 +103,7 @@ export const Messages = (props: MessagesProps) => {
 
     const userNameById = new Map<string, string>();
     props.users.forEach((user) => {
-        userNameById.set(user.id, user.userName);
+        userNameById.set(user.userId, user.userName);
     });
 
     var resultListItems = [];

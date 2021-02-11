@@ -2,14 +2,14 @@
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from '../store/Conversation';
-import { User, UserStatus } from '../store/Conversation';
+import { ConversationUser, UserStatus } from '../store/Conversation';
 import UserAvatarBadge from './UserAvatarBadge';
 import { makeStyles } from '@material-ui/core/styles';
 import { List, ListItem, ListItemAvatar, ListItemText, Divider } from '@material-ui/core';
 
 export interface UsersState {
     conversationId: string,
-    users: ConversationStore.User[];
+    users: ConversationStore.ConversationUser[];
 }
 
 // At runtime, Redux will merge together...
@@ -53,19 +53,19 @@ const Users = (props: UsersProps) => {
         <h1>Users ({props.users.length})</h1>
         <List className={classes.root}>
             {
-                (props.users as User[]).map((user, index) => (
-                    <React.Fragment key={user.id}>
-                        <ListItem alignItems="flex-start" key={user.id}>
+                (props.users as ConversationUser[]).map((user, index) => (
+                    <React.Fragment key={user.userId}>
+                        <ListItem alignItems="flex-start" key={user.userId}>
                             <ListItemAvatar>
                                 <UserAvatarBadge {...user} />
                             </ListItemAvatar>
                             <ListItemText
-                                primary={user.userName}
+                                primary={user.nickname || user.userName}
                                 secondary={WriteStatus(user.status)}
                                 primaryTypographyProps={{ noWrap: true }}
                             />
                         </ListItem>
-                        {index < props.users.length - 1 ? <Divider component="li" key={`${user.id}_divider`} /> : ''}
+                        {index < props.users.length - 1 ? <Divider component="li" key={`${user.userId}_divider`} /> : ''}
                     </React.Fragment>)
                 )
             }
@@ -76,6 +76,7 @@ const Users = (props: UsersProps) => {
 export default connect(
     (state: ApplicationState): UsersState => {
         return {
+            // TODO: filter users by conversation Id
             users: ((state.conversation === undefined ? undefined : state.conversation.users) || []),
             conversationId: state.conversation && state.conversation.detail ? state.conversation.detail.id : undefined
         } as UsersState;

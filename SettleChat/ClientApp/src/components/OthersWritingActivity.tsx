@@ -112,10 +112,10 @@ const mapStateToProps = (state: ApplicationState): MessageInputPropsStateType =>
         throw new Error('Conversation not initialized');
     }
     const getUserById = (
-        (conversationUsers: ConversationStore.User[]) =>
-            (userId: string) => conversationUsers.find(user => user.id === userId)
-    )
-        (state.conversation.users);
+        (conversationUsers: ConversationStore.ConversationUser[]) =>
+            (userId: string) => conversationUsers.find(user => user.userId === userId)
+    )(state.conversation.users);
+
     return {
         //TODO: use memoized selectors (https://redux.js.org/recipes/computing-derived-data)
         othersWriting: state.conversation.writingActivities
@@ -127,7 +127,7 @@ const mapStateToProps = (state: ApplicationState): MessageInputPropsStateType =>
                 writingActivity => {
                     const writingActivityUser = getUserById(writingActivity.userId);
                     return {
-                        name: writingActivityUser ? writingActivityUser.userName : '',
+                        name: writingActivityUser ? writingActivityUser.nickname || writingActivityUser.userName : 'somebody',
                         lastTimeWriting: writingActivity.lastChange
                     }
                 }),

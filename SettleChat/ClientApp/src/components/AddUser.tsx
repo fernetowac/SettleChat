@@ -6,6 +6,7 @@ import authService from '../components/api-authorization/AuthorizeService';
 
 type AddUserProps = { conversationId: string } & typeof ConversationStore.actionCreators & ConversationStore.UserStatus;
 
+//TODO: do we need this component?
 function AddUser(props: AddUserProps) {
     const [id, setId] = React.useState('');
     const [name, setName] = React.useState('');
@@ -27,6 +28,7 @@ function AddUser(props: AddUserProps) {
 
     interface UninvitedUser {
         id: string;
+        conversationId: string;
         userName: string;
         token: string;
         email: string | undefined;
@@ -50,9 +52,11 @@ function AddUser(props: AddUserProps) {
                     .then(data => data.json() as Promise<UninvitedUser>)
                     .then(data => {
                         props.userAdded({
-                            id: data.id,
+                            userId: data.id,
+                            conversationId: data.conversationId,
                             email: data.email,
                             userName: data.userName,
+                            nickname: null,
                             status: ConversationStore.UserStatus.Offline,
                             lastActivityTimestamp: null
                         });

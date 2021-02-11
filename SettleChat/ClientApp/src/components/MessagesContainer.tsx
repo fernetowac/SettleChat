@@ -8,7 +8,7 @@ import { Messages } from './Messages'
 
 export interface MessagesContainerState {
     messages: ConversationStore.Message[];
-    users: ConversationStore.User[];
+    users: ConversationStore.ConversationUser[];
     me: {
         userId: string
     };
@@ -33,11 +33,6 @@ const MessagesContainer = (props: MessagesContainerProps) => {
     const { conversationId } = props;
     const [loadMoreButtonEnabled, setLoadMoreButtonActive] = React.useState(true);
     const [isLoading, setIsLoading] = React.useState(true);
-
-    const userNameById = new Map<string, string>();
-    props.users.forEach((user) => {
-        userNameById.set(user.id, user.userName);
-    });
 
     const getOldestMessage = (messages: ConversationStore.Message[]): ConversationStore.Message | undefined => {
         if (messages.length === 0) {

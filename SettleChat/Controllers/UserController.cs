@@ -31,28 +31,29 @@ namespace SettleChat.Controllers
             _logger = logger;
         }
 
-        // GET: api/Conversation
         [HttpGet("/api/conversations/{conversationId}/users")]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
-        public async Task<ActionResult<IEnumerable<UserModel>>> GetUsers(Guid conversationId)
+        public async Task<ActionResult<IEnumerable<ConversationUserModel>>> GetUsers(Guid conversationId)
         {
             //TODO: authorize for specific conversation (maybe with in-memory cache? is it possible with custom authorize attribute)
-            return (await _context.Users
-                .Where(x =>
-                    x.ConversationUsers
-                        .Any(cu => cu.ConversationId == conversationId))
+            return (await _context.ConversationUsers
+                    .Include(x => x.User)
+                .Where(x => x.ConversationId == conversationId)
                 .ToListAsync()) // if not materialized here, it was crashing in runtime (I don't remember, something related to linq, I didn't get the reason)
-                .Select(x => new UserModel
+                .Select(x => new ConversationUserModel
                 {
-                    Id = x.Id,
-                    Email = x.Email,
-                    UserName = x.UserName,
+                    UserId = x.Id,
+                    ConversationId = conversationId,
+                    Email = x.User.Email,
+                    UserName = x.User.UserName,
+                    Nickname = x.UserNickName,
                     Status = ConversationHub.Connections.GetConnections(x.Id).Any() ? UserStatus.Online : UserStatus.Offline,// x.Status, //TODO: make it nicer
-                    LastActivityTimestamp = x.LastActivityTimestamp
+                    LastActivityTimestamp = x.User.LastActivityTimestamp
                 })
                 .ToList();
         }
 
+        //TODO: do we need this action?
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost("/api/conversations/{conversationId}/users")]
@@ -95,6 +96,7 @@ namespace SettleChat.Controllers
                 UserName = user.UserName,
                 Email = user.Email,
                 Id = user.Id,
+                ConversationId = conversationId,
                 Token = userSecret.Secret
             };
             return resultModel;

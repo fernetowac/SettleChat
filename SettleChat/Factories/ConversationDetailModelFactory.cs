@@ -7,7 +7,7 @@ namespace SettleChat.Factories
 {
     public class ConversationDetailModelFactory
     {
-        public ConversationDetailModel Create(Conversation conversation, ApplicationUser me, List<ApplicationUser> otherUsers)
+        public ConversationDetailModel Create(Conversation conversation, ApplicationUser me, List<ConversationUser> otherUsers)
         {
             var resultModel = new ConversationDetailModel
             {
@@ -25,13 +25,14 @@ namespace SettleChat.Factories
             return resultModel;
         }
 
-        private static ConversationDetailModel.User Create(ApplicationUser user)
+        private static ConversationDetailModel.User Create(ConversationUser user)
         {
             return new ConversationDetailModel.User
             {
-                Id = user.Id,
-                Email = user.Email,
-                UserName = user.UserName
+                Id = user.UserId,
+                Email = user.User.Email,
+                UserName = user.User.UserName,
+                Nickname = user.UserNickName
             };
         }
     }

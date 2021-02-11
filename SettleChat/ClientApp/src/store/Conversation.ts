@@ -14,7 +14,7 @@ import SchemaKind from '../schemas/SchemaKind'
 export interface ConversationState {
     detail: ConversationDetail | null;
     messages: Message[];
-    users: User[];
+    users: ConversationUser[];
     ui: Ui;
     writingActivities: ReceivedWritingActivityStateItem[];
     invitations: Invitation[];
@@ -55,9 +55,11 @@ export interface MessageCreateResponse {
     created: string;
 }
 
-export interface User {
-    id: string;
+export interface ConversationUser {
+    userId: string;
+    conversationId: string;
     userName: string;
+    nickname: string | null;
     email: string | undefined;
     status: UserStatus;
     lastActivityTimestamp: Date | null;
@@ -107,6 +109,11 @@ export interface ConversationUserStatusChanged {
     status: UserStatus;
 }
 
+export interface ConversationUserAdded {
+    type: 'CONVERSATION_USER_ADDED';
+    user: ConversationUser;
+}
+
 export interface MessageAddAction {
     type: 'MESSAGE_ADD';
     newMessage: Message;
@@ -134,7 +141,7 @@ export interface UsersRequestListAction {
 
 export interface UsersReceivedListAction {
     type: 'USERS_RECEIVED_LIST';
-    users: User[];
+    users: ConversationUser[];
 }
 
 export interface UserAddAction {
@@ -144,7 +151,7 @@ export interface UserAddAction {
 
 export interface UserAddedAction {
     type: 'USER_ADDED';
-    user: User;
+    user: ConversationUser;
 }
 
 export interface ConversationUiDisableLoadingMoreMessages {
@@ -233,7 +240,7 @@ export const transformMessageCreateResponse = (response: MessageCreateResponse):
 
 export type ConversationKnownAction = ConversationRequestAction | ConversationReceivedAction;
 export type MessageKnownAction = MessageAddAction | MessageAddedAction | MessagesRequestListAction | MessagesReceiveListAction;
-type UserKnownAction = UserAddAction | UserAddedAction | UsersRequestListAction | UsersReceivedListAction | ConversationUserStatusChanged;
+type UserKnownAction = UserAddAction | UserAddedAction | UsersRequestListAction | UsersReceivedListAction | ConversationUserStatusChanged | ConversationUserAdded;
 export type UiKnownAction = ConversationUiEnableLoadingMoreMessages | ConversationUiDisableLoadingMoreMessages | ConversationUiLeftPanelDisplayConversationInviteAction | ConversationUiLeftPanelDisplayConversationUsersAction | ConversationUiLeftPanelDisplayConversationsAction;
 export type KnownAction = ConversationKnownAction | MessageKnownAction | UiKnownAction;
 
@@ -255,6 +262,12 @@ export const actionCreators = {
             type: 'CONVERSATION_USER_STATUS_CHANGED',
             userId: userId,
             status: status
+        }
+    },
+    conversationUserAdded(user: ConversationUser): ConversationUserAdded {
+        return {
+            type: 'CONVERSATION_USER_ADDED',
+            user: user
         }
     },
     conversationReceived(conversation: ConversationDetail): ConversationReceivedAction {
@@ -376,7 +389,7 @@ export const actionCreators = {
                     console.log(`Stop listening conversation ${conversationId} on connection ${connectionId}`);
                 });
         },
-    requestUsers: (): AppThunkAction<UserKnownAction, User[] | void> => (dispatch, getState) => {
+    requestUsers: (): AppThunkAction<UserKnownAction, ConversationUser[] | void> => (dispatch, getState) => {
         // Only load data if it's something we don't already have (and are not already loading)
         const appState = getState();
         if (appState && appState.conversation && appState.conversation.detail) {
@@ -394,7 +407,7 @@ export const actionCreators = {
                                 'Authorization': `Bearer ${token}`
                             }
                         })
-                        .then(response => response.json() as Promise<User[]>)
+                        .then(response => response.json() as Promise<ConversationUser[]>)
                         .then(data => {
                             dispatch({ type: 'USERS_RECEIVED_LIST', users: data });
                         })
@@ -404,7 +417,7 @@ export const actionCreators = {
             return Promise.reject('appState or its conversation is undefined');
         }
     },
-    userAdded: (user: User): UserAddedAction => {
+    userAdded: (user: ConversationUser): UserAddedAction => {
         return {
             type: 'USER_ADDED',
             user: user
@@ -436,7 +449,7 @@ export const messagesReducer: Reducer<Message[]> = (state1: Message[] | undefine
     let state: Message[] = state1 || [];
 
     const action = incomingAction as MessageKnownAction | IdentityChangedAction;
-
+    //TODO: make sure all the messages are related to the conversation
     switch (action.type) {
         case 'MESSAGE_ADDED':
             const actionMessage = (action as MessageAddedAction).message;
@@ -466,8 +479,8 @@ export const messagesReducer: Reducer<Message[]> = (state1: Message[] | undefine
     };
 }
 
-export const usersReducer: Reducer<User[]> = (state1: User[] | undefined, incomingAction: Action): User[] => {
-    let state: User[] = state1 || [];
+export const usersReducer: Reducer<ConversationUser[]> = (state1: ConversationUser[] | undefined, incomingAction: Action): ConversationUser[] => {
+    let state: ConversationUser[] = state1 || [];
 
     const action = incomingAction as UserKnownAction | IdentityChangedAction;
 
@@ -480,10 +493,10 @@ export const usersReducer: Reducer<User[]> = (state1: User[] | undefined, incomi
         case 'USER_ADDED':
             return [
                 ...state,
-                action.user
+                { ...action.user }//TODO: replace if such combination of {userId, conversationId} already exists
             ];
         case 'USERS_RECEIVED_LIST':
-            return [
+            return [//TODO: keep users of other conversationIds
                 ...action.users
             ];
         case 'USERS_REQUEST_LIST':
@@ -493,10 +506,19 @@ export const usersReducer: Reducer<User[]> = (state1: User[] | undefined, incomi
         case 'IDENTITY_CHANGED':
             return [];
         case 'CONVERSATION_USER_STATUS_CHANGED':
-            return state.map(x => x.id === action.userId ? {
+            return state.map(x => x.userId === action.userId ? {
                 ...x,
                 status: action.status
-            } as User : x);
+            } as ConversationUser : x);
+        case 'CONVERSATION_USER_ADDED':
+            const foundUserArrayIndex = state.findIndex(x => x.userId === action.user.userId && x.conversationId === action.user.conversationId);
+            if (foundUserArrayIndex == -1) {
+                return [
+                    ...state,
+                    { ...action.user }
+                ];
+            }
+            return state.map((user, index) => index === foundUserArrayIndex ? { ...action.user } : user);
         default:
             return state;
     };

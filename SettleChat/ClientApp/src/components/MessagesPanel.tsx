@@ -118,7 +118,7 @@ const MessagesPanel = (props: ConversationProps) => {
 type MapDispatchToPropsType = {
     actions: {
         requestConversation: (conversationId: string) => Promise<ConversationStore.ConversationDetail | never>;
-        requestUsers: () => Promise<ConversationStore.User[] | void>;
+        requestUsers: () => Promise<ConversationStore.ConversationUser[] | void>;
         startListeningConversation: (connectionId: string, conversationId: string) => Promise<void>;
         stopListeningConversation: (connectionId: string, conversationId: string) => Promise<void>;
         enableLoadingMoreMessages: () => void;
