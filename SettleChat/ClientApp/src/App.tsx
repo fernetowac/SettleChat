@@ -4,8 +4,6 @@ import Layout from './components/Layout';
 import Notifier from './components/Notifier';
 import RecentConversationRedirection from './components/RecentConversationRedirection';
 import Home from './components/Home';
-import Counter from './components/Counter';
-import FetchData from './components/FetchData';
 import MessagesPanel from './components/MessagesPanel';
 import NewConversation from './components/NewConversation';
 import Token from './components/Token';
@@ -45,8 +43,6 @@ export default () => (
                     <Switch>
                         <AuthorizeRoute exact path='/' component={RecentConversationRedirection} />
                         <Route exact path='/home' component={Home} />
-                        <Route path='/counter' component={Counter} />
-                        <AuthorizeRoute path='/fetch-data/:startDateIndex?' component={FetchData} />
                         <AuthorizeRoute path='/conversation/:conversationId' render={(props: RouteComponentProps<any>) => (
                             <SignalRContainer>
                                 <MessagesPanel {...props} />

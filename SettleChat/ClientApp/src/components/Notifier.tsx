@@ -1,12 +1,11 @@
 ﻿import React from 'react';
 import { connect } from 'react-redux';
-import { ThunkDispatch } from 'redux-thunk';
 import { useSnackbar, SnackbarMessage, OptionsObject, VariantType } from 'notistack';
 import { Notification, NotificationType } from '../types/notificationTypes';
-import { NotificationKnownAction } from '../types/notificationActionTypes';
-import { removeNotification } from '../actions/notificationActions';
 import { ApplicationState } from '../store/index';
 import { Button } from '@material-ui/core'
+import { notificationsActions } from '../reducers/notificationsReducer'
+import { AppDispatch } from '../'
 
 const getNotistackVariant = (type: NotificationType): VariantType => {
     switch (type) {
@@ -29,21 +28,9 @@ const removeDisplayed = (key: number) => {
     displayedKeys = [...displayedKeys.filter(x => key !== x)];
 };
 
-interface NotifierState {
-    data: {
-        notifications: Notification[]
-    }
-}
 
-interface NotifierActions {
-    actions: {
-        removeNotification: (key: Notification['key']) => void;
-    }
-}
 
-type NotifierProps = NotifierState & NotifierActions
-
-const mapStateToProps = (state: ApplicationState): NotifierState => {
+const mapStateToProps = (state: ApplicationState) => {
     return {
         data: {
             notifications: state.notifications
@@ -51,11 +38,13 @@ const mapStateToProps = (state: ApplicationState): NotifierState => {
     }
 };
 
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, NotificationKnownAction>): NotifierActions => ({
+const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
-        removeNotification: (key) => dispatch(removeNotification(key))
+        removeNotification: (key: Notification['key']) => dispatch(notificationsActions.remove(key))
     }
 });
+
+type NotifierProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
 
 const Notifier = (props: NotifierProps) => {
     const { notifications } = props.data;

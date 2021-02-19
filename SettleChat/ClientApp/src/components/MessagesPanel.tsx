@@ -4,7 +4,6 @@ import MessageInput from './MessageInput';
 import OthersWritingActivity from './OthersWritingActivity';
 import { RouteComponentProps } from 'react-router';
 import { connect } from 'react-redux';
-import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
 import * as ConversationStore from "../store/Conversation";
 import ConversationDetail from './ConversationDetail';
@@ -19,17 +18,13 @@ import PersonAddIcon from '@material-ui/icons/PersonAdd';
 import PeopleIcon from '@material-ui/icons/People';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import { useIsMounted } from '../hooks/useIsMounted'
+import { AppDispatch } from '../'
 
-type ConversationPropsStateType = {
-    conversation: ConversationStore.ConversationState | undefined;
-    connectionId: string;
-    reconnected: boolean;
-};
 // At runtime, Redux will merge together...
 type ConversationProps =
     // ... state we've requested from the Redux store
-    ConversationPropsStateType
-    & MapDispatchToPropsType // ... plus action creators we've requested
+    ReturnType<typeof mapStateToProps>
+    & ReturnType<typeof mapDispatchToProps> // ... plus action creators we've requested
     & RouteComponentProps<{ conversationId: string }>; // ... plus incoming routing parameters
 
 const MessagesPanel = (props: ConversationProps) => {
@@ -115,42 +110,32 @@ const MessagesPanel = (props: ConversationProps) => {
     </React.Fragment >;
 }
 
-type MapDispatchToPropsType = {
-    actions: {
-        requestConversation: (conversationId: string) => Promise<ConversationStore.ConversationDetail | never>;
-        requestUsers: () => Promise<ConversationStore.ConversationUser[] | void>;
-        startListeningConversation: (connectionId: string, conversationId: string) => Promise<void>;
-        stopListeningConversation: (connectionId: string, conversationId: string) => Promise<void>;
-        enableLoadingMoreMessages: () => void;
-        displayConversationInvite: () => void;
-        displayConversationUsers: () => void;
-        displayConversations: () => void;
+const mapStateToProps = (state: ApplicationState) => {
+    if (!state.signalR.connectionId) {
+        throw new Error('ConnectionId must be set.');
     }
-};
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.KnownAction>): MapDispatchToPropsType => ({
+    return ({
+        conversation: state.conversation,
+        connectionId: state.signalR.connectionId,
+        reconnected: state.signalR.reconnected
+    });
+}
+
+const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
         requestConversation: (conversationId: string) => dispatch(
             ConversationStore.actionCreators.requestConversation1(conversationId)),
         requestUsers: () => dispatch(ConversationStore.actionCreators.requestUsers()),
         startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation(connectionId, conversationId)),
         stopListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.stopListeningConversation(connectionId, conversationId)),
-        enableLoadingMoreMessages: () => dispatch(ConversationStore.actionCreators.enableLoadingMoreMessages()),
-        displayConversationInvite: () => dispatch(ConversationStore.actionCreators.displayConversationInvite()),
-        displayConversationUsers: () => dispatch(ConversationStore.actionCreators.displayConversationUsers()),
-        displayConversations: () => dispatch(ConversationStore.actionCreators.displayConversations())
+        enableLoadingMoreMessages: () => dispatch(ConversationStore.conversationUiActions.enableLoadingMoreMessages()),
+        displayConversationInvite: () => dispatch(ConversationStore.conversationUiActions.leftPanelDisplayConversationInvite()),
+        displayConversationUsers: () => dispatch(ConversationStore.conversationUiActions.leftPanelDisplayConversationUsers()),
+        displayConversations: () => dispatch(ConversationStore.conversationUiActions.leftPanelDisplayConversations())
     }
 });
 
 export default connect(
-    (state: ApplicationState): ConversationPropsStateType => {
-        if (!state.signalR.connectionId) {
-            throw new Error('ConnectionId must be set.');
-        }
-        return ({
-            conversation: state.conversation,
-            connectionId: state.signalR.connectionId,
-            reconnected: state.signalR.reconnected
-        });
-    }, // Selects which state properties are merged into the component's props
+    mapStateToProps,
     mapDispatchToProps
 )(MessagesPanel as any);

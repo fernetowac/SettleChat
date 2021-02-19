@@ -1,32 +1,55 @@
-﻿import { Reducer, Action } from 'redux';
-import { Notification } from '../types/notificationTypes'
-import { NotificationKnownAction, NOTIFICATION_ADD, NOTIFICATION_CLOSE, NOTIFICATION_REMOVE } from '../types/notificationActionTypes'
+﻿import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { Notification, NotificationType } from '../types/notificationTypes'
+import { NotificationAddActionInput } from '../types/notificationActionTypes'
 
-export const notificationsReducer: Reducer<Notification[]> = (state: Notification[] = [], incomingAction: Action): Notification[] => {
-    // Note that items in state are ordered by id number ascending
-    const action = incomingAction as NotificationKnownAction;
-
-    switch (action.type) {
-        case NOTIFICATION_ADD:
-            return [
-                ...state,
-                {
-                    ...action.notification,
+const notificationsSlice = createSlice({
+    name: 'notifications',
+    initialState: [] as Notification[],
+    reducers: {
+        add: {
+            reducer: (state, action: PayloadAction<Notification>) => {
+                state.push(action.payload)
+            },
+            prepare: (notification: NotificationAddActionInput | string) => {
+                if (typeof notification === "string") {
+                    return {
+                        payload: {
+                            type: NotificationType.Info,
+                            messageLines: [notification],
+                            key: new Date().getTime() + Math.random(),
+                            dismissed: false,
+                            hasCloseButton: true,
+                            shouldPersist: false
+                        },
+                    };
                 }
-            ];
-        case NOTIFICATION_CLOSE:
+                return {
+                    payload: {
+                        ...notification,
+                        messageLines: Array.isArray(notification.message) ? notification.message : [notification.message],
+                        key: notification.key || new Date().getTime() + Math.random(),
+                        dismissed: false,
+                        hasCloseButton: notification.hasCloseButton || false,
+                        shouldPersist: notification.shouldPersist || false
+                    },
+                };
+            }
+        },
+        close: (state, action: PayloadAction<Notification['key']>) => {
             return [
                 ...state.map(notification =>
-                    notification.key === action.key
+                    notification.key === action.payload
                         ? { ...notification, dismissed: true }
                         : { ...notification }
                 )
-            ];
-        case NOTIFICATION_REMOVE:
+            ]
+        },
+        remove: (state, action: PayloadAction<Notification['key']>) => {
             return [
-                ...state.filter(notification => notification.key !== action.key)
-            ];
-        default:
-            return state;
-    };
-}
+                ...state.filter(notification => notification.key !== action.payload)
+            ]
+        }
+    }
+})
+
+export const { actions: notificationsActions, reducer: notificationsReducer } = notificationsSlice

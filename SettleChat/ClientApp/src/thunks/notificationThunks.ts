@@ -1,18 +1,16 @@
-﻿import { ThunkAction } from 'redux-thunk';
-import { ApplicationState } from '../store/index';
+﻿import { ThunkAction } from '@reduxjs/toolkit'
 import { ProblemDetails } from '../services/FetchService'
 import { parseErrors } from '../services/ProblemDetailsService'
-import { NotificationAddAction } from '../types/notificationActionTypes'
-import { addNotification } from '../actions/notificationActions'
 import { NotificationType } from '../types/notificationTypes'
+import { notificationsActions } from '../reducers/notificationsReducer'
 
-export const tryAddProblemDetailNotification = (problemDetails: ProblemDetails): ThunkAction<boolean, ApplicationState, undefined, NotificationAddAction> =>
+export const tryAddProblemDetailNotification = (problemDetails: ProblemDetails): ThunkAction<boolean, any, any, any> =>
     (dispatch) => {
         const errorMessages = parseErrors(problemDetails)
         if (errorMessages.length == 0) {
             return false;
         }
-        const addNotificationAction = addNotification({
+        const addNotificationAction = notificationsActions.add({
             type: NotificationType.Error,
             message: errorMessages,
             hasCloseButton: true,

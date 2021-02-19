@@ -3,15 +3,12 @@ import { connect } from 'react-redux';
 import * as ConversationStore from "../store/Conversation";
 import { ApplicationState } from '../store/index';
 import { useIsMounted } from '../hooks/useIsMounted';
-
-type MessageInputPropsStateType = {
-    othersWriting: UserWriting[];
-    isAuthenticated: boolean;
-}
+import { ReduxType } from '../types/commonTypes'
 
 interface UserWriting {
     name: string;
-    lastTimeWriting: Date;
+    /** unix timestamp in miliseconds */
+    lastTimeWriting: number;
 }
 
 const writingActivityNotificationThresholdMiliseconds = 10 * 1000;
@@ -39,14 +36,14 @@ function equalArrays(array1: string[], array2: string[]) {
  * Displays writing activity of other people if it is new enough (to prevent being stuck in "John is writing.." status when there are connection problems on my side or other people's side)
  * @param props
  */
-function OthersWritingActivity(props: MessageInputPropsStateType) {
+function OthersWritingActivity(props: ReturnType<typeof mapStateToProps>) {
     const [userNamesWriting, setUserNamesWriting] = React.useState(new Array<string>());
     const [othersWritingTimer, setOthersWritingTimer] = React.useState<ReturnType<typeof setTimeout>>();
     const isMounted = useIsMounted();
 
     const getUserNamesCurrentlyWriting = (usersWriting: UserWriting[]): string[] => {
         return usersWriting
-            .filter(x => x.lastTimeWriting.getTime() >= new Date().getTime() - writingActivityNotificationThresholdMiliseconds)
+            .filter(x => x.lastTimeWriting >= new Date().getTime() - writingActivityNotificationThresholdMiliseconds)
             .map(x => x.name);
     }
 
@@ -98,7 +95,7 @@ function OthersWritingActivity(props: MessageInputPropsStateType) {
 }
 
 // Selects which state properties are merged into the component's props
-const mapStateToProps = (state: ApplicationState): MessageInputPropsStateType => {
+const mapStateToProps = (state: ApplicationState) => {
     if (!state.identity) {
         throw new Error('Identity not initialized');
     }
@@ -112,7 +109,7 @@ const mapStateToProps = (state: ApplicationState): MessageInputPropsStateType =>
         throw new Error('Conversation not initialized');
     }
     const getUserById = (
-        (conversationUsers: ConversationStore.ConversationUser[]) =>
+        (conversationUsers: ReduxType<ConversationStore.ConversationUser>[]) =>
             (userId: string) => conversationUsers.find(user => user.userId === userId)
     )(state.conversation.users);
 
@@ -122,7 +119,7 @@ const mapStateToProps = (state: ApplicationState): MessageInputPropsStateType =>
             .filter(writingActivity =>
                 writingActivity.userId !== state.identity.userId
                 && writingActivity.activity === ConversationStore.WritingActivity.IsWriting
-                && writingActivity.lastChange.getTime() >= new Date().getTime() - writingActivityNotificationThresholdMiliseconds)
+                && writingActivity.lastChange >= new Date().getTime() - writingActivityNotificationThresholdMiliseconds)
             .map(
                 writingActivity => {
                     const writingActivityUser = getUserById(writingActivity.userId);

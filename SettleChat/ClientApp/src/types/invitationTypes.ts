@@ -1,17 +1,11 @@
 ﻿import { Identifiable } from './commonTypes'
 
-export const INVITATION_ADDED = 'INVITATION_ADDED'
-export const INVITATION_ADD = 'INVITATION_ADD'
-export const INVITATIONS_REQUEST_LIST = 'INVITATIONS_REQUEST_LIST'
-export const INVITATIONS_RECEIVE_LIST = 'INVITATIONS_RECEIVE_LIST'
-
 export interface NewInvitation {
     conversationId: string;
     isPermanent: boolean;
 }
 
-export interface InvitationResponse extends Identifiable {
-    id: string;
+export type InvitationResponse = Identifiable & {
     conversationId: string;
     conversationTitle?: string;
     isActive: boolean;

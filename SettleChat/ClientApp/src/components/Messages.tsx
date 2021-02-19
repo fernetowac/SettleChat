@@ -10,14 +10,16 @@ import timeAgoEnglishStrings from 'react-timeago/lib/language-strings/en'
 import timeAgoBuildFormatter from 'react-timeago/lib/formatters/buildFormatter'
 import { format, isSameDay, differenceInMinutes } from 'date-fns'
 import clsx from 'clsx';
+import { Message } from '../types/messageTypes'
+import { ReduxType } from '../types/commonTypes'
 
 const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
 
 export interface MessagesProps {
-    messages: ConversationStore.Message[];
-    users: ConversationStore.ConversationUser[];
+    messages: Message[];
+    users: ReduxType<ConversationStore.ConversationUser>[];
     me: {
-        userId: string
+        userId: string | null
     };
     ui: {
         canLoadMoreMessages: boolean
@@ -101,6 +103,18 @@ export const Messages = (props: MessagesProps) => {
     const myUserMessageBubbleGroupClasses = useStylesForMyUserMessageBubbleGroup();
     const otherUserMessageBubbleGroupClasses = useStylesForOtherUserMessageBubbleGroup();
 
+    if (props.isLoading) {
+        return <p>Loading..</p>
+    }
+
+    if (props.me.userId === null) {
+        return <p>Please sign in first</p>
+    }
+
+    if (props.messages.length === 0) {
+        return <p>No messages yet</p>
+    }
+
     const userNameById = new Map<string, string>();
     props.users.forEach((user) => {
         userNameById.set(user.userId, user.userName);
@@ -171,22 +185,14 @@ export const Messages = (props: MessagesProps) => {
         }
     }
 
-    return <React.Fragment>
-        {
-            props.isLoading ?
-                'Loading..' :
-                (props.messages.length === 0 ? 'No messages yet' :
-                    <ListWithScrollDownButton className={classes.root}>
-                        <ListItem key="scroll-bottom-button" style={{ display: 'flex', justifyContent: 'center' }}>
-                            {
-                                props.ui.canLoadMoreMessages ?
-                                    <Button variant="contained" onClick={props.onLoadMoreClicked} disabled={!props.loadMoreButtonEnabled}>Load more</Button>
-                                    : 'No more messages.'
-                            }
-                        </ListItem>
-                        {resultListItems}
-                    </ListWithScrollDownButton>
-                )
-        }
-    </React.Fragment>;
+    return <ListWithScrollDownButton className={classes.root}>
+        <ListItem key="scroll-bottom-button" style={{ display: 'flex', justifyContent: 'center' }}>
+            {
+                props.ui.canLoadMoreMessages ?
+                    <Button variant="contained" onClick={props.onLoadMoreClicked} disabled={!props.loadMoreButtonEnabled}>Load more</Button>
+                    : 'No more messages.'
+            }
+        </ListItem>
+        {resultListItems}
+    </ListWithScrollDownButton>
 }

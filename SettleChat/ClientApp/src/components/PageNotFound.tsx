@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { connect } from 'react-redux';
 
 const PageNotFound = () => (
     <div>
@@ -8,4 +7,4 @@ const PageNotFound = () => (
     </div>
 );
 
-export default connect()(PageNotFound);
+export default PageNotFound

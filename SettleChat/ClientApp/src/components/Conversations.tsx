@@ -2,19 +2,20 @@
 import { Link } from "react-router-dom";
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
-import { ConversationListItem, ConversationListItemUser, ConversationsState, actionCreators as ConversationsActionCreators, ReceiveListAction, RequestListAction } from '../store/Conversations';
+import { ConversationListItem, ConversationListItemUser, actionCreators as ConversationsActionCreators, actions as conversationsActions } from '../store/Conversations';
 import { makeStyles } from '@material-ui/core/styles';
-import { Box, List, ListItem, ListItemAvatar, ListItemText, Divider, Avatar, Typography } from '@material-ui/core';
+import { List, ListItem, ListItemAvatar, ListItemText, Divider, Avatar, Typography } from '@material-ui/core';
 import TimeAgo from 'react-timeago';
 import timeAgoEnglishStrings from 'react-timeago/lib/language-strings/en'
 import timeAgoBuildFormatter from 'react-timeago/lib/formatters/buildFormatter'
+import { AppDispatch } from '../index'
+import { ReduxType } from '../types/commonTypes';
+import { Ascending } from '../helpers/sortHelper'
 
 const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
 
-type ConversationsComponentState = ConversationsState & { userId: string | null, isAuthenticated: boolean };
-type ConversationProps = ConversationsComponentState & MapDispatchToPropsType;
+type ConversationProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -33,7 +34,8 @@ const getUserNicknameWithFallback = (user?: ConversationListItemUser) => {
     return user.userNickName === null ? user.userName : user.userNickName;
 }
 
-const LastMessage = (props: { conversation: ConversationListItem, myIdentityUserId: string }) => {
+//TODO: this component can go into separate file
+const LastMessage = (props: { conversation: ReduxType<ConversationListItem>, myIdentityUserId: string }) => {
     const { conversation, myIdentityUserId } = props;
     if (!conversation.lastMessageText !== !conversation.lastMessageUserId) {
         throw Error();
@@ -70,7 +72,7 @@ const Conversations = (props: ConversationProps) => {
     return <React.Fragment>
         <List className={classes.root}>
             {isAuthenticated && userId &&
-                (props.conversations as ConversationListItem[]).map((conversation, index) => (
+                props.conversations.map((conversation, index) => (
                     <React.Fragment key={conversation.id}>
                         <ListItem button
                             alignItems="flex-start"
@@ -106,39 +108,24 @@ const Conversations = (props: ConversationProps) => {
     </React.Fragment>;
 }
 
-const conversationCompareByLastActivityDesc = (a: ConversationListItem, b: ConversationListItem): number => {
-    if (a.lastActivityTimestamp < b.lastActivityTimestamp) {
-        return 1;
-    }
-    else if (a.lastActivityTimestamp > b.lastActivityTimestamp) {
-        return -1;
-    }
-    return 0;
-}
-
-const getConversations = (state: ApplicationState): ConversationListItem[] => state.conversations.conversations;
-const getSortedConversations = (conversations: ConversationListItem[]): ConversationListItem[] => conversations.sort(conversationCompareByLastActivityDesc);
+const getConversations = (state: ApplicationState): ReduxType<ConversationListItem>[] => state.conversations.conversations;
+const getSortedConversations = (conversations: ReduxType<ConversationListItem>[]): ReduxType<ConversationListItem>[] =>
+    [...conversations].sort(Ascending.by(x => x.lastActivityTimestamp));
 
 /**
  * Memoized sorting of conversations
  */
 const sortedConversationsSelector = createSelector([getConversations], getSortedConversations);
 
-
-type MapDispatchToPropsType = {
-    requestConversations: () => Promise<ConversationListItem[]>;
-    clearConversations: () => void;
-};
-
-const mapStateToProps = (state: ApplicationState): ConversationsComponentState => ({
+const mapStateToProps = (state: ApplicationState) => ({
     userId: state.identity.userId,
     isAuthenticated: !!state.identity.userId,
     conversations: sortedConversationsSelector(state)
 });
 
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ReceiveListAction | RequestListAction>): MapDispatchToPropsType => ({
-    requestConversations: () => (dispatch as ThunkDispatch<ApplicationState, undefined, ReceiveListAction | RequestListAction>)(ConversationsActionCreators.requestConversations()),
-    clearConversations: ConversationsActionCreators.clearConversations
+const mapDispatchToProps = (dispatch: AppDispatch) => ({
+    requestConversations: () => dispatch(ConversationsActionCreators.requestConversations()),
+    clearConversations: conversationsActions.clear
 });
 
 export default connect(

@@ -1,15 +1,13 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
-import { ThunkDispatch } from 'redux-thunk';
 import * as ConversationStore from "../store/Conversation";
-import { ApplicationState } from '../store/index';
-import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
 import { usePrevious } from '../hooks/usePrevious';
 import { TextField } from '@material-ui/core';
+import { AppDispatch } from '../'
 
 const writingActivityNotificationThresholdMiliseconds = 10 * 1000;
 
-function MessageInput(props: MapDispatchToPropsType) {
+function MessageInput(props: ReturnType<typeof mapDispatchToProps>) {
     const [inputMessage, setInputMessage] = React.useState('');
     const previousInputMessage = usePrevious(inputMessage);
     const [writingActivity, setWritingActivity] = React.useState({ activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() } as ConversationStore.WritingActivityData);
@@ -82,21 +80,16 @@ interface OwnProps {
     conversationId: string;
 }
 
-type MapDispatchToPropsType = {
+const mapDispatchToProps = (dispatch: AppDispatch, ownProps: OwnProps) => ({
     actions: {
-        updateWritingActivity: (writingActivity: ConversationStore.WritingActivityData) => Promise<void>;
-        addMessage: (text: string) => Promise<ConversationStore.Message>;
-    }
-};
-
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.ConversationSendWritingActivity | HttpFailStatusReceivedAction>, ownProps: OwnProps): MapDispatchToPropsType => ({
-    actions: {
-        updateWritingActivity: (writingActivity: ConversationStore.WritingActivityData): Promise<void> =>
-            (dispatch as ThunkDispatch<ApplicationState, undefined, HttpFailStatusReceivedAction>)(
-                ConversationStore.actionCreators.updateWritingActivity(writingActivity)),
-        addMessage: (text: string): Promise<ConversationStore.Message> =>
-            (dispatch as ThunkDispatch<ApplicationState, undefined, ConversationStore.ConversationSendWritingActivity>)(
-                ConversationStore.actionCreators.addMessage(text, ownProps.conversationId))
+        updateWritingActivity: (writingActivity: ConversationStore.WritingActivityData) => {
+            const apiWritingActivity = {
+                ...writingActivity,
+                lastChange: writingActivity.lastChange.toISOString()
+            }
+            return dispatch(ConversationStore.actionCreators.updateWritingActivity(apiWritingActivity))
+        },
+        addMessage: (text: string) => dispatch(ConversationStore.actionCreators.addMessage({ text, conversationId: ownProps.conversationId }))
     }
 });
 

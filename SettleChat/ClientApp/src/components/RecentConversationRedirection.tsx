@@ -2,12 +2,13 @@
 import { Redirect } from 'react-router-dom'
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
-import { ConversationListItem, actionCreators as ConversationsActionCreators, ReceiveListAction, RequestListAction } from '../store/Conversations';
+import { ConversationListItem, actionCreators as ConversationsActionCreators, actions as conversationsActions } from '../store/Conversations';
+import { AppDispatch } from '../'
+import { ReduxType } from '../types/commonTypes'
+import { unwrapResult } from '@reduxjs/toolkit'
 
-type RecentConversationRedirectionComponentState = { conversation?: ConversationListItem, userId: string | null, isAuthenticated: boolean };
-type RecentConversationRedirectionProps = RecentConversationRedirectionComponentState & MapDispatchToPropsType;
+type RecentConversationRedirectionProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
 
 const RecentConversationRedirection = (props: RecentConversationRedirectionProps) => {
     const { requestConversations, clearConversations, userId, isAuthenticated, conversation } = props;
@@ -29,7 +30,7 @@ const RecentConversationRedirection = (props: RecentConversationRedirectionProps
     return <Redirect to={`/conversation/${conversation.id}`} />
 }
 
-const conversationCompareByLastActivityDesc = (a: ConversationListItem, b: ConversationListItem): number => {
+const conversationCompareByLastActivityDesc = (a: ReduxType<ConversationListItem>, b: ReduxType<ConversationListItem>): number => {
     if (a.lastActivityTimestamp < b.lastActivityTimestamp) {
         return 1;
     }
@@ -39,10 +40,11 @@ const conversationCompareByLastActivityDesc = (a: ConversationListItem, b: Conve
     return 0;
 }
 
-const mostRecentConversationReducer = (previousValue: ConversationListItem, currentValue: ConversationListItem): ConversationListItem => conversationCompareByLastActivityDesc(previousValue, currentValue) > 0 ? currentValue : previousValue;
+const mostRecentConversationReducer = (previousValue: ReduxType<ConversationListItem>, currentValue: ReduxType<ConversationListItem>): ReduxType<ConversationListItem> =>
+    conversationCompareByLastActivityDesc(previousValue, currentValue) > 0 ? currentValue : previousValue;
 
-const getConversations = (state: ApplicationState): ConversationListItem[] => state.conversations.conversations;
-const getMostRecentConversation = (conversations: ConversationListItem[]): ConversationListItem | undefined =>
+const getConversations = (state: ApplicationState) => state.conversations.conversations;
+const getMostRecentConversation = (conversations: ReduxType<ConversationListItem>[]) =>
     conversations.length > 0 ?
         conversations.reduce(mostRecentConversationReducer) :
         undefined;
@@ -52,21 +54,15 @@ const getMostRecentConversation = (conversations: ConversationListItem[]): Conve
  */
 const mostRecentConversationSelector = createSelector([getConversations], getMostRecentConversation);
 
-
-type MapDispatchToPropsType = {
-    requestConversations: () => Promise<ConversationListItem[]>;
-    clearConversations: () => void;
-};
-
-const mapStateToProps = (state: ApplicationState): RecentConversationRedirectionComponentState => ({
+const mapStateToProps = (state: ApplicationState) => ({
     userId: state.identity.userId,
     isAuthenticated: !!state.identity.userId,
     conversation: mostRecentConversationSelector(state)
 });
 
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ReceiveListAction | RequestListAction>): MapDispatchToPropsType => ({
-    requestConversations: () => (dispatch as ThunkDispatch<ApplicationState, undefined, ReceiveListAction | RequestListAction>)(ConversationsActionCreators.requestConversations()),
-    clearConversations: ConversationsActionCreators.clearConversations
+const mapDispatchToProps = (dispatch: AppDispatch) => ({
+    requestConversations: () => dispatch(ConversationsActionCreators.requestConversations()).then(unwrapResult),
+    clearConversations: conversationsActions.clear
 });
 
 export default connect(

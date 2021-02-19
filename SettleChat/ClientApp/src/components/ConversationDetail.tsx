@@ -1,16 +1,12 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
-import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
 import { Switch, FormControl, FormLabel, FormGroup, FormControlLabel, FormHelperText, IconButton, TextField, Box } from '@material-ui/core';
 import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@material-ui/icons';
+import { AppDispatch } from '../'
 
-type ConversationDetailsState = {
-    conversation: ConversationStore.ConversationDetail | null,
-    isLoading: boolean,
-};
-type ConversationDetailProps = ConversationDetailsState & MapDispatchToPropsType;
+type ConversationDetailProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>;
 
 const ConversationDetail = (props: ConversationDetailProps) => {
     const [isPublicDisabled, setIsPublicDisabled] = React.useState(false);
@@ -160,7 +156,7 @@ const ConversationDetail = (props: ConversationDetailProps) => {
     }
 }
 
-const mapStateToProps = (state: ApplicationState): ConversationDetailsState => {
+const mapStateToProps = (state: ApplicationState) => {
     if (!state || !state.conversation) {
         return {
             conversation: null,
@@ -173,14 +169,9 @@ const mapStateToProps = (state: ApplicationState): ConversationDetailsState => {
     }
 };
 
-type MapDispatchToPropsType = {
+const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
-        patchConversation: (conversationId: string, updatedProperties: ConversationStore.ConversationPatch) => Promise<ConversationStore.ConversationDetail>;
-    }
-};
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, ConversationStore.KnownAction>): MapDispatchToPropsType => ({
-    actions: {
-        patchConversation: (conversationId: string, updatedProperties: ConversationStore.ConversationPatch) => dispatch(ConversationStore.actionCreators.patchConversation(conversationId, updatedProperties))
+        patchConversation: (conversationId: string, updatedProperties: ConversationStore.ConversationPatch) => dispatch(ConversationStore.actionCreators.patchConversation({ conversationId, updatedProperties }))
     }
 });
 

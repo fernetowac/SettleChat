@@ -1,5 +1,4 @@
-﻿import { Reducer, Action } from 'redux';
-import * as SignalRActions from '../actions/SignalRActions';
+﻿import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 export interface SignalRState {
     connectionId: string | null;
@@ -11,29 +10,38 @@ export const initialSignalRState: SignalRState = {
     reconnected: false
 };
 
-export const reducer: Reducer<SignalRState> = (state: SignalRState = initialSignalRState, incomingAction: Action): SignalRState => {
-    const action = incomingAction as SignalRActions.KnownActions;
-
-    switch (action.type) {
-        case 'SIGNALR_CONNECTION_ESTABLISHED':
-            return {
-                ...state,
-                connectionId: action.connectionId,
-                reconnected: false
-            };
-        case 'SIGNALR_RECONNECTED':
-            return {
-                ...state,
-                connectionId: action.connectionId,
-                reconnected: true
-            };
-        case 'SIGNALR_DISCONNECTED':
+const signalRSlice = createSlice({
+    name: 'signalR',
+    initialState: initialSignalRState,
+    reducers: {
+        connectionEstablished: {
+            reducer: (state, action: PayloadAction<{ connectionId: string }>) => {
+                return {
+                    ...state,
+                    connectionId: action.payload.connectionId,
+                    reconnected: false
+                }
+            },
+            prepare: (connectionId: string) => ({ payload: { connectionId } })
+        },
+        reconnected: {
+            reducer: (state, action: PayloadAction<{ connectionId: string }>) => {
+                return {
+                    ...state,
+                    connectionId: action.payload.connectionId,
+                    reconnected: true
+                }
+            },
+            prepare: (connectionId: string) => ({ payload: { connectionId } })
+        },
+        disconnected: (state) => {
             return {
                 ...state,
                 connectionId: null,
                 reconnected: false
             }
-        default:
-            return state;
+        }
     }
-}
+})
+
+export const { actions: signalRActions, reducer: signalRReducer } = signalRSlice

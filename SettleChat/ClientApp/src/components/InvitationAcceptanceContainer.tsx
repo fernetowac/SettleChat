@@ -2,7 +2,7 @@
 import { useHistory, useRouteMatch, generatePath, Redirect } from "react-router-dom";
 import { connect } from 'react-redux';
 import { ThunkDispatch, ThunkAction } from 'redux-thunk';
-import { Invitation } from '../types/invitationTypes'
+import { Invitation, InvitationResponse } from '../types/invitationTypes'
 import { ApplicationState } from '../store/index';
 import { fetchGet, fetchPost, ProblemDetails } from '../services/FetchService'
 import { transformInvitationResponse } from '../mappers/invitationMapper'
@@ -17,8 +17,9 @@ import { InvitationAcceptance, steps } from './InvitationAcceptance'
 import { ValidationError } from '../types/commonTypes'
 import { nicknameValidationKey } from '../types/invitationAcceptanceTypes'
 import { tryAddProblemDetailNotification } from '../thunks/notificationThunks'
-import { addNotification } from '../actions/notificationActions'
-import { NotificationAddAction, NotificationAddActionInput } from '../types/notificationActionTypes';
+import { NotificationAddActionInput } from '../types/notificationActionTypes';
+import { notificationsActions } from '../reducers/notificationsReducer'
+import { AppDispatch } from '..';
 
 interface InvitationAcceptanceContainerPropsData {
     identity: IdentityState;
@@ -42,12 +43,12 @@ interface OwnProps {
     step: number;
 }
 
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, HttpStatusActions.HttpFailStatusReceivedAction | NotificationAddAction>, ownProps: OwnProps): InvitationAcceptanceContainerPropsActions => ({
+const mapDispatchToProps = (dispatch: AppDispatch, ownProps: OwnProps): InvitationAcceptanceContainerPropsActions => ({
     actions: {
         requestInvitationByToken: () => getInvitationByTokenAsync(ownProps.token, dispatch),
         acceptInvitationAsync: (nickname, shouldCreateAnonymousUser) => dispatch(acceptInvitationAsync(ownProps.token, nickname, shouldCreateAnonymousUser)),
         tryAddProblemDetailNotification: (problemDetails) => dispatch(tryAddProblemDetailNotification(problemDetails)),
-        addNotification: (notification) => dispatch(addNotification(notification))
+        addNotification: (notification) => dispatch(notificationsActions.add(notification))
     }
 });
 
@@ -60,13 +61,15 @@ const mapStateToProps = (state: ApplicationState, ownProps: OwnProps): Invitatio
 
 const getInvitationByTokenAsync = (token: string, dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>): Promise<Invitation> => {
     const url = `/api/invitations/${token}`;
-    return fetchGet<Invitation>(url, dispatch, false, transformInvitationResponse, SchemaKind.InvitationGetResponse);
+    return fetchGet<InvitationResponse>(url, false, SchemaKind.InvitationGetResponse)
+        .then(transformInvitationResponse);
 }
 
 const acceptInvitationAsync = (token: string, nickname: string, shouldCreateAnonymousUser: boolean): ThunkAction<Promise<Invitation>, ApplicationState, undefined, HttpStatusActions.HttpFailStatusReceivedAction> =>
     (dispatch) => {
         const url = `/api/invitations/${token}`;
-        return fetchPost<Invitation>(url, { nickname: nickname, shouldCreateAnonymousUser: shouldCreateAnonymousUser }, dispatch, true, transformInvitationResponse, SchemaKind.InvitationGetResponse)
+        return fetchPost<InvitationResponse>(url, { nickname: nickname, shouldCreateAnonymousUser: shouldCreateAnonymousUser }, true, SchemaKind.InvitationGetResponse)
+            .then(transformInvitationResponse)
     }
 
 const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {

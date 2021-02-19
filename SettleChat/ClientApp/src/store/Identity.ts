@@ -1,4 +1,5 @@
-﻿import { Reducer, Action } from 'redux';
+﻿import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { identityChangedActionCreator } from './common'
 
 export interface IdentityState {
     isAuthenticated: boolean;
@@ -6,22 +7,17 @@ export interface IdentityState {
     userName: string | null;
 }
 
-export interface IdentityChangedAction {
-    type: 'IDENTITY_CHANGED';
-    identity: IdentityState;
-}
-
 export const unloadedState: IdentityState = { isAuthenticated: false, userId: null, userName: null };
 
-export const identityReducer: Reducer<IdentityState> = (state1: IdentityState = unloadedState, incomingAction: Action): IdentityState => {
-    let state: IdentityState = state1 || unloadedState;
+const identitySlice = createSlice({
+    name: 'identity',
+    initialState: unloadedState,
+    reducers: {},
+    extraReducers:
+        (builder) =>
+            builder.addCase(identityChangedActionCreator, (_state, action: PayloadAction<IdentityState>) => {
+                return { ...action.payload }
+            })
+})
 
-    const action = incomingAction as IdentityChangedAction;
-
-    switch (action.type) {
-        case 'IDENTITY_CHANGED':
-            return { ...action.identity };
-        default:
-            return state;
-    }
-}
+export const { actions: identityActions, reducer: identityReducer } = identitySlice

@@ -1,9 +1,8 @@
 ﻿import authService from '../components/api-authorization/AuthorizeService';
-import { ThunkDispatch } from 'redux-thunk';
-import * as HttpStatusActions from '../actions/HttpStatusActions';
 import { isDevelopment } from '../helpers/development/DevDetect';
 import AwaitLock from 'await-lock';
 import SchemaKind from '../schemas/SchemaKind'
+import { Serializable } from '../types/commonTypes'
 
 enum HttpMethod {
     Get = 'GET',
@@ -39,6 +38,27 @@ export interface Errors {
 }
 
 
+/**
+ * @example
+ * {
+ *    "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+ *    "title": "One or more validation errors occurred.",
+ *    "status": 400,
+ *    "traceId": "|2d658605-44ee0c9ba5d257aa.",
+ *    "detail": "aa",
+ *    "errors": {
+ *        "aa": "aaa",
+ *        "": [
+ *            "The Nickname field is required.",
+ *            "The field Nickname must be at least 3 characters long."
+ *        ],
+ *        "Nickname": [
+ *            "The Nickname field is required.",
+ *            "The field Nickname must be at least 3 characters long."
+ *        ]
+ *    }
+ *}
+ * */
 export interface ProblemDetails {
     type: string
     title: string
@@ -48,33 +68,12 @@ export interface ProblemDetails {
     errors?: Errors
 }
 
-const aaaa: ProblemDetails = {
-    "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-    "title": "One or more validation errors occurred.",
-    "status": 400,
-    "traceId": "|2d658605-44ee0c9ba5d257aa.",
-    "detail": "aa",
-    "errors": {
-        "aa": "aaa",
-        "": [
-            "The Nickname field is required.",
-            "The field Nickname must be at least 3 characters long."
-        ],
-        "Nickname": [
-            "The Nickname field is required.",
-            "The field Nickname must be at least 3 characters long."
-        ]
-    }
-}
-
 const fetchExtended =
-    async <TResult>(url: string,
-        dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
+    async <TResponse extends Serializable>(url: string,
         httpMethod: HttpMethod = HttpMethod.Get,
         requestBody: any,
         attachBearerToken: boolean = true,
-        transformResponse?: ResponseTransformationType<TResult>,
-        responseSchemaKind?: SchemaKind): Promise<TResult> => {
+        responseSchemaKind?: SchemaKind): Promise<TResponse> => {
 
         let bearerTokenHeader: { Authorization: string } | undefined = undefined;
         if (attachBearerToken) {
@@ -102,60 +101,45 @@ const fetchExtended =
                     if (isDevelopment && responseSchemaKind) {
                         responsePromise = (await getSchemaValidator()).validateSchemaAsync(responsePromise, responseSchemaKind);
                     }
-                    if (transformResponse) {
-                        return responsePromise.then(transformResponse);
-                    }
-                    return responsePromise as Promise<TResult>;
+                    return responsePromise as Promise<TResponse>;
                 } else {
                     return responsePromise.then(response => {
-                        dispatch(HttpStatusActions.actionCreators.httpFailStatusReceivedAction(responseStream.status, null));//TODO: handle HTTP_FAIL_STATUS_RECEIVED in a new reducer
                         return Promise.reject(response)
                     });
                 }
             });
     };
-export type ResponseTransformationType<TResult> = (response: any) => TResult;
 
-export const fetchGet = async <TResult>(
+export const fetchGet = async <TResponse extends Serializable>(
     url: string,
-    dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
     attachBearerToken: boolean = true,
-    transformResponse?: ResponseTransformationType<TResult>,
     responseSchemaKind?: SchemaKind
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Get, undefined, attachBearerToken, transformResponse, responseSchemaKind);
+): Promise<TResponse> => fetchExtended(url, HttpMethod.Get, undefined, attachBearerToken, responseSchemaKind);
 
-export const fetchPost = async <TResult>(
+export const fetchPost = async <TResponse extends Serializable>(
     url: string,
-    requestBody: any,
-    dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
+    requestBody: Serializable,
     attachBearerToken: boolean = true,
-    transformResponse?: ResponseTransformationType<TResult>,
     responseSchemaKind?: SchemaKind
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Post, requestBody, attachBearerToken, transformResponse, responseSchemaKind);
+): Promise<TResponse> => fetchExtended(url, HttpMethod.Post, requestBody, attachBearerToken, responseSchemaKind);
 
-export const fetchPut = async <TResult>(
+export const fetchPut = async <TResponse extends Serializable>(
     url: string,
-    requestBody: any,
-    dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
+    requestBody: Serializable,
     attachBearerToken: boolean = true,
-    transformResponse?: ResponseTransformationType<TResult>,
     responseSchemaKind?: SchemaKind
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Put, requestBody, attachBearerToken, transformResponse, responseSchemaKind);
+): Promise<TResponse> => fetchExtended(url, HttpMethod.Put, requestBody, attachBearerToken, responseSchemaKind);
 
-export const fetchPatch = async <TResult>(
+export const fetchPatch = async <TResponse extends Serializable>(
     url: string,
-    requestBody: any,
-    dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
+    requestBody: Serializable,
     attachBearerToken: boolean = true,
-    transformResponse?: ResponseTransformationType<TResult>,
     responseSchemaKind?: SchemaKind
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Patch, requestBody, attachBearerToken, transformResponse, responseSchemaKind);
+): Promise<TResponse> => fetchExtended(url, HttpMethod.Patch, requestBody, attachBearerToken, responseSchemaKind);
 
-export const fetchDelete = async <TResult>(
+export const fetchDelete = async <TResponse extends Serializable>(
     url: string,
-    requestBody: any,
-    dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>,
+    requestBody: Serializable,
     attachBearerToken: boolean = true,
-    transformResponse?: ResponseTransformationType<TResult>,
     responseSchemaKind?: SchemaKind
-): Promise<TResult> => fetchExtended(url, dispatch, HttpMethod.Delete, requestBody, attachBearerToken, transformResponse, responseSchemaKind);
+): Promise<TResponse> => fetchExtended(url, HttpMethod.Delete, requestBody, attachBearerToken, responseSchemaKind);

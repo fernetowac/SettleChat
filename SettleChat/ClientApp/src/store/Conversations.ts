@@ -1,15 +1,14 @@
-﻿import { Reducer, Action } from 'redux';
-import { ThunkAction } from 'redux-thunk';
+﻿import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
 import { ApplicationState } from './index';
-import { RouterAction } from 'connected-react-router';
-import { IdentityChangedAction } from './Identity';
 import { fetchGet, fetchPost } from '../services/FetchService';
-import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
-import { MessageAddedAction, ConversationReceivedAction } from './Conversation';
+import { conversationActions } from './Conversation';
+import { identityChangedActionCreator, messageAddedActionCreator } from './common'
+import { AppDispatch } from '..';
+import { ReduxType, ApiType } from '../types/commonTypes'
 
-export interface ConversationsState {
+export type ConversationsState = ReduxType<{
     conversations: ConversationListItem[];
-}
+}>
 
 export const InitialConversationsState: ConversationsState = {
     conversations: []
@@ -36,35 +35,9 @@ export interface NewConversation {
     invitedUsers: ConversationUser[];
 }
 
-export interface Conversation extends NewConversation {
-    id: string;
-}
-
 export interface ConversationUser {
     name: string;
     email: string;
-}
-
-export interface AddAction {
-    type: 'CONVERSATION_ADD';
-}
-
-export interface AddedAction {
-    type: 'CONVERSATION_ADDED';
-    conversation: ConversationListItem;
-}
-
-export interface ReceiveListAction {
-    type: 'CONVERSATIONS_RECEIVED_LIST';
-    conversations: ConversationListItem[];
-}
-
-export interface ClearListAction {
-    type: 'CONVERSATIONS_CLEAR_LIST';
-}
-
-export interface RequestListAction {
-    type: 'CONVERSATIONS_REQUEST_LIST';
 }
 
 export interface ConversationCreateResponse {
@@ -79,109 +52,69 @@ export interface ConversationCreateResponseCreator {
     name: string;
 }
 
-interface ConversationsResponseItem {
-    id: string;
-    title: string;
-    lastMessageText?: string;
-    lastMessageUserId?: string;
-    lastActivityTimestamp: string;
-    users: Array<{
-        id: string;
-        userName: string;
-        userNickName?: string;
-    }>;
-}
-
-const createConversation = (conversationsResponseItem: ConversationsResponseItem): ConversationListItem => ({
+const toReduxConversation = (conversationsResponseItem: ApiType<ConversationListItem>): ReduxType<ConversationListItem> => ({
     id: conversationsResponseItem.id,
     title: conversationsResponseItem.title,
     lastMessageText: conversationsResponseItem.lastMessageText,
     lastMessageUserId: conversationsResponseItem.lastMessageUserId,
-    lastActivityTimestamp: new Date(conversationsResponseItem.lastActivityTimestamp as string),
+    lastActivityTimestamp: new Date(conversationsResponseItem.lastActivityTimestamp).getTime(),
     users: conversationsResponseItem.users.map((conversationsResponseItemUser) => ({
         id: conversationsResponseItemUser.id,
         userName: conversationsResponseItemUser.userName,
         userNickName: conversationsResponseItemUser.userNickName
-    } as ConversationListItemUser))
-} as ConversationListItem);
+    }))
+});
 
-const createConversationListItem = (response: ConversationsResponseItem[]): ConversationListItem[] => response.map(createConversation);
-
-type KnownAction = ConversationAddPipelineAction | ReceiveListAction | RequestListAction | ClearListAction
-export type ConversationAddPipelineAction = AddAction | AddedAction | RouterAction;
+const toReduxConversations = (response: ApiType<ConversationListItem>[]): ReduxType<ConversationListItem>[] => response.map(toReduxConversation);
 
 export const actionCreators = {
-    addConversation: (conversationInput: NewConversation): ThunkAction<Promise<ConversationListItem>, ApplicationState, undefined, ConversationAddPipelineAction | HttpFailStatusReceivedAction> =>
-        (dispatch, getState, extraArgument) => {
-            dispatch({ type: 'CONVERSATION_ADD' });
-            return fetchPost<ConversationListItem>('/api/Conversations', conversationInput, dispatch, true, createConversation)
-                .then(createdConversation => {
-                    dispatch({ type: 'CONVERSATION_ADDED', conversation: createdConversation });
-                    return createdConversation;
-                });
-        },
-    requestConversations: (): ThunkAction<Promise<ConversationListItem[]>, ApplicationState, undefined, RequestListAction | ReceiveListAction> => (dispatch, getState) => {
+    addConversation: createAsyncThunk('conversations/addThunk', async (conversationInput: ApiType<NewConversation>) => {
+        return await fetchPost<ApiType<ConversationListItem>>('/api/Conversations', conversationInput)
+            .then(toReduxConversation)
+    }),
+    requestConversations: createAsyncThunk<ReduxType<ConversationListItem>[], void, { state: ApplicationState, dispatch: AppDispatch }>('conversations/requestConversations', (_, thunkAPI) => {
         // Only load data if it's something we don't already have (and are not already loading)
-        const appState = getState();
+        const appState = thunkAPI.getState();
         if (appState && appState.conversations) {
-            dispatch({ type: 'CONVERSATIONS_REQUEST_LIST' });
-            return fetchGet<ConversationListItem[]>(`/api/conversations`, dispatch, true, createConversationListItem)
-                .then(conversations => {
-                    dispatch({ type: 'CONVERSATIONS_RECEIVED_LIST', conversations: conversations });
-                    return conversations;
-                });
+            return fetchGet<ApiType<ConversationListItem>[]>(`/api/conversations`)
+                .then(toReduxConversations)
         } else {
+            //TODO: maybe we should call some redux toolkit wrapper with error message here?
             return Promise.reject();
         }
-    },
-    clearConversations: (): ClearListAction => {
-        return {
-            type: 'CONVERSATIONS_CLEAR_LIST'
-        };
-    }
+    })
 };
 
-export const reducer: Reducer<ConversationsState> = (state: ConversationsState | undefined = InitialConversationsState, incomingAction: Action<any>): ConversationsState => {
-    const action = incomingAction as KnownAction | IdentityChangedAction | MessageAddedAction | ConversationReceivedAction;
-    state = state as ConversationsState;
-    switch (action.type) {
-        case 'CONVERSATION_ADD':
-            return state;
-        case 'CONVERSATION_ADDED':
-            return {
-                conversations: [...state.conversations, action.conversation]
-            };
-        case 'CONVERSATIONS_RECEIVED_LIST':
-            return {
-                conversations: [...action.conversations]
-            };
-        case 'CONVERSATIONS_CLEAR_LIST':
-            return {
-                conversations: []
-            };
-        case 'CONVERSATIONS_REQUEST_LIST':
-            return state;
-        case 'IDENTITY_CHANGED':
-            return {
-                conversations: []
-            };
+const conversationsSlice = createSlice({
+    name: 'conversations',
+    initialState: InitialConversationsState,
+    reducers: {
+        added: (state, action: PayloadAction<ReduxType<ConversationListItem>>) => {
+            state.conversations.push(action.payload)
+        },
+        clear: (state) => {
+            state.conversations = []
+        }
+    },
+    extraReducers: (builder) => {
         //TODO: handle also adding new user to conversation
-        case 'MESSAGE_ADDED':
-            {
-                const actionMessage = (action as MessageAddedAction).message;
-                const conversation: ConversationListItem | undefined =
-                    state.conversations.find(
-                        (conversation: ConversationListItem) => conversation.id === actionMessage.conversationId);
-                if (!conversation) {
-                    throw Error("Conversation for added message not found");
-                }
-                if (conversation.lastActivityTimestamp >= actionMessage.created) {
-                    return state;
-                }
-                const otherConversations: ConversationListItem[] = state.conversations.filter(
-                    (conversation: ConversationListItem) => conversation.id !== actionMessage.conversationId);
-                return {
-                    conversations: [
+        builder
+            .addCase(
+                messageAddedActionCreator,
+                (state, action) => {
+                    const actionMessage = action.payload;
+                    const conversation =
+                        state.conversations.find(
+                            (conversation) => conversation.id === actionMessage.conversationId);
+                    if (!conversation) {
+                        throw Error("Conversation for added message not found");
+                    }
+                    if (conversation.lastActivityTimestamp >= actionMessage.created) {
+                        return state;
+                    }
+                    const otherConversations = state.conversations.filter(
+                        (conversation) => conversation.id !== actionMessage.conversationId);
+                    state.conversations = [
                         ...otherConversations,
                         {
                             ...conversation,
@@ -190,35 +123,46 @@ export const reducer: Reducer<ConversationsState> = (state: ConversationsState |
                             lastActivityTimestamp: actionMessage.created
                         }
                     ]
-                };
-            }
-        // update conversation in the list with newer info like Title
-        case 'CONVERSATION_RECEIVED':
-            {
-                const actionConversation = (action as ConversationReceivedAction).conversation;
-                const conversation: ConversationListItem | undefined =
-                    state.conversations.find(
-                        (conversation: ConversationListItem) => conversation.id === actionConversation.id);
-                if (!conversation) {
-                    // we don't need to handle conversation update here when received single conversation is not in the list (yet)
-                    return state;
+                })
+            .addCase(
+                actionCreators.addConversation.fulfilled, (state, action) => {
+                    state.conversations.push(action.payload)
                 }
+            )
+            .addCase(
+                actionCreators.requestConversations.fulfilled, (state, action) => {
+                    state.conversations = action.payload
+                }
+            )
+            .addCase(
+                conversationActions.received, (state, action) => {
+                    const actionConversation = action.payload;
+                    const conversation =
+                        state.conversations.find(
+                            (conversation) => conversation.id === actionConversation.id);
+                    if (!conversation) {
+                        // we don't need to handle conversation update here when received single conversation is not in the list (yet)
+                        return;
+                    }
 
-                const otherConversations: ConversationListItem[] =
-                    state.conversations.filter(
-                        (conversation: ConversationListItem) => conversation.id !== actionConversation.id);
-                //TODO: update whole conversation including users list
-                return {
-                    conversations: [
+                    const otherConversations =
+                        state.conversations.filter(
+                            (conversation) => conversation.id !== actionConversation.id);
+                    //TODO: update whole conversation including users list
+
+                    state.conversations = [
                         ...otherConversations,
                         {
                             ...conversation,
                             title: actionConversation.title
                         }
                     ]
-                };
-            }
-        default:
-            return state;
+                }
+            )
+            .addCase(identityChangedActionCreator, (state) => {
+                state.conversations = []
+            })
     }
-}
+})
+
+export const { actions, reducer: conversationsReducer } = conversationsSlice

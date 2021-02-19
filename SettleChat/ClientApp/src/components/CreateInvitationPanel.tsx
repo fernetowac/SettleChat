@@ -1,22 +1,17 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store/index';
 import { Divider, InputAdornment, List, Box, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Button, Checkbox, FormControl, FormControlLabel, TextField } from '@material-ui/core';
 import { Invitation, NewInvitation } from '../types/invitationTypes'
-import { InvitationKnownAction } from '../types/invitationActionTypes'
 import { createInvitation, requestInvitations } from '../thunks/invitationThunks'
 import LinkIcon from '@material-ui/icons/Link';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
-import { addNotification } from '../actions/notificationActions'
-import { NotificationAddAction, NotificationAddActionInput } from '../types/notificationActionTypes'
+import { NotificationAddActionInput } from '../types/notificationActionTypes'
+import { AppDispatch } from '../'
+import { notificationsActions } from '../reducers/notificationsReducer'
 
-type CreateInvitationPanelState = {
-    invitations: Invitation[];
-    conversationId: string;
-}
-type CreateInvitationPanelProps = CreateInvitationPanelState & MapDispatchToPropsType;
+type CreateInvitationPanelProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
 
 function CreateInvitationPanel(props: CreateInvitationPanelProps) {
     const [isPermanent, setIsPermanent] = React.useState(true);
@@ -126,25 +121,18 @@ const getInvitations = (state: ApplicationState, conversationId: string): Invita
         state.conversation.invitations
             .filter(invitation => invitation.conversationId === conversationId)
 ) || [];
-const getSortedInvitations = (invitations: Invitation[]): Invitation[] => invitations.sort(compareByCreatedAsc);
+const getSortedInvitations = (invitations: Invitation[]): Invitation[] => [...invitations].sort(compareByCreatedAsc);
 
 /**
  * Memoized sorting of invitations
  */
 const sortedInvitationsSelector = createSelector([getInvitations], getSortedInvitations);
 
-type MapDispatchToPropsType = {
-    actions: {
-        requestInvitations: (conversationId: string) => Promise<Invitation[]>;
-        createInvitation: (newInvitation: NewInvitation) => Promise<Invitation>;
-        addNotification: (message: NotificationAddActionInput | string) => void;
-    }
-};
-const mapDispatchToProps = (dispatch: ThunkDispatch<ApplicationState, undefined, InvitationKnownAction | NotificationAddAction>): MapDispatchToPropsType => ({
+const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
         requestInvitations: (conversationId: string) => dispatch(requestInvitations(conversationId)),
         createInvitation: (newInvitation: NewInvitation) => dispatch(createInvitation(newInvitation)),
-        addNotification: (message) => dispatch(addNotification(message))
+        addNotification: (message: NotificationAddActionInput | string) => dispatch(notificationsActions.add(message))
     }
 });
 
@@ -152,11 +140,11 @@ interface OwnProps {
     conversationId: string;
 }
 
-const mapStateToProps = (state: ApplicationState, ownProps: OwnProps): CreateInvitationPanelState => {
+const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => {
     return {
         invitations: sortedInvitationsSelector(state, ownProps.conversationId),
         conversationId: ownProps.conversationId
-    } as CreateInvitationPanelState;
+    }
 }
 
 export default connect(

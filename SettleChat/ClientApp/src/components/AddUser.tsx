@@ -3,8 +3,11 @@ import { connect } from 'react-redux';
 import * as ConversationStore from "../store/Conversation";
 import { ApplicationState } from '../store/index';
 import authService from '../components/api-authorization/AuthorizeService';
+import { AppDispatch } from '..';
+import { ReduxType } from '../types/commonTypes'
 
-type AddUserProps = { conversationId: string } & typeof ConversationStore.actionCreators & ConversationStore.UserStatus;
+
+type AddUserProps = { conversationId: string } & MapDispatchToProps & ConversationStore.UserStatus;
 
 //TODO: do we need this component?
 function AddUser(props: AddUserProps) {
@@ -114,9 +117,15 @@ function AddUser(props: AddUserProps) {
     );
 }
 
+interface MapDispatchToProps {
+    userAdded: (user: ReduxType<ConversationStore.ConversationUser>) => ReduxType<ConversationStore.ConversationUser>
+}
+
 export default connect(
     (state: ApplicationState) => {
         return { conversationId: state.conversation && state.conversation.detail ? state.conversation.detail.id : undefined }
     },
-    ConversationStore.actionCreators
+    (dispatch: AppDispatch): MapDispatchToProps => ({
+        userAdded: (user) => dispatch(ConversationStore.usersActions.added(user)).payload
+    })
 )(AddUser as any);

@@ -30,6 +30,7 @@ const signalRHubUrl = `${document.location.origin}/conversationHub`;//TODO: take
 
 // Get the application-wide store instance, prepopulating with state from the server where available.
 const store = configureStore(history, InitialApplicationState);
+export type AppDispatch = typeof store.dispatch
 
 ReactDOM.render(
     <Provider store={store}>

@@ -1,38 +1,44 @@
-﻿import { Reducer, Action } from 'redux';
+﻿import { createSlice } from '@reduxjs/toolkit'
 import { Invitation } from '../types/invitationTypes'
-import { InvitationKnownAction, InvitationAddedAction } from '../types/invitationActionTypes'
-import { IdentityChangedAction } from '../store/Identity';
+import { createInvitation, requestInvitations } from '../thunks/invitationThunks'
 import { unionArray } from '../helpers/arrayHelper'
+import { identityChangedActionCreator } from '../store/common'
 
-export const invitationsReducer: Reducer<Invitation[]> = (state: Invitation[] = [], incomingAction: Action): Invitation[] => {
-    // Note that items in state are not sorted. UI component manages sorting instead.
-    const action = incomingAction as InvitationKnownAction | IdentityChangedAction;
+const invitationsSlice = createSlice({
+    name: 'invitations',
+    initialState: [] as Invitation[],
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+            .addCase(
+                //TODO: probably it can be simplified with immer
+                createInvitation.fulfilled, (state, action) => {
+                    // don't change state, when the invitation already exists in the state
+                    const existingInvitation = state.find(x => x.id === action.payload.id);
+                    if (existingInvitation) {
+                        const equals = JSON.stringify(existingInvitation) === JSON.stringify(action.payload);
+                        if (equals) {
+                            return;
+                        }
+                    }
 
-    switch (action.type) {
-        case 'INVITATION_ADDED':
-            const actionInvitation = (action as InvitationAddedAction).invitation;
-            // don't change state, when the invitation already exists in the state
-            const existingInvitation = state.find(x => x.id === actionInvitation.id);
-            if (existingInvitation) {
-                const equals = JSON.stringify(existingInvitation) === JSON.stringify(action.invitation);
-                if (equals) {
-                    return state;
+                    state = [
+                        ...state.filter(x => x.id !== action.payload.id),
+                        {
+                            ...action.payload
+                        }
+                    ];
                 }
-            }
-
-            return [
-                ...state.filter(x => x.id !== actionInvitation.id),
-                {
-                    ...actionInvitation
+            )
+            .addCase(
+                requestInvitations.fulfilled, (state, action) => {
+                    state = [...unionArray<Invitation>(action.payload, state)];
                 }
-            ];
-        case 'INVITATIONS_RECEIVE_LIST':
-            return [...unionArray<Invitation>(action.invitations, state)];
-        case 'IDENTITY_CHANGED'://TODO: clearing list of messages should be maybe called from component. Store should not be aware of logic when user identity is changed.
-            return [];
-        case 'INVITATION_ADD':
-        case 'INVITATIONS_REQUEST_LIST':
-        default:
-            return state;
-    };
-}
+            )
+            .addCase(identityChangedActionCreator, () => {
+                return []
+            })
+    }
+})
+
+export const { actions: invitationsActions, reducer: invitationsReducer } = invitationsSlice
