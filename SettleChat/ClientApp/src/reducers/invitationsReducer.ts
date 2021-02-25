@@ -22,7 +22,7 @@ const invitationsSlice = createSlice({
                         }
                     }
 
-                    state = [
+                    return [
                         ...state.filter(x => x.id !== action.payload.id),
                         {
                             ...action.payload
@@ -32,7 +32,7 @@ const invitationsSlice = createSlice({
             )
             .addCase(
                 requestInvitations.fulfilled, (state, action) => {
-                    state = [...unionArray<Invitation>(action.payload, state)];
+                    return [...unionArray<Invitation>(action.payload, state)];
                 }
             )
             .addCase(identityChangedActionCreator, () => {

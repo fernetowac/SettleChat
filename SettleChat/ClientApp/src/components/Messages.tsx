@@ -1,5 +1,4 @@
 ﻿import * as React from 'react';
-import * as  ConversationStore from "../store/Conversation";
 import UserAvatar from './UserAvatar';
 import DividerWithChip from './DividerWithChip';
 import { Box, ListItem, ListItemAvatar, ListItemText, Tooltip, Button } from '@material-ui/core';
@@ -11,13 +10,13 @@ import timeAgoBuildFormatter from 'react-timeago/lib/formatters/buildFormatter'
 import { format, isSameDay, differenceInMinutes } from 'date-fns'
 import clsx from 'clsx';
 import { Message } from '../types/messageTypes'
-import { ReduxType } from '../types/commonTypes'
+import { User } from '../types/userTypes';
 
 const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
 
 export interface MessagesProps {
-    messages: Message[];
-    users: ReduxType<ConversationStore.ConversationUser>[];
+    messages: (Omit<Message, 'created'> & { created: Date })[];
+    users: User[];
     me: {
         userId: string | null
     };
@@ -115,37 +114,37 @@ export const Messages = (props: MessagesProps) => {
         return <p>No messages yet</p>
     }
 
-    const userNameById = new Map<string, string>();
+    const userNameById = new Map<string, string>();//TODO: nickname from conversationUsers
     props.users.forEach((user) => {
-        userNameById.set(user.userId, user.userName);
+        userNameById.set(user.id, user.userName);
     });
 
     var resultListItems = [];
     let messageGroup = [];
     for (let i = 0; i < props.messages.length; i++) {
-        const item = props.messages[i];
-        var userName = userNameById.get(item.userId) || 'Loading..';
+        const message = props.messages[i];
 
-        if (i === 0 || !isSameDay(props.messages[i - 1].created, item.created)) {
-            resultListItems.push(<DividerWithChip component="li" key={`${item.id}_divider`} label={format(item.created, 'PPP')} />);
+        if (i === 0 || !isSameDay(props.messages[i - 1].created, message.created)) {
+            resultListItems.push(<DividerWithChip component="li" key={`${message.id}_divider`} label={format(message.created, 'PPP')} />);
         }
 
         const maxMinutesDiffInFollowUpMessages = 3;
-        const thisMessageFollowsUp = (i > 0 && props.messages[i - 1].userId === item.userId && differenceInMinutes(item.created, props.messages[i - 1].created) < maxMinutesDiffInFollowUpMessages && isSameDay(item.created, props.messages[i - 1].created));
-        const nextMessageFollowsUp = (i + 1 < props.messages.length && props.messages[i + 1].userId === item.userId && differenceInMinutes(props.messages[i + 1].created, item.created) < maxMinutesDiffInFollowUpMessages && isSameDay(props.messages[i + 1].created, item.created));
+        const thisMessageFollowsUp = (i > 0 && props.messages[i - 1].userId === message.userId && differenceInMinutes(message.created, props.messages[i - 1].created) < maxMinutesDiffInFollowUpMessages && isSameDay(message.created, props.messages[i - 1].created));
+        const nextMessageFollowsUp = (i + 1 < props.messages.length && props.messages[i + 1].userId === message.userId && differenceInMinutes(props.messages[i + 1].created, message.created) < maxMinutesDiffInFollowUpMessages && isSameDay(props.messages[i + 1].created, message.created));
 
         if (!thisMessageFollowsUp) {
             messageGroup = [];
         }
         let listItem = null;
-        if (item.userId !== props.me.userId) {
+        if (message.userId !== props.me.userId) {
             messageGroup.push(
-                <Box key={item.id} className={clsx(classes.messageBubble, classes.otherUserMessageBubble)}>
-                    {item.text}
+                <Box key={message.id} className={clsx(classes.messageBubble, classes.otherUserMessageBubble)}>
+                    {message.text}
                 </Box>
             );
             if (!nextMessageFollowsUp) {
-                listItem = <ListItem key={item.id} style={{ alignItems: 'flex-end' }} dense>
+                var userName = userNameById.get(message.userId) || 'someone';
+                listItem = <ListItem key={message.id} style={{ alignItems: 'flex-end' }} dense>
                     <ListItemAvatar>
                         <Tooltip title={userName} arrow placement="right">
                             <UserAvatar userName={userName} />
@@ -158,7 +157,7 @@ export const Messages = (props: MessagesProps) => {
                             <React.Fragment>
                                 {userName}
                                 <Box marginLeft={1} component="span">
-                                    <TimeAgo date={item.created} minPeriod={60} formatter={timeAgoFormatter} />
+                                    <TimeAgo date={message.created} minPeriod={60} formatter={timeAgoFormatter} />
                                 </Box>
                             </React.Fragment>
                         }
@@ -167,15 +166,15 @@ export const Messages = (props: MessagesProps) => {
             }
         } else {
             messageGroup.push(
-                <Box key={item.id} className={clsx(classes.messageBubble, classes.myUserMessageBubble)} >
-                    {item.text}
+                <Box key={message.id} className={clsx(classes.messageBubble, classes.myUserMessageBubble)} >
+                    {message.text}
                 </Box>);
             if (!nextMessageFollowsUp) {
-                listItem = <ListItem key={item.id} style={{ alignItems: 'flex-end' }} dense>
+                listItem = <ListItem key={message.id} style={{ alignItems: 'flex-end' }} dense>
                     <ListItemText
                         classes={myUserMessageBubbleGroupClasses}
                         primary={messageGroup}
-                        secondary={<TimeAgo date={item.created} minPeriod={60} formatter={timeAgoFormatter} />}
+                        secondary={<TimeAgo date={message.created} minPeriod={60} formatter={timeAgoFormatter} />}
                     />
                 </ListItem>;
             }

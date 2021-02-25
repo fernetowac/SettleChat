@@ -7,6 +7,7 @@ import * as  ConversationStore from "../store/Conversation";
 import { Messages } from './Messages'
 import { AppDispatch } from '../'
 import { Message } from '../types/messageTypes'
+import { Ascending, lowestBy } from '../helpers/sortHelper'
 
 type MessagesContainerProps =
     ReturnType<typeof mapStateToProps>
@@ -24,21 +25,8 @@ const MessagesContainer = (props: MessagesContainerProps) => {
     const [loadMoreButtonEnabled, setLoadMoreButtonActive] = React.useState(true);
     const [isLoading, setIsLoading] = React.useState(true);
 
-    const getOldestMessage = (messages: Message[]): Message | undefined => {
-        if (messages.length === 0) {
-            return undefined;
-        }
-        let oldestMessage = messages[0];
-        for (var i = 1; i < messages.length; i++) {
-            if (oldestMessage.created > messages[i].created) {
-                oldestMessage = messages[i];
-            }
-        }
-        return oldestMessage;
-    }
-
     const onLoadMoreClicked = () => {
-        const oldestMessage = getOldestMessage(props.messages);
+        const oldestMessage = lowestBy(props.messages, (x) => x.created)
         setLoadMoreButtonActive(false);
         const amountOfMessagesToLoad = 2;
         props.actions.requestMessages(conversationId, (oldestMessage && oldestMessage.id) || undefined, amountOfMessagesToLoad)
@@ -83,28 +71,22 @@ const MessagesContainer = (props: MessagesContainerProps) => {
     />
 }
 
-const messageCompareByCreatedAsc = (a: Message, b: Message): number => {
-    if (a.created < b.created) {
-        return -1;
-    }
-    else if (a.created > b.created) {
-        return 1;
-    }
-    return 0;
-}
+const getMessages = (state: ApplicationState, conversationId: string): Message[] =>
+    state.conversation.messages
+        .filter(message => message.conversationId === conversationId)
 
-const getMessages = (state: ApplicationState, conversationId: string): Message[] => (
-    state.conversation === undefined ?
-        undefined :
-        state.conversation.messages
-            .filter(message => message.conversationId === conversationId)
-) || [];
-const getSortedMessages = (messages: Message[]): Message[] => messages.sort(messageCompareByCreatedAsc);
+const getSortedMessages = (messages: Message[]): Message[] => messages.sort(Ascending.by((message) => message.created));
+const getTypedMessages = (messages: Message[]): (Omit<Message, 'created'> & { created: Date })[] => {
+    return messages.map(message => ({
+        ...message,
+        created: new Date(message.created)
+    }))
+}
 
 /**
  * Memoized sorting of messages
  */
-const sortedMessagesSelector = createSelector([getMessages], getSortedMessages);
+const sortedTypedMessagesSelector = createSelector([getMessages], (messages) => getTypedMessages(getSortedMessages(messages)));
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
@@ -120,8 +102,8 @@ interface OwnProps {
 
 const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => {
     return {
-        messages: sortedMessagesSelector(state, ownProps.conversationId),
-        users: state.conversation && state.conversation.users ? state.conversation.users : [],
+        messages: sortedTypedMessagesSelector(state, ownProps.conversationId),
+        users: ConversationStore.selectUsersByConversationId(state, ownProps),
         me: {
             userId: state.identity.userId
         },

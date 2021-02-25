@@ -1,6 +1,5 @@
 ﻿import * as React from 'react';
-import * as  ConversationStore from '../store/Conversation';
-import { ConversationUser } from '../store/Conversation';
+import { UserStatus } from '../types/userTypes';
 import UserAvatar from './UserAvatar';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import { Badge } from '@material-ui/core';
@@ -41,14 +40,14 @@ const useBadgeStyles = makeStyles((theme: Theme) => ({
     }*/
 }));
 
-const UserAvatarBadge = React.memo((props: ConversationUser) => {
+const UserAvatarBadge = React.memo((props: { name: string, status: UserStatus }) => {
     const badgeClasses = useBadgeStyles();
 
     return <Badge
         classes={{
             badge: clsx(
                 badgeClasses.badge,
-                props.status === ConversationStore.UserStatus.Online
+                props.status === UserStatus.Online
                     ? badgeClasses.badgeOnline
                     : badgeClasses.badgeOffline
             )
@@ -59,7 +58,7 @@ const UserAvatarBadge = React.memo((props: ConversationUser) => {
             horizontal: 'right',
         }}
         variant="dot">
-        <UserAvatar userName={props.nickname || props.userName} />
+        <UserAvatar userName={props.name} />
     </Badge>;
 });
 

@@ -6,9 +6,10 @@ import * as  ConversationStore from "../store/Conversation";
 import authService from '../components/api-authorization/AuthorizeService'
 import { useIsMounted } from '../hooks/useIsMounted'
 import { AppDispatch } from '../'
-import { messageAddedActionCreator } from '../store/common'
-import { ApiMessage } from '../types/messageTypes'
-import { ApiType, ReduxType } from '../types/commonTypes'
+import { messageAddedActionCreator, conversationUserAdded } from '../store/common'
+import { Message } from '../types/messageTypes'
+import { ConversationUserResponse } from '../types/conversationUserTypes';
+import { UserStatus } from '../types/userTypes';
 import { signalRActions } from '../store/SignalR'
 
 const signalRHubUrl = `${document.location.origin}/conversationHub`;//TODO: take url from some config
@@ -16,8 +17,7 @@ const signalRHubUrl = `${document.location.origin}/conversationHub`;//TODO: take
 export interface ReceivedWritingActivityData {
     conversationId: string;
     userId: string;
-    activity: number;
-    lastChange: string;
+    activity: ConversationStore.WritingActivity;
 }
 
 //TODO: make sure there is only one SignalRContainer component at the same time. Otherwise it can overwrite redux store connectionId of another one.
@@ -77,26 +77,13 @@ const SignalRContainer = (props: ReturnType<typeof mapStateToProps> & ReturnType
 
         hubConnection.on("NewMessage", messageAdded);
 
-        hubConnection.on("ConversationWritingActivity", (writingActivity: ReceivedWritingActivityData) => {
-
-            writingActivityReceived({
-                ...writingActivity,
-                lastChange: (new Date(writingActivity.lastChange) as Date).getTime(),
-                activity: (writingActivity.activity as ConversationStore.WritingActivity)
-            });
-        });
+        hubConnection.on("ConversationWritingActivity", writingActivityReceived);
 
         hubConnection.on("UserStatusChanged", userStatusChanged);
 
         hubConnection.on("ConversationUpdated", conversationUpdated);
 
-        hubConnection.on("ConversationUserAdded", (user: ApiType<ConversationStore.ConversationUser>) =>
-            conversationUserAdded(
-                {
-                    ...user,
-                    lastActivityTimestamp: user.lastActivityTimestamp ? new Date(user.lastActivityTimestamp).getTime() : null
-                }
-            ));
+        hubConnection.on("ConversationUserAdded", conversationUserAdded);
 
         return hubConnection;
     }
@@ -138,11 +125,11 @@ const mapDispatchToProps = (dispatch: AppDispatch) => ({//TODO: can be simplyfie
         connectionEstablished: (connectionId: string) => dispatch(signalRActions.connectionEstablished(connectionId)),
         reconnected: (connectionId: string) => dispatch(signalRActions.reconnected(connectionId)),
         disconnected: () => dispatch(signalRActions.disconnected()),
-        messageAdded: (message: ApiMessage) => dispatch(messageAddedActionCreator(ConversationStore.transformMessageCreateResponse(message))),
-        writingActivityReceived: (writingActivity: ReduxType<ConversationStore.ReceivedWritingActivityData>) => { dispatch(ConversationStore.writingActivitiesActions.received(writingActivity)) },
-        userStatusChanged: (userId: string, status: ConversationStore.UserStatus) => dispatch(ConversationStore.usersActions.userStatusChanged({ userId, status })),
+        messageAdded: (message: Message) => dispatch(messageAddedActionCreator(message)),
+        writingActivityReceived: (writingActivity: ConversationStore.ReceivedWritingActivityData) => { dispatch(ConversationStore.writingActivitiesActions.received(writingActivity)) },
+        userStatusChanged: (userId: string, status: UserStatus) => dispatch(ConversationStore.updateOneUser({ id: userId, changes: { status } })),
         conversationUpdated: (conversation: ConversationStore.ConversationDetail) => dispatch(ConversationStore.conversationActions.received(conversation)),
-        conversationUserAdded: (user: ReduxType<ConversationStore.ConversationUser>) => dispatch(ConversationStore.usersActions.conversationUserAdded(user))
+        conversationUserAdded: (user: ConversationUserResponse) => dispatch(conversationUserAdded(user))
     }
 });
 

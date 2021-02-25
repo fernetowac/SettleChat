@@ -137,8 +137,7 @@ namespace SettleChat.Controllers
             {
                 Activity = writingActivity.Activity,
                 ConversationId = conversationId,
-                UserId = userId,
-                LastChange = writingActivity.LastChange
+                UserId = userId
             };
             var conversationGroupName = _signalRGroupNameFactory.CreateConversationGroupName(conversationId);
             await _conversationHubContext.Clients.Group(conversationGroupName)

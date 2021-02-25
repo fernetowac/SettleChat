@@ -4,38 +4,37 @@ import { fetchGet, fetchPost } from '../services/FetchService';
 import { conversationActions } from './Conversation';
 import { identityChangedActionCreator, messageAddedActionCreator } from './common'
 import { AppDispatch } from '..';
-import { ReduxType, ApiType } from '../types/commonTypes'
 
-export type ConversationsState = ReduxType<{
+export type ConversationsState = {
     conversations: ConversationListItem[];
-}>
+}
 
 export const InitialConversationsState: ConversationsState = {
     conversations: []
 };
 
-export interface ConversationListItem {
+export type ConversationListItem = {
     id: string;
     title?: string;
     lastMessageText?: string;
     lastMessageUserId?: string;
     users: ConversationListItemUser[];
-    lastActivityTimestamp: Date;
+    lastActivityTimestamp: string;
 }
 
-export interface ConversationListItemUser {
+export type ConversationListItemUser = {
     id: string;
     userName: string;
     userNickName?: string;
 }
 
-export interface NewConversation {
+export type NewConversation = {
     title: string;
     creator: ConversationUser;
     invitedUsers: ConversationUser[];
 }
 
-export interface ConversationUser {
+export type ConversationUser = {
     name: string;
     email: string;
 }
@@ -52,32 +51,15 @@ export interface ConversationCreateResponseCreator {
     name: string;
 }
 
-const toReduxConversation = (conversationsResponseItem: ApiType<ConversationListItem>): ReduxType<ConversationListItem> => ({
-    id: conversationsResponseItem.id,
-    title: conversationsResponseItem.title,
-    lastMessageText: conversationsResponseItem.lastMessageText,
-    lastMessageUserId: conversationsResponseItem.lastMessageUserId,
-    lastActivityTimestamp: new Date(conversationsResponseItem.lastActivityTimestamp).getTime(),
-    users: conversationsResponseItem.users.map((conversationsResponseItemUser) => ({
-        id: conversationsResponseItemUser.id,
-        userName: conversationsResponseItemUser.userName,
-        userNickName: conversationsResponseItemUser.userNickName
-    }))
-});
-
-const toReduxConversations = (response: ApiType<ConversationListItem>[]): ReduxType<ConversationListItem>[] => response.map(toReduxConversation);
-
 export const actionCreators = {
-    addConversation: createAsyncThunk('conversations/addThunk', async (conversationInput: ApiType<NewConversation>) => {
-        return await fetchPost<ApiType<ConversationListItem>>('/api/Conversations', conversationInput)
-            .then(toReduxConversation)
+    addConversation: createAsyncThunk('conversations/addThunk', async (conversationInput: NewConversation) => {
+        return await fetchPost<ConversationListItem>('/api/Conversations', conversationInput)
     }),
-    requestConversations: createAsyncThunk<ReduxType<ConversationListItem>[], void, { state: ApplicationState, dispatch: AppDispatch }>('conversations/requestConversations', (_, thunkAPI) => {
+    requestConversations: createAsyncThunk<ConversationListItem[], void, { state: ApplicationState, dispatch: AppDispatch }>('conversations/requestConversations', (_, thunkAPI) => {
         // Only load data if it's something we don't already have (and are not already loading)
         const appState = thunkAPI.getState();
         if (appState && appState.conversations) {
-            return fetchGet<ApiType<ConversationListItem>[]>(`/api/conversations`)
-                .then(toReduxConversations)
+            return fetchGet<ConversationListItem[]>(`/api/conversations`)
         } else {
             //TODO: maybe we should call some redux toolkit wrapper with error message here?
             return Promise.reject();
@@ -89,7 +71,7 @@ const conversationsSlice = createSlice({
     name: 'conversations',
     initialState: InitialConversationsState,
     reducers: {
-        added: (state, action: PayloadAction<ReduxType<ConversationListItem>>) => {
+        added: (state, action: PayloadAction<ConversationListItem>) => {
             state.conversations.push(action.payload)
         },
         clear: (state) => {

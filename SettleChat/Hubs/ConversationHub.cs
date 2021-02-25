@@ -80,7 +80,7 @@ namespace SettleChat.Hubs
         public Task ConversationUpdated(ConversationModel updatedConversation);
 
         [HubMethodName("ConversationUserAdded")]
-        public Task ConversationUserAdded(ConversationUserModel conversationUser);
+        public Task ConversationUserAdded(ApiConversationUser conversationUser);
     }
 
     public interface ISessionSignalRConnection

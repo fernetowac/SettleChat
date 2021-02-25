@@ -7,10 +7,12 @@ import { AppDispatch } from '../'
 
 const writingActivityNotificationThresholdMiliseconds = 10 * 1000;
 
+type TypedWritingActivityData = { activity: ConversationStore.WritingActivity, lastChange: Date }
+
 function MessageInput(props: ReturnType<typeof mapDispatchToProps>) {
     const [inputMessage, setInputMessage] = React.useState('');
     const previousInputMessage = usePrevious(inputMessage);
-    const [writingActivity, setWritingActivity] = React.useState({ activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() } as ConversationStore.WritingActivityData);
+    const [writingActivity, setWritingActivity] = React.useState<TypedWritingActivityData>({ activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() });
     const [timer, setTimer] = React.useState<ReturnType<typeof setTimeout>>();
 
     const handleSubmit = (evt: React.SyntheticEvent<EventTarget>) => {
@@ -39,23 +41,23 @@ function MessageInput(props: ReturnType<typeof mapDispatchToProps>) {
         if (previousInputMessage !== undefined) {
             if (inputMessage === '') {
                 // set and send stopped writing activity
-                const newWritingActivity = { activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() } as ConversationStore.WritingActivityData;
+                const newWritingActivity: TypedWritingActivityData = { activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() };
                 setWritingActivity(newWritingActivity);
-                props.actions.updateWritingActivity(newWritingActivity);
+                props.actions.updateWritingActivity({ activity: newWritingActivity.activity });
             } else {
                 // set isWriting writing activity
                 const previousWritingActivity = writingActivity;
-                const newWritingActivity = { activity: ConversationStore.WritingActivity.IsWriting, lastChange: new Date() } as ConversationStore.WritingActivityData;
+                const newWritingActivity: TypedWritingActivityData = { activity: ConversationStore.WritingActivity.IsWriting, lastChange: new Date() };
                 setWritingActivity(newWritingActivity);
                 // and send it if time threshold reached
                 if (previousWritingActivity.activity != ConversationStore.WritingActivity.IsWriting || new Date().getTime() - previousWritingActivity.lastChange.getTime() > writingActivityNotificationThresholdMiliseconds) {
-                    props.actions.updateWritingActivity(newWritingActivity);
+                    props.actions.updateWritingActivity({ activity: newWritingActivity.activity });
                 }
                 // and plan setting and sending stopped writing activity after some time
                 setTimer(setTimeout(() => {
-                    const newWritingActivity = { activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() } as ConversationStore.WritingActivityData;
+                    const newWritingActivity: TypedWritingActivityData = { activity: ConversationStore.WritingActivity.StoppedWriting, lastChange: new Date() };
                     setWritingActivity(newWritingActivity);
-                    props.actions.updateWritingActivity(newWritingActivity);
+                    props.actions.updateWritingActivity({ activity: newWritingActivity.activity });
                 }, writingActivityNotificationThresholdMiliseconds));
             }
         }
@@ -82,13 +84,7 @@ interface OwnProps {
 
 const mapDispatchToProps = (dispatch: AppDispatch, ownProps: OwnProps) => ({
     actions: {
-        updateWritingActivity: (writingActivity: ConversationStore.WritingActivityData) => {
-            const apiWritingActivity = {
-                ...writingActivity,
-                lastChange: writingActivity.lastChange.toISOString()
-            }
-            return dispatch(ConversationStore.actionCreators.updateWritingActivity(apiWritingActivity))
-        },
+        updateWritingActivity: (writingActivity: ConversationStore.WritingActivityData) => dispatch(ConversationStore.actionCreators.updateWritingActivity(writingActivity)),
         addMessage: (text: string) => dispatch(ConversationStore.actionCreators.addMessage({ text, conversationId: ownProps.conversationId }))
     }
 });

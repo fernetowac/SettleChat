@@ -12,6 +12,7 @@ using SettleChat.Factories.Interfaces;
 using SettleChat.Hubs;
 using SettleChat.Models;
 using SettleChat.Persistence;
+using SettleChat.Persistence.Enums;
 using SettleChat.Persistence.Models;
 
 namespace SettleChat.Controllers
@@ -142,15 +143,10 @@ namespace SettleChat.Controllers
             });
             await _context.SaveChangesAsync();
             var conversationUserModel = _context.ConversationUsers.Include(x => x.User)
-                .Where(x => x.ConversationId == dbInvitation.ConversationId && x.UserId == userId.Value).Select(x => new ConversationUserModel
+                .Where(x => x.ConversationId == dbInvitation.ConversationId && x.UserId == userId.Value).Select(x => new ApiConversationUser(x.Id, x.UserId, x.ConversationId)
                 {
-                    UserId = x.UserId,
-                    ConversationId = x.ConversationId,
-                    UserName = x.User.UserName,
-                    Nickname = x.UserNickName,
-                    Email = x.User.Email,
-                    LastActivityTimestamp = x.User.LastActivityTimestamp,
-                    Status = x.User.Status
+                    User = new ApiUser(x.UserId, x.User.UserName, ConversationHub.Connections.GetConnections(x.Id).Any() ? UserStatus.Online : UserStatus.Offline),//TODO: make it nicer
+                    Nickname = x.UserNickName
                 }).Single();
             await _conversationHubContext.Clients
                 .Group(_signalRGroupNameFactory.CreateConversationGroupName(dbInvitation.ConversationId))

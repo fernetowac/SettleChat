@@ -5,7 +5,6 @@ import { ThunkDispatch, ThunkAction } from 'redux-thunk';
 import { Invitation, InvitationResponse } from '../types/invitationTypes'
 import { ApplicationState } from '../store/index';
 import { fetchGet, fetchPost, ProblemDetails } from '../services/FetchService'
-import { transformInvitationResponse } from '../mappers/invitationMapper'
 import SchemaKind from '../schemas/SchemaKind'
 import * as HttpStatusActions from '../actions/HttpStatusActions';
 import { IdentityState } from '../store/Identity';
@@ -62,14 +61,12 @@ const mapStateToProps = (state: ApplicationState, ownProps: OwnProps): Invitatio
 const getInvitationByTokenAsync = (token: string, dispatch: ThunkDispatch<any, undefined, HttpStatusActions.HttpFailStatusReceivedAction>): Promise<Invitation> => {
     const url = `/api/invitations/${token}`;
     return fetchGet<InvitationResponse>(url, false, SchemaKind.InvitationGetResponse)
-        .then(transformInvitationResponse);
 }
 
 const acceptInvitationAsync = (token: string, nickname: string, shouldCreateAnonymousUser: boolean): ThunkAction<Promise<Invitation>, ApplicationState, undefined, HttpStatusActions.HttpFailStatusReceivedAction> =>
     (dispatch) => {
         const url = `/api/invitations/${token}`;
         return fetchPost<InvitationResponse>(url, { nickname: nickname, shouldCreateAnonymousUser: shouldCreateAnonymousUser }, true, SchemaKind.InvitationGetResponse)
-            .then(transformInvitationResponse)
     }
 
 const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {

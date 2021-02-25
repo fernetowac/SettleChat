@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
 import * as ConversationStore from "../store/Conversation";
 import ConversationDetail from './ConversationDetail';
-import UsersPanel from './UsersPanel';
+import Users from './Users';
 import { Grid } from '@material-ui/core';
 import * as Sentry from "@sentry/react";
 import ErrorBoundaryFallback from './ErrorBoundaryFallback';
@@ -28,7 +28,7 @@ type ConversationProps =
     & RouteComponentProps<{ conversationId: string }>; // ... plus incoming routing parameters
 
 const MessagesPanel = (props: ConversationProps) => {
-    const { requestConversation, requestUsers, startListeningConversation, stopListeningConversation } = props.actions;
+    const { requestConversation, requestConversationUsers, startListeningConversation, stopListeningConversation } = props.actions;
     const { connectionId, reconnected } = props;
     const { conversationId } = props.match.params;
     const isMounted = useIsMounted();
@@ -37,11 +37,11 @@ const MessagesPanel = (props: ConversationProps) => {
         requestConversation(conversationId)
             .then(() => {
                 if (isMounted()) {
-                    return requestUsers()
+                    return requestConversationUsers()
                 }
             }) //TODO: when user is connected, we need to update his UserStatus in users list somehow
             .catch(x => console.error(`MessagesPanel catch alert ${x}`));
-    }, [requestConversation, requestUsers, conversationId, isMounted]);
+    }, [requestConversation, requestConversationUsers, conversationId, isMounted]);
 
     React.useEffect(() => {
         // It is always needed to restart listening to conversation when there's new connectionId (even when only reconnected), because new connectionId might be issued also due to server restart
@@ -73,7 +73,7 @@ const MessagesPanel = (props: ConversationProps) => {
                                 </Box>
                                 <Box marginBottom={2} padding={2} style={{ backgroundColor: '#fff' }}>
                                     <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                                        <UsersPanel />
+                                        <Users conversationId={conversationId} />
                                     </Sentry.ErrorBoundary>
                                 </Box>
                             </Box>
@@ -97,7 +97,7 @@ const MessagesPanel = (props: ConversationProps) => {
                             <MessagesContainer conversationId={conversationId} />
                         </Grid>
                         <Grid item xs={12} style={{ flexBasis: 'initial' }}>
-                            <OthersWritingActivity />
+                            <OthersWritingActivity conversationId={conversationId} />
                             <MessageInput conversationId={conversationId} />
                         </Grid>
                     </Grid>
@@ -123,11 +123,10 @@ const mapStateToProps = (state: ApplicationState) => {
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
-        requestConversation: (conversationId: string) => dispatch(
-            ConversationStore.actionCreators.requestConversation1(conversationId)),
-        requestUsers: () => dispatch(ConversationStore.actionCreators.requestUsers()),
-        startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation(connectionId, conversationId)),
-        stopListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.stopListeningConversation(connectionId, conversationId)),
+        requestConversation: (conversationId: string) => dispatch(ConversationStore.actionCreators.requestConversation1(conversationId)),
+        requestConversationUsers: () => dispatch(ConversationStore.actionCreators.requestConversationUsers()),
+        startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation({ connectionId, conversationId })),
+        stopListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.stopListeningConversation({ connectionId, conversationId })),
         enableLoadingMoreMessages: () => dispatch(ConversationStore.conversationUiActions.enableLoadingMoreMessages()),
         displayConversationInvite: () => dispatch(ConversationStore.conversationUiActions.leftPanelDisplayConversationInvite()),
         displayConversationUsers: () => dispatch(ConversationStore.conversationUiActions.leftPanelDisplayConversationUsers()),

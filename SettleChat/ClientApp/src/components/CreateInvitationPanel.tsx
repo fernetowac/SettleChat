@@ -10,6 +10,7 @@ import FileCopyIcon from '@material-ui/icons/FileCopy';
 import { NotificationAddActionInput } from '../types/notificationActionTypes'
 import { AppDispatch } from '../'
 import { notificationsActions } from '../reducers/notificationsReducer'
+import { Ascending } from '../helpers/sortHelper'
 
 type CreateInvitationPanelProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
 
@@ -65,6 +66,7 @@ function CreateInvitationPanel(props: CreateInvitationPanelProps) {
                                 {
                                     props.invitations.map((invitation) => {
                                         const invitationLink = buildTokenLink(invitation.token);
+                                        //TODO: inactive invitations should be displayed differently
                                         return <React.Fragment key={invitation.id}>
                                             <ListItem key={invitation.id} dense>
                                                 <ListItemText
@@ -105,23 +107,11 @@ function CreateInvitationPanel(props: CreateInvitationPanelProps) {
     );
 }
 
-const compareByCreatedAsc = (a: { created: Date }, b: { created: Date }): number => {
-    if (a.created < b.created) {
-        return -1;
-    }
-    else if (a.created > b.created) {
-        return 1;
-    }
-    return 0;
-}
+const getInvitations = (state: ApplicationState, conversationId: string): Invitation[] =>
+    state.conversation.invitations
+        .filter(invitation => invitation.conversationId === conversationId)
 
-const getInvitations = (state: ApplicationState, conversationId: string): Invitation[] => (
-    state.conversation === undefined ?
-        undefined :
-        state.conversation.invitations
-            .filter(invitation => invitation.conversationId === conversationId)
-) || [];
-const getSortedInvitations = (invitations: Invitation[]): Invitation[] => [...invitations].sort(compareByCreatedAsc);
+const getSortedInvitations = (invitations: Invitation[]): Invitation[] => [...invitations].sort(Ascending.by(x => x.created));
 
 /**
  * Memoized sorting of invitations

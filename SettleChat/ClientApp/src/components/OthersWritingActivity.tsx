@@ -3,12 +3,10 @@ import { connect } from 'react-redux';
 import * as ConversationStore from "../store/Conversation";
 import { ApplicationState } from '../store/index';
 import { useIsMounted } from '../hooks/useIsMounted';
-import { ReduxType } from '../types/commonTypes'
 
 interface UserWriting {
     name: string;
-    /** unix timestamp in miliseconds */
-    lastTimeWriting: number;
+    lastTimeWritingClientUnixTimeInMs: number;
 }
 
 const writingActivityNotificationThresholdMiliseconds = 10 * 1000;
@@ -42,8 +40,9 @@ function OthersWritingActivity(props: ReturnType<typeof mapStateToProps>) {
     const isMounted = useIsMounted();
 
     const getUserNamesCurrentlyWriting = (usersWriting: UserWriting[]): string[] => {
+        const thresholdClientUnixTimeInMs = new Date().getTime() - writingActivityNotificationThresholdMiliseconds
         return usersWriting
-            .filter(x => x.lastTimeWriting >= new Date().getTime() - writingActivityNotificationThresholdMiliseconds)
+            .filter(x => x.lastTimeWritingClientUnixTimeInMs >= thresholdClientUnixTimeInMs)
             .map(x => x.name);
     }
 
@@ -94,8 +93,12 @@ function OthersWritingActivity(props: ReturnType<typeof mapStateToProps>) {
     return renderUsersCurrentlyWriting(userNamesWriting);
 }
 
+interface OwnProps {
+    conversationId: string
+}
+
 // Selects which state properties are merged into the component's props
-const mapStateToProps = (state: ApplicationState) => {
+const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => {
     if (!state.identity) {
         throw new Error('Identity not initialized');
     }
@@ -105,28 +108,31 @@ const mapStateToProps = (state: ApplicationState) => {
             isAuthenticated: false
         }
     }
-    if (!state.conversation) {
-        throw new Error('Conversation not initialized');
-    }
-    const getUserById = (
-        (conversationUsers: ReduxType<ConversationStore.ConversationUser>[]) =>
-            (userId: string) => conversationUsers.find(user => user.userId === userId)
-    )(state.conversation.users);
 
+    /** memoized conversationUsers by conversation id */
+    const conversationUsers = ConversationStore.conversationUsersByConversationIdSelector(state, ownProps)
+
+    function getNicknameWithFallback(state: ApplicationState, userId: string) {
+        const conversationUser = conversationUsers.find((x) => x.userId)
+        if (conversationUser && conversationUser.nickname) {
+            return conversationUser.nickname
+        }
+        const user = ConversationStore.selectUserById(state, userId)
+        return user && user.userName || 'somebody'
+    }
     return {
         //TODO: use memoized selectors (https://redux.js.org/recipes/computing-derived-data)
         othersWriting: state.conversation.writingActivities
             .filter(writingActivity =>
                 writingActivity.userId !== state.identity.userId
                 && writingActivity.activity === ConversationStore.WritingActivity.IsWriting
-                && writingActivity.lastChange >= new Date().getTime() - writingActivityNotificationThresholdMiliseconds)
+                && writingActivity.lastChangeClientUnixTimeInMs >= new Date().getTime() - writingActivityNotificationThresholdMiliseconds)
             .map(
                 writingActivity => {
-                    const writingActivityUser = getUserById(writingActivity.userId);
                     return {
-                        name: writingActivityUser ? writingActivityUser.nickname || writingActivityUser.userName : 'somebody',
-                        lastTimeWriting: writingActivity.lastChange
-                    }
+                        name: getNicknameWithFallback(state, writingActivity.userId),
+                        lastTimeWritingClientUnixTimeInMs: writingActivity.lastChangeClientUnixTimeInMs
+                    } as UserWriting
                 }),
         isAuthenticated: true
     };

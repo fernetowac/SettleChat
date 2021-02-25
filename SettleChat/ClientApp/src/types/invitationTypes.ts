@@ -20,7 +20,4 @@ export type InvitationResponse = Identifiable & {
     created: string;
 }
 
-export type Invitation = Omit<InvitationResponse, "created"> &
-{
-    created: Date;
-}
+export type Invitation = InvitationResponse

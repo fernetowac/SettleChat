@@ -33,24 +33,20 @@ namespace SettleChat.Controllers
 
         [HttpGet("/api/conversations/{conversationId}/users")]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
-        public async Task<ActionResult<IEnumerable<ConversationUserModel>>> GetUsers(Guid conversationId)
+        public async Task<ActionResult<IEnumerable<ApiConversationUser>>> GetUsers(Guid conversationId)
         {
             //TODO: authorize for specific conversation (maybe with in-memory cache? is it possible with custom authorize attribute)
             return (await _context.ConversationUsers
                     .Include(x => x.User)
                 .Where(x => x.ConversationId == conversationId)
                 .ToListAsync()) // if not materialized here, it was crashing in runtime (I don't remember, something related to linq, I didn't get the reason)
-                .Select(x => new ConversationUserModel
+                .Select(x => new ApiConversationUser(x.Id, x.UserId, x.ConversationId)
                 {
-                    UserId = x.Id,
-                    ConversationId = conversationId,
-                    Email = x.User.Email,
-                    UserName = x.User.UserName,
                     Nickname = x.UserNickName,
-                    Status = ConversationHub.Connections.GetConnections(x.Id).Any() ? UserStatus.Online : UserStatus.Offline,// x.Status, //TODO: make it nicer
-                    LastActivityTimestamp = x.User.LastActivityTimestamp
+                    User = new ApiUser(x.UserId, x.User.UserName, ConversationHub.Connections.GetConnections(x.Id).Any() ? UserStatus.Online : UserStatus.Offline)//TODO: make it nicer
+                    { LastActivityTimestamp = x.User.LastActivityTimestamp }
                 })
-                .ToList();
+            .ToList();
         }
 
         //TODO: do we need this action?

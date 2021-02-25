@@ -1,4 +1,7 @@
-﻿/**
+﻿import { isDate } from 'lodash'
+import { AppDispatch } from '..';
+import { ApplicationState } from '../store';
+/**
  * K: type in which including (K) all types of T1 will be replaced by type T
  * Usefull, when needed to create serializable type out of existing (perhaps) nonserializable one
  * */
@@ -22,6 +25,29 @@ export type ApiType<T> = ReplaceCombined<T, Date, string>
  * */
 export type ReduxType<T> = ReplaceCombined<T, Date, number>
 
+/**
+ * Converts object recursively into ApiType<T> by changing any Date into ISO string
+ * @param source
+ */
+export const toObjectWithIsoStringDate = <T extends object>(source: T): ApiType<T> => {
+    if (isDate(source)) {
+        return source.toISOString() as ApiType<T>
+    }
+    if (typeof source === 'function') {
+        throw Error('function is not convertible to redux type')
+    }
+
+    if (typeof source !== 'object') {
+        return source
+    }
+    if (source === null || source === undefined) {
+        return source
+    }
+    let result: Record<string, ReduxType<Serializable>> = {}
+    Object.entries(source).forEach(([key, value]) => (result[key] = toObjectWithIsoStringDate(value)))
+    return result as ApiType<T>;
+}
+
 type JsonPrimitive = string | number | boolean | null | undefined | void
 interface JsonMap { [member: string]: JsonPrimitive | JsonArray | JsonMap }
 interface JsonArray extends Array<JsonPrimitive | JsonArray | JsonMap> { }
@@ -39,3 +65,5 @@ export interface ValidationError {
     key: string | null;
     errorMessage: string;
 }
+
+export type AppThunkApiConfig = { state: ApplicationState, dispatch: AppDispatch }

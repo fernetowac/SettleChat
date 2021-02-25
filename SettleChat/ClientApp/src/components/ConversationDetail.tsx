@@ -156,18 +156,10 @@ const ConversationDetail = (props: ConversationDetailProps) => {
     }
 }
 
-const mapStateToProps = (state: ApplicationState) => {
-    if (!state || !state.conversation) {
-        return {
-            conversation: null,
-            isLoading: false
-        };
-    }
-    return {
-        conversation: state && state.conversation ? state.conversation.detail : null,
-        isLoading: state && state.conversation.ui.isConversationLoading
-    }
-};
+const mapStateToProps = (state: ApplicationState) => ({
+    conversation: state.conversation.detail,
+    isLoading: state && state.conversation.ui.isConversationLoading
+})
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {

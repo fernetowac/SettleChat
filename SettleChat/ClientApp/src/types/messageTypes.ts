@@ -1,13 +1,11 @@
-﻿import { Identifiable, ApiType, ReduxType } from '../types/commonTypes'
+﻿import { Identifiable } from '../types/commonTypes'
 
-interface MessageBase extends Identifiable {
-    id: string;
+export type Message = Identifiable & {
     conversationId: string;
     text: string;
     userId: string;
-    created: Date;
+    /**
+     * ISO 8601 timestamp
+     * */
+    created: string;
 }
-
-export type ApiMessage = ApiType<MessageBase>
-
-export type Message = ReduxType<MessageBase>

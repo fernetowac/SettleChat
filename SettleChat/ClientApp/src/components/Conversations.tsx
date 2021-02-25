@@ -10,8 +10,7 @@ import TimeAgo from 'react-timeago';
 import timeAgoEnglishStrings from 'react-timeago/lib/language-strings/en'
 import timeAgoBuildFormatter from 'react-timeago/lib/formatters/buildFormatter'
 import { AppDispatch } from '../index'
-import { ReduxType } from '../types/commonTypes';
-import { Ascending } from '../helpers/sortHelper'
+import { Descending } from '../helpers/sortHelper'
 
 const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
 
@@ -35,7 +34,7 @@ const getUserNicknameWithFallback = (user?: ConversationListItemUser) => {
 }
 
 //TODO: this component can go into separate file
-const LastMessage = (props: { conversation: ReduxType<ConversationListItem>, myIdentityUserId: string }) => {
+const LastMessage = (props: { conversation: ConversationListItem, myIdentityUserId: string }) => {
     const { conversation, myIdentityUserId } = props;
     if (!conversation.lastMessageText !== !conversation.lastMessageUserId) {
         throw Error();
@@ -108,9 +107,9 @@ const Conversations = (props: ConversationProps) => {
     </React.Fragment>;
 }
 
-const getConversations = (state: ApplicationState): ReduxType<ConversationListItem>[] => state.conversations.conversations;
-const getSortedConversations = (conversations: ReduxType<ConversationListItem>[]): ReduxType<ConversationListItem>[] =>
-    [...conversations].sort(Ascending.by(x => x.lastActivityTimestamp));
+const getConversations = (state: ApplicationState): ConversationListItem[] => state.conversations.conversations;
+const getSortedConversations = (conversations: ConversationListItem[]): ConversationListItem[] =>
+    [...conversations].sort(Descending.by(x => x.lastActivityTimestamp));
 
 /**
  * Memoized sorting of conversations

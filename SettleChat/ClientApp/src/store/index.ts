@@ -8,14 +8,14 @@ import { Notification } from '../types/notificationTypes'
 // The top-level state object
 export interface ApplicationState {
     conversations: Conversations.ConversationsState;
-    conversation: Conversation.ConversationState | undefined;
+    conversation: Conversation.ConversationState;
     identity: Identity.IdentityState;
     signalR: SignalR.SignalRState;
     notifications: Notification[]
 }
 
 export const InitialApplicationState: ApplicationState = {
-    conversation: undefined,
+    conversation: Conversation.initialConversationState,
     conversations: Conversations.InitialConversationsState,
     identity: Identity.unloadedState,
     signalR: SignalR.initialSignalRState,

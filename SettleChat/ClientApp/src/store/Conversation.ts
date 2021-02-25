@@ -1,35 +1,46 @@
-﻿import { Slice, combineReducers, createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { ThunkAction } from 'redux-thunk';
+﻿import { createEntityAdapter, EntityState, Slice, combineReducers, createAsyncThunk, createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit'
 import { ApplicationState } from './index';
 import { fetchGet, fetchPost, fetchPut, fetchPatch, fetchDelete } from '../services/FetchService';
-import { HttpFailStatusReceivedAction } from '../actions/HttpStatusActions';
 import { Invitation } from '../types/invitationTypes'
 import { invitationsReducer } from '../reducers/invitationsReducer'
 import { unionArray } from '../helpers/arrayHelper'
 import SchemaKind from '../schemas/SchemaKind'
 import { AppDispatch } from '../'
-import { ApiMessage, Message } from '../types/messageTypes'
-import { identityChangedActionCreator, messageAddedActionCreator } from './common'
-import { ApiType, ReduxType } from '../types/commonTypes'
+import { Message } from '../types/messageTypes'
+import { ConversationUserResponse, ConversationUserMeta } from '../types/conversationUserTypes'
+import { User, UserStatus } from '../types/userTypes'
+import { conversationUserAdded, identityChangedActionCreator, messageAddedActionCreator } from './common'
+import { omit } from 'lodash'
+import { AppThunkApiConfig } from '../types/commonTypes';
 
 export interface ConversationState {
     detail: ConversationDetail | null;
     messages: Message[];
-    users: ReduxConversationUser[];
+    conversationUsers: EntityState<ConversationUserMeta>,
+    users: EntityState<User>,
     ui: Ui;
     writingActivities: ReceivedWritingActivityStateItem[];
     invitations: Invitation[];
 }
 
-export interface ConversationDetail {
+export type ConversationDetail = {
     id: string;
     title: string;
     isPublic: boolean;
 }
 
-export interface ConversationPatch {
+export type ConversationPatch = {
     title?: string;
     isPublic?: boolean;
+}
+
+export type ConversationUsersResponse = ConversationUserResponse[]
+
+const normalizeConversationUsersResponse = (response: ConversationUsersResponse): { conversationUsers: ConversationUserMeta[], users: User[] } => {
+    return {
+        conversationUsers: response.map(x => omit(x, 'user')),
+        users: response.map((x) => x.user)
+    }
 }
 
 export type ConversationUser = {
@@ -39,19 +50,12 @@ export type ConversationUser = {
     nickname: string | null;
     email: string | undefined;
     status: UserStatus;
-    lastActivityTimestamp: Date | null;
+    lastActivityTimestamp: string | null;
 }
-type ReduxConversationUser = ReduxType<ConversationUser>
 
 export interface NewUser {
     userName: string | undefined;
     email: string | undefined;
-}
-
-export enum UserStatus {
-    Offline = 1,
-    Online = 2,
-    Inactive = 3
 }
 
 export enum LeftPanelContentKind {
@@ -77,9 +81,8 @@ const initialUi: Ui = {
     }
 };
 
-export interface WritingActivityData {
+export type WritingActivityData = {
     activity: WritingActivity;
-    lastChange: Date;
 }
 
 export enum WritingActivity {
@@ -91,28 +94,16 @@ export interface ReceivedWritingActivityData {
     conversationId: string;
     userId: string;
     activity: WritingActivity;
-    lastChange: Date;
 }
 
-export interface ReceivedWritingActivityStateItem {
+export interface ReceivedWritingActivity {
     userId: string;
     activity: WritingActivity;
-    /** unix timestamp in miliseconds */
-    lastChange: number;
 }
 
-const createMessages = (response: ApiMessage[]): Message[] => response.map(
-    (messageResponseItem) => ({
-        ...messageResponseItem,
-        created: new Date(messageResponseItem.created).getTime()
-    } as Message)
-);
-
-export const transformMessageCreateResponse = (response: ApiMessage): Message => (
-    {
-        ...response,
-        created: new Date(response.created).getTime()
-    });
+export interface ReceivedWritingActivityStateItem extends ReceivedWritingActivityData {
+    lastChangeClientUnixTimeInMs: number;
+}
 
 interface RequestMessagesInput {
     conversationId: string,
@@ -120,11 +111,9 @@ interface RequestMessagesInput {
     amount?: number
 }
 
-const transformConversationUsers = (apiResponseItems: ApiType<ConversationUser>[]): ReduxType<ConversationUser>[] =>
-    apiResponseItems.map((x) => ({
-        ...x,
-        lastActivityTimestamp: x.lastActivityTimestamp ? new Date(x.lastActivityTimestamp).getTime() : null
-    }))
+export type NewMessageRequest = {
+    text: string
+}
 
 /**
 * Retrieve messages from backend
@@ -132,61 +121,56 @@ const transformConversationUsers = (apiResponseItems: ApiType<ConversationUser>[
 * @param amount Maximal number of messages to retrieve.
 * @returns {} 
 */
-export const requestMessages = createAsyncThunk<Message[], RequestMessagesInput, { dispatch: AppDispatch }>('messages/requestList', async ({ conversationId, beforeId, amount = 30 }: RequestMessagesInput, thunkAPI) => {
+export const requestMessages = createAsyncThunk('messages/requestList', async ({ conversationId, beforeId, amount = 30 }: RequestMessagesInput) => {
     let url = `/api/conversations/${conversationId}/messages?amount=${amount}`;
     if (beforeId) {
         url += `&beforeId=${encodeURIComponent(beforeId)}`;
     }
-    return await fetchGet<ApiMessage[]>(url, true, SchemaKind.MessagesGetResponse)
-        .then(createMessages)
+    return await fetchGet<Message[]>(url, true, SchemaKind.MessagesGetResponse)
 })
 
 export const actionCreators = {
-    requestConversation1: createAsyncThunk<ConversationDetail | never, string, { dispatch: AppDispatch }>('conversation/request', async (conversationId, thunkAPI) => {
+    requestConversation1: createAsyncThunk<ConversationDetail | never, string, AppThunkApiConfig>('conversation/request', async (conversationId, thunkAPI) => {
         thunkAPI.dispatch(conversationActions.request());
-        const conversation = await fetchGet<ApiType<ConversationDetail>>(`/api/conversations/${conversationId}`)
+        const conversation = await fetchGet<ConversationDetail>(`/api/conversations/${conversationId}`)
         thunkAPI.dispatch(conversationActions.received(conversation));
         return conversation;
     }),
-    patchConversation: createAsyncThunk<ConversationDetail, { conversationId: string, updatedProperties: ApiType<ConversationPatch> }, { state: ApplicationState, dispatch: AppDispatch }>('conversation/patch', async ({ conversationId, updatedProperties }, thunkAPI) => {
-        const data = await fetchPatch<ApiType<ConversationDetail>>(`/api/conversations/${conversationId}`, updatedProperties)
+    patchConversation: createAsyncThunk<ConversationDetail, { conversationId: string, updatedProperties: ConversationPatch }, { state: ApplicationState, dispatch: AppDispatch }>('conversation/patch', async ({ conversationId, updatedProperties }, thunkAPI) => {
+        const data = await fetchPatch<ConversationDetail>(`/api/conversations/${conversationId}`, updatedProperties)
         thunkAPI.dispatch(conversationActions.received(data));
         return data;
 
     }),
-    addMessage: createAsyncThunk<Message, { text: string, conversationId: string }, { state: ApplicationState, dispatch: AppDispatch }>('messages/add', async ({ text, conversationId }, thunkAPI) => {
+    addMessage: createAsyncThunk<Message, { text: string, conversationId: string }, AppThunkApiConfig>('messages/add', async ({ text, conversationId }, thunkAPI) => {
         const appState = thunkAPI.getState();
         if (!appState) {
             throw new Error('appState is undefined');
         }
-        if (!appState.identity.isAuthenticated) {
+        if (!appState.identity.isAuthenticated || !appState.identity.userId) {
             throw new Error('identity is not authenticated');
         }
 
-        const messageInput = { userId: appState.identity.userId, text: text, created: new Date().toISOString() } as ApiMessage;//TODO: no need to send userId and date created, as backend can figure it out
-        const message = await fetchPost<ApiMessage>(`/api/conversations/${conversationId}/messages`, messageInput)
-            .then(transformMessageCreateResponse)
+        const messageInput: NewMessageRequest = { text: text }
+        const message = await fetchPost<Message>(`/api/conversations/${conversationId}/messages`, messageInput)
         thunkAPI.dispatch(messageAddedActionCreator(message));
         return message;
     }),
-    updateWritingActivity: (writingActivity: ApiType<WritingActivityData>): ThunkAction<Promise<void>, ApplicationState, undefined, HttpFailStatusReceivedAction> =>
-        (dispatch, getState, extraArgument) => {
-            const conversationState = getState().conversation;
-            if (!conversationState || !conversationState.detail) {
-                return Promise.reject('Conversation must be loaded in order to notify about it');
-            }
-            const conversationId = conversationState.detail.id;
-            return fetchPut(`/api/conversations/${conversationId}/writingactivity`, writingActivity);
-        },
-    startListeningConversation: (connectionId: ApiType<string>, conversationId: string): ThunkAction<Promise<void>, ApplicationState, undefined, HttpFailStatusReceivedAction> =>
-        (dispatch, getState, extraArgument) => {
-            return fetchPost(`/api/notifications/conversations/${conversationId}`, connectionId)
-        },
-    stopListeningConversation: (connectionId: string, conversationId: string): ThunkAction<Promise<void>, ApplicationState, undefined, HttpFailStatusReceivedAction> =>
-        (dispatch, getState, extraArgument) => {
-            return fetchDelete(`/api/notifications/conversations/${conversationId}`, connectionId)
-        },
-    requestUsers: createAsyncThunk<ReduxType<ConversationUser>[], void, { state: ApplicationState }>('users/requestUsers', async (_, thunkAPI) => {
+    updateWritingActivity: createAsyncThunk<void, WritingActivityData, AppThunkApiConfig>('writingActivity/update', async (writingActivity, thunkAPI) => {
+        const conversationState = thunkAPI.getState().conversation;
+        if (!conversationState || !conversationState.detail) {
+            throw Error('Conversation must be loaded in order to notify about it');
+        }
+        const conversationId = conversationState.detail.id;
+        return await fetchPut<void>(`/api/conversations/${conversationId}/writingactivity`, writingActivity);
+    }),
+    startListeningConversation: createAsyncThunk<void, { connectionId: string, conversationId: string }>('conversation/startListening', ({ connectionId, conversationId }) =>
+        fetchPost<void>(`/api/notifications/conversations/${conversationId}`, connectionId)
+    ),
+    stopListeningConversation: createAsyncThunk<void, { connectionId: string, conversationId: string }>('conversation/stopListening', async ({ connectionId, conversationId }) =>
+        await fetchDelete<void>(`/api/notifications/conversations/${conversationId}`, connectionId)
+    ),
+    requestConversationUsers: createAsyncThunk<{ conversationUsers: ConversationUserMeta[], users: User[] }, void, AppThunkApiConfig>('users/requestUsers', async (_, thunkAPI) => {
         // Only load data if it's something we don't already have (and are not already loading)
         const appState = thunkAPI.getState();
         if (!appState || !appState.conversation || !appState.conversation.detail) {
@@ -194,8 +178,8 @@ export const actionCreators = {
         }
 
         const conversationId = appState.conversation.detail.id;
-        return await fetchGet<ApiType<ConversationUser>[]>(`/api/conversations/${conversationId}/users`)
-            .then(transformConversationUsers)
+        return await fetchGet<ConversationUsersResponse>(`/api/conversations/${conversationId}/users`)
+            .then(normalizeConversationUsersResponse)
     })
 };
 
@@ -264,44 +248,55 @@ const messagesSlice: Slice<Message[], {}, 'messages'> = createSlice({
 
 export const { actions: messagesActions } = messagesSlice
 
+export const usersAdapter = createEntityAdapter<User>()
+const usersInitialState = usersAdapter.getInitialState()
+export const { selectById: selectUserById } = usersAdapter.getSelectors((state: ApplicationState) => state.conversation.users)
+
 const usersSlice = createSlice({
     name: 'users',
-    initialState: [] as ReduxConversationUser[],
+    initialState: usersInitialState,
     reducers: {
-        added: (state, action: PayloadAction<ReduxConversationUser>) => {
-            //TODO: replace if such combination of {userId, conversationId} already exists
-            state.push(action.payload)
-        },
-        userStatusChanged: (state, action: PayloadAction<{ userId: string, status: UserStatus }>) => {
-            // TODO: maybe it can be simplified with immer
-            return state.map(x => x.userId === action.payload.userId ? {
-                ...x,
-                status: action.payload.status
-            } as ReduxType<ConversationUser> : x)
-        },
-        // this is probably duplicate of added
-        conversationUserAdded: (state, action: PayloadAction<ReduxConversationUser>) => {
-            const foundUserArrayIndex = state.findIndex(x => x.userId === action.payload.userId && x.conversationId === action.payload.conversationId);
-            if (foundUserArrayIndex === -1) {
-                state.push(action.payload)
-            } else {
-                state[foundUserArrayIndex] = action.payload
-            }
-        }
+        addOne: usersAdapter.addOne,
+        updateOne: usersAdapter.updateOne,
     },
-    extraReducers: (builder) => {
+    extraReducers: builder => {
         builder
-            .addCase(actionCreators.requestUsers.fulfilled, (state, action) => {
-                //TODO: keep users of other conversationIds
-                return action.payload
+            .addCase(actionCreators.requestConversationUsers.fulfilled, (state, action) => {
+                return usersAdapter.upsertMany(state, action.payload.users)
             })
             .addCase(identityChangedActionCreator, () => {
-                return []
+                return usersInitialState
+            })
+            .addCase(conversationUserAdded, (state, action) => {
+                return usersAdapter.addOne(state, action.payload.user)
+            })
+    }
+
+})
+
+export const { updateOne: updateOneUser } = usersSlice.actions
+
+export const conversationUsersAdapter = createEntityAdapter<ConversationUserMeta>()
+const conversationUsersInitialState = conversationUsersAdapter.getInitialState()
+export const { selectAll: selectAllConversationUsers } = conversationUsersAdapter.getSelectors((state: ApplicationState) => state.conversation.conversationUsers)
+
+const conversationUsersSlice = createSlice({
+    name: 'conversationUsers',
+    initialState: conversationUsersInitialState,
+    reducers: {},
+    extraReducers: builder => {
+        builder
+            .addCase(actionCreators.requestConversationUsers.fulfilled, (state, action) => {
+                conversationUsersAdapter.upsertMany(state, action.payload.conversationUsers)
+            })
+            .addCase(identityChangedActionCreator, () => {
+                return conversationUsersInitialState
+            })
+            .addCase(conversationUserAdded, (state, action) => {
+                return conversationUsersAdapter.addOne(state, action.payload.conversationUser)
             })
     }
 })
-
-export const { actions: usersActions } = usersSlice
 
 const uiSlice = createSlice({
     name: 'ui',
@@ -344,23 +339,31 @@ const uiSlice = createSlice({
 })
 
 export const { actions: conversationUiActions } = uiSlice
-
+//Note: We should never compare client time with server time, there can be precission errors and we cannot guarantee the client time is correctly set.
 const writingActivitiesSlice = createSlice({
     name: 'writingActivities',
     initialState: [] as ReceivedWritingActivityStateItem[],
     reducers: {
-        received: (state, action: PayloadAction<ReceivedWritingActivityStateItem>) => {
-            const itemOfUser = state.find(x => x.userId === action.payload.userId);
-            // update state only if there's no data for the user yet, or if action contains newer change than the one already in store for the user
-            if (!itemOfUser || (itemOfUser && itemOfUser.lastChange < action.payload.lastChange)) {
-                const itemsOfOtherUsers = state.filter(x => x.userId !== action.payload.userId);
-                return [
-                    ...itemsOfOtherUsers,
-                    {
-                        ...action.payload
-                    }
-                ];
-            }
+        received: {
+            reducer: (state, action: PayloadAction<ReceivedWritingActivityStateItem>) => {
+                const itemOfUserConversation = state.find(x => x.userId === action.payload.userId && x.conversationId === action.payload.conversationId);
+                // update state only if there's no data for the {user,conversation} combination yet, or if action contains newer change than the one already in store for the combination
+                if (!itemOfUserConversation || (itemOfUserConversation && itemOfUserConversation.lastChangeClientUnixTimeInMs < action.payload.lastChangeClientUnixTimeInMs)) {
+                    const itemsOfOtherUsers = state.filter(x => x.userId !== action.payload.userId || x.conversationId !== action.payload.conversationId);
+                    return [
+                        ...itemsOfOtherUsers,
+                        {
+                            ...action.payload
+                        }
+                    ];
+                }
+            },
+            prepare: (writingActivity: ReceivedWritingActivityData) => ({
+                payload: {
+                    ...writingActivity,
+                    lastChangeClientUnixTimeInMs: new Date().getTime()
+                }
+            })
         }
     }
 })
@@ -370,8 +373,44 @@ export const { actions: writingActivitiesActions } = writingActivitiesSlice
 export const reducer = combineReducers<ConversationState>({
     detail: conversationSlice.reducer,
     messages: messagesSlice.reducer,
+    conversationUsers: conversationUsersSlice.reducer,
     users: usersSlice.reducer,
     ui: uiSlice.reducer,
     writingActivities: writingActivitiesSlice.reducer,
     invitations: invitationsReducer
 });
+
+export const initialConversationState = {
+    detail: null,
+    messages: [],
+    conversationUsers: conversationUsersInitialState,
+    users: usersInitialState,
+    ui: initialUi,
+    writingActivities: [],
+    invitations: []
+} as ConversationState
+
+export const allUsersSelector = usersAdapter.getSelectors<ApplicationState>((state) => state.conversation.users).selectAll
+export const allConversationUsersSelector = conversationUsersAdapter.getSelectors<ApplicationState>((state) => state.conversation.conversationUsers).selectAll
+export const conversationUsersByConversationIdSelector = (state: ApplicationState, { conversationId }: { conversationId: string }) =>
+    allConversationUsersSelector(state).filter((conversationUser) => conversationUser.conversationId === conversationId)
+
+
+export function conversationUserByIdsSelector(state: ApplicationState, { userId, conversationId }: { userId: string, conversationId: string }) {
+    return allConversationUsersSelector(state)
+        .find((conversationUser) =>
+            conversationUser.userId === userId &&
+            conversationUser.conversationId === conversationId
+        )
+}
+
+export const selectUsersByConversationId = createSelector(
+    allUsersSelector,
+    conversationUsersByConversationIdSelector,
+    (users, conversationUsers) =>
+        !conversationUsers ?
+            [] :
+            users.filter((user) =>
+                conversationUsers.some((conversationUser) => conversationUser.userId === user.id)
+            )
+)
