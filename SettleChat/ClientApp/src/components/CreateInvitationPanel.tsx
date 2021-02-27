@@ -1,6 +1,6 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
-import { createSelector } from 'reselect';
+import { createSelector } from '@reduxjs/toolkit';
 import { ApplicationState } from '../store/index';
 import { Divider, InputAdornment, List, Box, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Button, Checkbox, FormControl, FormControlLabel, TextField } from '@material-ui/core';
 import { Invitation, NewInvitation } from '../types/invitationTypes'

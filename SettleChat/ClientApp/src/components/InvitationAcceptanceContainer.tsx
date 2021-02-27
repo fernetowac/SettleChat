@@ -1,7 +1,7 @@
 ﻿import * as React from 'react';
 import { useHistory, useRouteMatch, generatePath, Redirect } from "react-router-dom";
 import { connect } from 'react-redux';
-import { ThunkDispatch, ThunkAction } from 'redux-thunk';
+import { ThunkDispatch, ThunkAction } from '@reduxjs/toolkit'
 import { Invitation, InvitationResponse } from '../types/invitationTypes'
 import { ApplicationState } from '../store/index';
 import { fetchGet, fetchPost, ProblemDetails } from '../services/FetchService'

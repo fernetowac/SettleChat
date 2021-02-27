@@ -1,6 +1,6 @@
 import 'react-app-polyfill/ie11'; // this must be the first line
-import 'bootstrap/dist/css/bootstrap.css';
-import 'fontsource-roboto';
+//import 'bootstrap/dist/css/bootstrap.css';
+import '@fontsource/roboto';
 
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -24,9 +24,7 @@ Sentry.init({
 });
 
 // Create browser history to use in the Redux store
-const baseUrl = document.getElementsByTagName('base')[0].getAttribute('href') as string;
-const history = createBrowserHistory({ basename: baseUrl });
-const signalRHubUrl = `${document.location.origin}/conversationHub`;//TODO: take url from some config
+const history = createBrowserHistory();
 
 // Get the application-wide store instance, prepopulating with state from the server where available.
 const store = configureStore(history, InitialApplicationState);

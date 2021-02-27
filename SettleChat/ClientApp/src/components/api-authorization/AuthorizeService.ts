@@ -47,6 +47,8 @@ export class AuthorizeService<TState extends SignInState> {
         if (user && user.session_state && calculateSessionStateResult(window.location.origin, `${userManager.settings.client_id} ${user.session_state}`) === 'unchanged') {
             return user && user.profile;
         }
+        // remove user when calculateSessionStateResult(..) is not unchanged
+        userManager.removeUser()
         return null
     }
 

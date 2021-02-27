@@ -5,10 +5,10 @@
  * */
 const cookieName = 'idsrv.session'
 function getCookies() {
-    var allCookies = document.cookie;
-    var cookies = allCookies.split(';');
+    const allCookies = document.cookie;
+    const cookies = allCookies.split(';');
     return cookies.map(function (value) {
-        var parts = value.trim().split('=');
+        const parts = value.trim().split('=');
         if (parts.length === 2) {
             return {
                 name: parts[0].trim(),
@@ -21,20 +21,20 @@ function getCookies() {
 }
 
 function getBrowserSessionId() {
-    var cookies = getCookies().filter(function (cookie) {
+    const cookies = getCookies().filter(function (cookie) {
         return (cookie && cookie.name === cookieName);
     });
     return cookies[0] && cookies[0].value;
 }
 
 /*! (c) Tom Wu | http://www-cs-students.stanford.edu/~tjw/jsbn/ */
-var b64map = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-var b64pad = '=';
+const b64map = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const b64pad = '=';
 
 function hex2b64(h: string) {
-    var i;
-    var c;
-    var ret = '';
+    let i;
+    let c;
+    let ret = '';
     for (i = 0; i + 3 <= h.length; i += 3) {
         c = parseInt(h.substring(i, i + 3), 16);
         ret += b64map.charAt(c >> 6) + b64map.charAt(c & 63);
@@ -52,7 +52,7 @@ function hex2b64(h: string) {
 }
 
 function base64UrlEncode(s: string) {
-    var val = hex2b64(s);
+    let val = hex2b64(s);
 
     val = val.replace(/=/g, ''); // Remove any trailing '='s
     val = val.replace(/\+/g, '-'); // '+' => '-'
@@ -62,7 +62,7 @@ function base64UrlEncode(s: string) {
 }
 
 function hash(value: string) {
-    var hash = Sha256.hash(value);
+    const hash = Sha256.hash(value);
     return base64UrlEncode(hash);
 }
 
@@ -76,34 +76,35 @@ export function calculateSessionStateResult(origin: string, message: string) {
             return 'error';
         }
 
-        var idx = message.lastIndexOf(' ');
+        const idx = message.lastIndexOf(' ');
         if (idx < 0 || idx >= message.length) {
             return 'error';
         }
 
-        var clientId = message.substring(0, idx);
-        var sessionState = message.substring(idx + 1);
+        const clientId = message.substring(0, idx);
+        const sessionState = message.substring(idx + 1);
 
         if (!clientId || !sessionState) {
             return 'error';
         }
 
-        var sessionStateParts = sessionState.split('.');
+        const sessionStateParts = sessionState.split('.');
         if (sessionStateParts.length !== 2) {
             return 'error';
         }
 
-        var clientHash = sessionStateParts[0];
-        var salt = sessionStateParts[1];
+        const clientHash = sessionStateParts[0];
+        const salt = sessionStateParts[1];
         if (!clientHash || !salt) {
             return 'error';
         }
 
-        var currentSessionId = getBrowserSessionId();
-        var expectedHash = computeSessionStateHash(clientId, origin, currentSessionId, salt);
+        const currentSessionId = getBrowserSessionId();
+        const expectedHash = computeSessionStateHash(clientId, origin, currentSessionId, salt);
         return clientHash === expectedHash ? 'unchanged' : 'changed';
     }
     catch (e) {
+        console.error(e)
         return 'error';
     }
 }

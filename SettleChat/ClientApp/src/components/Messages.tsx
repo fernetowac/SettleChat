@@ -119,7 +119,7 @@ export const Messages = (props: MessagesProps) => {
         userNameById.set(user.id, user.userName);
     });
 
-    var resultListItems = [];
+    const resultListItems = [];
     let messageGroup = [];
     for (let i = 0; i < props.messages.length; i++) {
         const message = props.messages[i];
@@ -143,7 +143,7 @@ export const Messages = (props: MessagesProps) => {
                 </Box>
             );
             if (!nextMessageFollowsUp) {
-                var userName = userNameById.get(message.userId) || 'someone';
+                const userName = userNameById.get(message.userId) || 'someone';
                 listItem = <ListItem key={message.id} style={{ alignItems: 'flex-end' }} dense>
                     <ListItemAvatar>
                         <Tooltip title={userName} arrow placement="right">

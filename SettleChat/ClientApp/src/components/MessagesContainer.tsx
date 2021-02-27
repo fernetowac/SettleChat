@@ -1,7 +1,7 @@
 ﻿import { unwrapResult } from '@reduxjs/toolkit'
 import * as React from 'react';
 import { connect } from 'react-redux';
-import { createSelector } from 'reselect';
+import { createSelector } from '@reduxjs/toolkit';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
 import { Messages } from './Messages'

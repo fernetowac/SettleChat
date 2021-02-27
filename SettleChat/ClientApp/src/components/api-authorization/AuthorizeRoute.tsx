@@ -59,7 +59,7 @@ export default class AuthorizeRoute extends Component<AuthorizeRouteComputedProp
                 }
                 throw new Error('unreachable');
             } else {
-                var link = document.createElement("a");
+                const link = document.createElement("a");
                 link.href = this.props.path;
                 //const returnUrl = `${link.protocol}//${link.host}${link.pathname}${link.search}${link.hash}`;
                 const authorizeRouteProps = this.props as AuthorizeRouteComputedProps;

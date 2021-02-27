@@ -1,7 +1,7 @@
 ﻿import * as React from 'react';
 import { Link } from "react-router-dom";
 import { connect } from 'react-redux';
-import { createSelector } from 'reselect';
+import { createSelector } from '@reduxjs/toolkit';
 import { ApplicationState } from '../store/index';
 import { ConversationListItem, ConversationListItemUser, actionCreators as ConversationsActionCreators, actions as conversationsActions } from '../store/Conversations';
 import { makeStyles } from '@material-ui/core/styles';

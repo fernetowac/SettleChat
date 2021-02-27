@@ -12,7 +12,7 @@ interface LoginState {
     message: string | null;
 }
 
-var absoluteUrlRegex = new RegExp('^(?:[a-z]+:)?//', 'i');
+const absoluteUrlRegex = new RegExp('^(?:[a-z]+:)?//', 'i');
 
 // The main responsibility of this component is to handle the user's login process.
 // This is the starting point for the login process. Any component that needs to authenticate

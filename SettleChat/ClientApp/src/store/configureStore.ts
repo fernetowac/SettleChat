@@ -19,7 +19,7 @@ export default function configureStore(history: History, initialState: Applicati
 
     return toolkitConfigureStore({
         reducer: rootReducer,
-        preloadedState: initialState,
+        //preloadedState: initialState,
         middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middlewares),
         devTools: { traceLimit: 25 }
     });
