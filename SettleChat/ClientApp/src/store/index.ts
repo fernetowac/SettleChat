@@ -14,14 +14,6 @@ export interface ApplicationState {
     notifications: Notification[]
 }
 
-export const InitialApplicationState: ApplicationState = {
-    conversation: Conversation.initialConversationState,
-    conversations: Conversations.InitialConversationsState,
-    identity: Identity.unloadedState,
-    signalR: SignalR.initialSignalRState,
-    notifications: []
-}
-
 // Whenever an action is dispatched, Redux will update each top-level application state property using
 // the reducer with the matching name. It's important that the names match exactly, and that the reducer
 // acts on the corresponding ApplicationState property type.
