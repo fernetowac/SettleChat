@@ -123,7 +123,7 @@ const mapStateToProps = (state: ApplicationState) => {
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
-        requestConversation: (conversationId: string) => dispatch(ConversationStore.actionCreators.requestConversation1(conversationId)),
+        requestConversation: (conversationId: string) => dispatch(ConversationStore.actionCreators.requestConversation(conversationId)),
         requestConversationUsers: () => dispatch(ConversationStore.actionCreators.requestConversationUsers()),
         startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation({ connectionId, conversationId })),
         stopListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.stopListeningConversation({ connectionId, conversationId })),

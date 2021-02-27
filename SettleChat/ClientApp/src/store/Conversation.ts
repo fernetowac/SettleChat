@@ -130,7 +130,7 @@ export const requestMessages = createAsyncThunk('messages/requestList', async ({
 })
 
 export const actionCreators = {
-    requestConversation1: createAsyncThunk<ConversationDetail | never, string, AppThunkApiConfig>('conversation/request', async (conversationId, thunkAPI) => {
+    requestConversation: createAsyncThunk<ConversationDetail | never, string, AppThunkApiConfig>('conversation/request', async (conversationId, thunkAPI) => {
         thunkAPI.dispatch(conversationActions.request());
         const conversation = await fetchGet<ConversationDetail>(`/api/conversations/${conversationId}`)
         thunkAPI.dispatch(conversationActions.received(conversation));
