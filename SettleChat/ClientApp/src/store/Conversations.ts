@@ -1,7 +1,7 @@
 ﻿import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
 import { ApplicationState } from './index';
 import { fetchGet, fetchPost } from '../services/FetchService';
-import { conversationActions } from './Conversation';
+import { conversationDetailsActions } from './conversationDetails';
 import { identityChangedActionCreator, messageAddedActionCreator } from './common'
 import { AppDispatch } from '..';
 
@@ -117,7 +117,7 @@ const conversationsSlice = createSlice({
                 }
             )
             .addCase(
-                conversationActions.received, (state, action) => {
+                conversationDetailsActions.received, (state, action) => {
                     const actionConversation = action.payload;
                     const conversation =
                         state.conversations.find(

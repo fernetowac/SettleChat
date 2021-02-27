@@ -1,7 +1,7 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
-import * as  ConversationStore from "../store/Conversation";
+import { ConversationPatch, patchConversationDetail } from '../store/conversationDetails'
 import { Switch, FormControl, FormLabel, FormGroup, FormControlLabel, FormHelperText, IconButton, TextField, Box } from '@material-ui/core';
 import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@material-ui/icons';
 import { AppDispatch } from '../'
@@ -163,7 +163,7 @@ const mapStateToProps = (state: ApplicationState) => ({
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
-        patchConversation: (conversationId: string, updatedProperties: ConversationStore.ConversationPatch) => dispatch(ConversationStore.actionCreators.patchConversation({ conversationId, updatedProperties }))
+        patchConversation: (conversationId: string, updatedProperties: ConversationPatch) => dispatch(patchConversationDetail({ conversationId, updatedProperties }))
     }
 });
 

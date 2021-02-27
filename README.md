@@ -61,6 +61,9 @@ Content of `appsettings.Production.json`:
 `C:\SettleChatSecrets\MyIdentityServerCert.pfx` (optional - needed for IdentityServer for production - google how to create certificate for .NET Core app, e.g. https://benjii.me/2017/06/creating-self-signed-certificate-identity-server-azure/)
 
 # Development
+## Visual Studio
+Make sure Typescript 4.2 for Visual Studio is installed: https://marketplace.visualstudio.com/items?itemName=TypeScriptTeam.typescript-42
+>Typescript 4.2 is referenced in .csproj in order to make tsconfig.json setting "--jsx":"react-jsx" (which is forced by Create-React-App `npm run start` command) work in Visual Studio
 ## Database migrations:
 1. when model changed, create migration> `Add-Migration <MigrationName>`
 2. propagate changes to DB>

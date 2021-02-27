@@ -3,6 +3,7 @@ import * as signalR from '@microsoft/signalr';
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
+import { conversationDetailsActions, ConversationDetail } from "../store/conversationDetails";
 import authService from '../components/api-authorization/AuthorizeService'
 import { useIsMounted } from '../hooks/useIsMounted'
 import { AppDispatch } from '../'
@@ -128,7 +129,7 @@ const mapDispatchToProps = (dispatch: AppDispatch) => ({//TODO: can be simplyfie
         messageAdded: (message: Message) => dispatch(messageAddedActionCreator(message)),
         writingActivityReceived: (writingActivity: ConversationStore.ReceivedWritingActivityData) => { dispatch(ConversationStore.writingActivitiesActions.received(writingActivity)) },
         userStatusChanged: (userId: string, status: UserStatus) => dispatch(ConversationStore.updateOneUser({ id: userId, changes: { status } })),
-        conversationUpdated: (conversation: ConversationStore.ConversationDetail) => dispatch(ConversationStore.conversationActions.received(conversation)),
+        conversationUpdated: (conversation: ConversationDetail) => dispatch(conversationDetailsActions.received(conversation)),
         conversationUserAdded: (user: ConversationUserResponse) => dispatch(conversationUserAdded(user))
     }
 });

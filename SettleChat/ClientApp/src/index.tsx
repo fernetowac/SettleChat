@@ -1,8 +1,6 @@
 import 'react-app-polyfill/ie11'; // this must be the first line
 //import 'bootstrap/dist/css/bootstrap.css';
 import '@fontsource/roboto';
-
-import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
 import { ConnectedRouter } from 'connected-react-router';

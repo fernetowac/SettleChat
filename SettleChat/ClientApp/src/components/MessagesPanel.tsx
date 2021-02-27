@@ -6,6 +6,7 @@ import { RouteComponentProps } from 'react-router';
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
 import * as ConversationStore from "../store/Conversation";
+import { requestConversationDetail } from "../store/conversationDetails";
 import ConversationDetail from './ConversationDetail';
 import Users from './Users';
 import { Grid } from '@material-ui/core';
@@ -123,7 +124,7 @@ const mapStateToProps = (state: ApplicationState) => {
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
-        requestConversation: (conversationId: string) => dispatch(ConversationStore.actionCreators.requestConversation(conversationId)),
+        requestConversation: (conversationId: string) => dispatch(requestConversationDetail(conversationId)),
         requestConversationUsers: () => dispatch(ConversationStore.actionCreators.requestConversationUsers()),
         startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation({ connectionId, conversationId })),
         stopListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.stopListeningConversation({ connectionId, conversationId })),

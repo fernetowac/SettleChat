@@ -1,17 +1,17 @@
 ﻿import { createEntityAdapter, EntityState, Slice, combineReducers, createAsyncThunk, createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit'
 import { ApplicationState } from './index';
-import { fetchGet, fetchPost, fetchPut, fetchPatch, fetchDelete } from '../services/FetchService';
+import { fetchGet, fetchPost, fetchPut, fetchDelete } from '../services/FetchService';
 import { Invitation } from '../types/invitationTypes'
 import { invitationsReducer } from '../reducers/invitationsReducer'
 import { unionArray } from '../helpers/arrayHelper'
 import SchemaKind from '../schemas/SchemaKind'
-import { AppDispatch } from '../'
 import { Message } from '../types/messageTypes'
 import { ConversationUserResponse, ConversationUserMeta } from '../types/conversationUserTypes'
 import { User, UserStatus } from '../types/userTypes'
 import { conversationUserAdded, identityChangedActionCreator, messageAddedActionCreator } from './common'
 import { omit } from 'lodash'
 import { AppThunkApiConfig } from '../types/commonTypes';
+import { ConversationDetail, conversationDetailsActions, conversationDetailsReducer } from './conversationDetails'
 
 export interface ConversationState {
     detail: ConversationDetail | null;
@@ -21,17 +21,6 @@ export interface ConversationState {
     ui: Ui;
     writingActivities: ReceivedWritingActivityStateItem[];
     invitations: Invitation[];
-}
-
-export type ConversationDetail = {
-    id: string;
-    title: string;
-    isPublic: boolean;
-}
-
-export type ConversationPatch = {
-    title?: string;
-    isPublic?: boolean;
 }
 
 export type ConversationUsersResponse = ConversationUserResponse[]
@@ -130,18 +119,6 @@ export const requestMessages = createAsyncThunk('messages/requestList', async ({
 })
 
 export const actionCreators = {
-    requestConversation: createAsyncThunk<ConversationDetail | never, string, AppThunkApiConfig>('conversation/request', async (conversationId, thunkAPI) => {
-        thunkAPI.dispatch(conversationActions.request());
-        const conversation = await fetchGet<ConversationDetail>(`/api/conversations/${conversationId}`)
-        thunkAPI.dispatch(conversationActions.received(conversation));
-        return conversation;
-    }),
-    patchConversation: createAsyncThunk<ConversationDetail, { conversationId: string, updatedProperties: ConversationPatch }, { state: ApplicationState, dispatch: AppDispatch }>('conversation/patch', async ({ conversationId, updatedProperties }, thunkAPI) => {
-        const data = await fetchPatch<ConversationDetail>(`/api/conversations/${conversationId}`, updatedProperties)
-        thunkAPI.dispatch(conversationActions.received(data));
-        return data;
-
-    }),
     addMessage: createAsyncThunk<Message, { text: string, conversationId: string }, AppThunkApiConfig>('messages/add', async ({ text, conversationId }, thunkAPI) => {
         const appState = thunkAPI.getState();
         if (!appState) {
@@ -183,35 +160,7 @@ export const actionCreators = {
     })
 };
 
-const conversationSlice = createSlice({
-    name: 'conversation',
-    initialState: null as ConversationDetail | null,
-    reducers: {
-        request: () => { },
-        received: (_state, action: PayloadAction<ConversationDetail>) => {
-            return {
-                id: action.payload.id,
-                title: action.payload.title,
-                isPublic: action.payload.isPublic
-            }
-        }
-    },
-    extraReducers: (builder) => {
-        builder.addCase(
-            actionCreators.patchConversation.fulfilled, (_state, action) => {
-                return {
-                    id: action.payload.id,
-                    title: action.payload.title,
-                    isPublic: action.payload.isPublic
-                }
-            })
-            .addCase(identityChangedActionCreator, (_state) => {
-                return null
-            })
-    }
-})
 
-export const { actions: conversationActions } = conversationSlice
 
 //TODO: make sure all the messages are related to the conversation
 // Note that items in state are not sorted. UI component manages sorting instead.
@@ -324,13 +273,13 @@ const uiSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder.addCase(
-            conversationActions.request, (state) => {
+            conversationDetailsActions.request, (state) => {
                 if (!state.isConversationLoading) {
                     state.isConversationLoading = true
                 }
             })
             .addCase(
-                conversationActions.received, (state) => {
+                conversationDetailsActions.received, (state) => {
                     if (state.isConversationLoading) {
                         state.isConversationLoading = false
                     }
@@ -371,7 +320,7 @@ const writingActivitiesSlice = createSlice({
 export const { actions: writingActivitiesActions } = writingActivitiesSlice
 
 export const reducer = combineReducers<ConversationState>({
-    detail: conversationSlice.reducer,
+    detail: conversationDetailsReducer,
     messages: messagesSlice.reducer,
     conversationUsers: conversationUsersSlice.reducer,
     users: usersSlice.reducer,
