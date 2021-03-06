@@ -3,7 +3,7 @@ import * as signalR from '@microsoft/signalr';
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
 import * as  ConversationStore from "../store/Conversation";
-import { conversationDetailsActions, ConversationDetail } from "../store/conversationDetails";
+import { conversationDetailsActions } from "../store/conversationDetails";
 import authService from '../components/api-authorization/AuthorizeService'
 import { useIsMounted } from '../hooks/useIsMounted'
 import { AppDispatch } from '../'
@@ -12,6 +12,7 @@ import { Message } from '../types/messageTypes'
 import { ConversationUserResponse } from '../types/conversationUserTypes';
 import { UserStatus } from '../types/userTypes';
 import { signalRActions } from '../store/SignalR'
+import { ConversationDetail } from '../types/conversationTypes';
 
 const signalRHubUrl = `${document.location.origin}/conversationHub`;//TODO: take url from some config
 

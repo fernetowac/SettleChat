@@ -38,7 +38,7 @@ const MessagesPanel = (props: ConversationProps) => {
         requestConversation(conversationId)
             .then(() => {
                 if (isMounted()) {
-                    return requestConversationUsers()
+                    return requestConversationUsers(conversationId)
                 }
             }) //TODO: when user is connected, we need to update his UserStatus in users list somehow
             .catch(x => console.error(`MessagesPanel catch alert ${x}`));
@@ -92,7 +92,7 @@ const MessagesPanel = (props: ConversationProps) => {
                 <Grid item xs={9} style={{ display: 'flex' }}>
                     <Grid container direction="column" style={{ flexWrap: 'initial' }}>
                         <Grid item xs={12} style={{ flexBasis: 'initial' }}>
-                            <ConversationDetail />
+                            <ConversationDetail id={conversationId} />
                         </Grid>
                         <Grid item xs={12} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', minHeight: 0 }}>
                             <MessagesContainer conversationId={conversationId} />
@@ -125,7 +125,7 @@ const mapStateToProps = (state: ApplicationState) => {
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
         requestConversation: (conversationId: string) => dispatch(requestConversationDetail(conversationId)),
-        requestConversationUsers: () => dispatch(ConversationStore.actionCreators.requestConversationUsers()),
+        requestConversationUsers: (conversationId: string) => dispatch(ConversationStore.actionCreators.requestConversationUsers(conversationId)),
         startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation({ connectionId, conversationId })),
         stopListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.stopListeningConversation({ connectionId, conversationId })),
         enableLoadingMoreMessages: () => dispatch(ConversationStore.conversationUiActions.enableLoadingMoreMessages()),

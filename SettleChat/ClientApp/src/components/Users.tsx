@@ -42,7 +42,7 @@ const Users = (props: UsersProps) => {
 
     React.useEffect(() => {
         if (conversationId) {
-            requestConversationUsers();
+            requestConversationUsers(conversationId);
         }
     }, [conversationId, requestConversationUsers]);
 

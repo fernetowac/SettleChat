@@ -1,0 +1,37 @@
+﻿import { createSelector } from '@reduxjs/toolkit'
+import { connect } from 'react-redux';
+import { ApplicationState } from '../store/index';
+import { conversationUserByIdsSelector, userByIdSelector } from '../store/Conversation';
+
+const UserName = (props: ReturnType<ReturnType<typeof makeMapStateToProps>>) => {
+    const { nickname, username } = props
+    return (<>
+        <div>{nickname || username || 'someone'}</div>
+    </>)
+}
+
+type OwnProps = {
+    userId: string
+    conversationId: string
+}
+
+const makeNicknameSelector = () => {
+    return createSelector(
+        [conversationUserByIdsSelector],
+        (conversationUser) => conversationUser?.nickname
+    )
+}
+
+// Inspired by: https://github.com/reduxjs/reselect#sharing-selectors-with-props-across-multiple-component-instances
+const makeMapStateToProps = () => {
+    const nicknameSelector = makeNicknameSelector()
+    const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => ({
+        nickname: nicknameSelector(state, ownProps),
+        username: userByIdSelector(state, ownProps.userId)?.userName
+    })
+    return mapStateToProps
+}
+
+export default connect(
+    makeMapStateToProps
+)(UserName);

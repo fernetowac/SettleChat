@@ -84,7 +84,7 @@ interface OwnProps {
 
 const mapDispatchToProps = (dispatch: AppDispatch, ownProps: OwnProps) => ({
     actions: {
-        updateWritingActivity: (writingActivity: ConversationStore.WritingActivityData) => dispatch(ConversationStore.actionCreators.updateWritingActivity(writingActivity)),
+        updateWritingActivity: (writingActivity: ConversationStore.WritingActivityData) => dispatch(ConversationStore.actionCreators.updateWritingActivity({ conversationId: ownProps.conversationId, writingActivity })),
         addMessage: (text: string) => dispatch(ConversationStore.actionCreators.addMessage({ text, conversationId: ownProps.conversationId }))
     }
 });

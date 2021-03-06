@@ -1,20 +1,19 @@
 ﻿import * as React from 'react';
 import { Link } from "react-router-dom";
-import { connect } from 'react-redux';
-import { createSelector } from '@reduxjs/toolkit';
+import { connect, ConnectedProps } from 'react-redux';
 import { ApplicationState } from '../store/index';
-import { ConversationListItem, ConversationListItemUser, actionCreators as ConversationsActionCreators, actions as conversationsActions } from '../store/Conversations';
 import { makeStyles } from '@material-ui/core/styles';
 import { List, ListItem, ListItemAvatar, ListItemText, Divider, Avatar, Typography } from '@material-ui/core';
 import TimeAgo from 'react-timeago';
 import timeAgoEnglishStrings from 'react-timeago/lib/language-strings/en'
 import timeAgoBuildFormatter from 'react-timeago/lib/formatters/buildFormatter'
-import { AppDispatch } from '../index'
-import { Descending } from '../helpers/sortHelper'
+import { allConversationUsersSelector, allUsersSelector, sortedConversationsSelector } from '../store/Conversation';
+import ConversationTitle from './ConversationTitle'
+import ConversationLastMessage from './ConversationLastMessage';
+import { requestConversationsWithUsers } from '../store/common'
+import { requestMessages } from '../store/messages';
 
 const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
-
-type ConversationProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -24,110 +23,75 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const getUserNicknameWithFallback = (user?: ConversationListItemUser) => {
-    // It can happen that user is not loaded correctly in other signalr or fetch response (e.g. due to connection issues). 
-    // In such case we don't want the app to crash.
-    if (!user) {
-        return 'unknown'
-    }
-    return user.userNickName === null ? user.userName : user.userNickName;
-}
-
-//TODO: this component can go into separate file
-const LastMessage = (props: { conversation: ConversationListItem, myIdentityUserId: string }) => {
-    const { conversation, myIdentityUserId } = props;
-    if (!conversation.lastMessageText !== !conversation.lastMessageUserId) {
-        throw Error();
-    }
-
-    if (!conversation.lastMessageText) {
-        return <React.Fragment>No messages yet</React.Fragment>;
-    }
-
-    if (conversation.lastMessageUserId === myIdentityUserId) {
-        return <React.Fragment>
-            you: {conversation.lastMessageText}
-        </React.Fragment>;
-    }
-
-    const user = conversation.users.find((user) => user.id === conversation.lastMessageUserId);
-
-    return <React.Fragment>
-        {getUserNicknameWithFallback(user)}: {conversation.lastMessageText}
-    </React.Fragment>;
-}
-
-const Conversations = (props: ConversationProps) => {
+const Conversations = (props: ConnectedProps<typeof connector>) => {
     const classes = useStyles();
-    const { requestConversations, clearConversations, userId, isAuthenticated } = props;
+    const { requestConversationsWithUsers, requestMessages, userId, isAuthenticated } = props;
     React.useEffect(() => {
-        if (!isAuthenticated) {
-            clearConversations();
-        } else {
-            requestConversations();
+        const requestConversationsWithUsersPromise = requestConversationsWithUsers();
+        const requestMessagesPromise = requestMessages(1);
+        return () => {
+            const promiseAbortReason = 'User changed'
+            requestConversationsWithUsersPromise.abort(promiseAbortReason)//TODO: test if abort uses abortion signal in fetch; make sure it doesn't insert result into store
+            requestMessagesPromise.abort(promiseAbortReason);
         }
-    }, [requestConversations, clearConversations, userId, isAuthenticated]);
+    }, [requestConversationsWithUsers, requestMessages, userId]);
 
-    return <React.Fragment>
-        <List className={classes.root}>
-            {isAuthenticated && userId &&
-                props.conversations.map((conversation, index) => (
-                    <React.Fragment key={conversation.id}>
-                        <ListItem button
-                            alignItems="flex-start"
-                            key={conversation.id}
-                            component={Link}
-                            to={"/conversation/" + conversation.id}
-                        >
-                            <ListItemAvatar>
-                                <Avatar alt={conversation.title}>{conversation.title}</Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                                primary={conversation.title == null ? conversation.users.map(getUserNicknameWithFallback).join(', ') : conversation.title}
-                                primaryTypographyProps={{ noWrap: true }}
-                                secondary={
-                                    <React.Fragment>
-                                        <Typography
-                                            component="div"
-                                            variant="body2"
-                                            color="textPrimary"
-                                        >
-                                            <LastMessage conversation={conversation} myIdentityUserId={userId} />
-                                        </Typography>
-                                        <TimeAgo date={conversation.lastActivityTimestamp} minPeriod={60} formatter={timeAgoFormatter} />
-                                    </React.Fragment>}
-                                secondaryTypographyProps={{ component: 'div', noWrap: true }}
-                            />
-                        </ListItem>
-                        {index < props.conversations.length - 1 ? <Divider component="li" key={`${conversation.id}_divider`} /> : ''}
-                    </React.Fragment>)
-                )
+    return <List className={classes.root}>
+        {isAuthenticated && userId &&
+            props.conversations.map((conversation, index) => {
+                const title = <ConversationTitle id={conversation.id} />
+                return <React.Fragment key={conversation.id}>
+                    <ListItem button
+                        alignItems="flex-start"
+                        key={conversation.id}
+                        component={Link}
+                        to={"/conversation/" + conversation.id}
+                    >
+                        <ListItemAvatar>
+                            <Avatar>{title}</Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                            primary={title}
+                            primaryTypographyProps={{ noWrap: true }}
+                            secondary={
+                                <>
+                                    <Typography
+                                        component="div"
+                                        variant="body2"
+                                        color="textPrimary"
+                                    >
+                                        <ConversationLastMessage conversationId={conversation.id} />
+                                    </Typography>
+                                    <TimeAgo date={conversation.lastActivityTimestamp} minPeriod={60} formatter={timeAgoFormatter} />
+                                </>
+                            }
+                            secondaryTypographyProps={{ component: 'div', noWrap: true }}
+                        />
+                    </ListItem>
+                    {index < props.conversations.length - 1 ? <Divider component="li" key={`${conversation.id}_divider`} /> : ''}
+                </React.Fragment>
             }
-        </List>
-    </React.Fragment>;
+            )
+        }
+    </List>;
 }
-
-const getConversations = (state: ApplicationState): ConversationListItem[] => state.conversations.conversations;
-const getSortedConversations = (conversations: ConversationListItem[]): ConversationListItem[] =>
-    [...conversations].sort(Descending.by(x => x.lastActivityTimestamp));
-
-/**
- * Memoized sorting of conversations
- */
-const sortedConversationsSelector = createSelector([getConversations], getSortedConversations);
 
 const mapStateToProps = (state: ApplicationState) => ({
     userId: state.identity.userId,
     isAuthenticated: !!state.identity.userId,
-    conversations: sortedConversationsSelector(state)
+    conversations: sortedConversationsSelector(state),
+    conversationUsers: allConversationUsersSelector(state),
+    users: allUsersSelector(state)
 });
 
-const mapDispatchToProps = (dispatch: AppDispatch) => ({
-    requestConversations: () => dispatch(ConversationsActionCreators.requestConversations()),
-    clearConversations: conversationsActions.clear
-});
+const mapDispatchToProps = {
+    requestConversationsWithUsers,
+    requestMessages
+}
 
-export default connect(
+const connector = connect(
     mapStateToProps,
     mapDispatchToProps
-)(Conversations as any);
+)
+
+export default connector(Conversations);

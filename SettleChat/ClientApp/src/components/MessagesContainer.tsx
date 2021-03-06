@@ -8,6 +8,7 @@ import { Messages } from './Messages'
 import { AppDispatch } from '../'
 import { Message } from '../types/messageTypes'
 import { Ascending, lowestBy } from '../helpers/sortHelper'
+import { messagesOfConversationSelector } from '../store/Conversation';
 
 type MessagesContainerProps =
     ReturnType<typeof mapStateToProps>
@@ -71,10 +72,6 @@ const MessagesContainer = (props: MessagesContainerProps) => {
     />
 }
 
-const getMessages = (state: ApplicationState, conversationId: string): Message[] =>
-    state.conversation.messages
-        .filter(message => message.conversationId === conversationId)
-
 const getSortedMessages = (messages: Message[]): Message[] => messages.sort(Ascending.by((message) => message.created));
 const getTypedMessages = (messages: Message[]): (Omit<Message, 'created'> & { created: Date })[] => {
     return messages.map(message => ({
@@ -86,7 +83,7 @@ const getTypedMessages = (messages: Message[]): (Omit<Message, 'created'> & { cr
 /**
  * Memoized sorting of messages
  */
-const sortedTypedMessagesSelector = createSelector([getMessages], (messages) => getTypedMessages(getSortedMessages(messages)));
+const sortedTypedMessagesSelector = createSelector([messagesOfConversationSelector], (messages) => getTypedMessages(getSortedMessages(messages)));
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     actions: {
@@ -102,7 +99,7 @@ interface OwnProps {
 
 const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => {
     return {
-        messages: sortedTypedMessagesSelector(state, ownProps.conversationId),
+        messages: sortedTypedMessagesSelector(state, ownProps),
         users: ConversationStore.selectUsersByConversationId(state, ownProps),
         me: {
             userId: state.identity.userId

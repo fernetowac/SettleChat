@@ -1,4 +1,4 @@
-﻿import { ProblemDetails } from '../services/FetchService'
+﻿import { ProblemDetails } from '../types/commonTypes'
 import { isDevelopment } from '../helpers/development/DevDetect'
 
 export const parseErrors = (response: ProblemDetails): string[] => {

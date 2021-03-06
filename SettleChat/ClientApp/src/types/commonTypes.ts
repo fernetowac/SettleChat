@@ -66,4 +66,38 @@ export interface ValidationError {
     errorMessage: string;
 }
 
+export interface Errors {
+    [key: string]: string | string[];
+}
+
+/**
+ * @example
+ * {
+ *    "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+ *    "title": "One or more validation errors occurred.",
+ *    "status": 400,
+ *    "traceId": "|2d658605-44ee0c9ba5d257aa.",
+ *    "detail": "aa",
+ *    "errors": {
+ *        "aa": "aaa",
+ *        "": [
+ *            "The Nickname field is required.",
+ *            "The field Nickname must be at least 3 characters long."
+ *        ],
+ *        "Nickname": [
+ *            "The Nickname field is required.",
+ *            "The field Nickname must be at least 3 characters long."
+ *        ]
+ *    }
+ *}
+ * */
+export interface ProblemDetails {
+    type: string
+    title: string
+    status: number
+    traceId: string
+    detail?: string
+    errors?: Errors
+}
+
 export type AppThunkApiConfig = { state: ApplicationState, dispatch: AppDispatch }

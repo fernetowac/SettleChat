@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { Route, Switch, RouteComponentProps } from 'react-router';
 import Layout from './components/Layout';
 import Notifier from './components/Notifier';

@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { ThunkDispatch, ThunkAction } from '@reduxjs/toolkit'
 import { Invitation, InvitationResponse } from '../types/invitationTypes'
 import { ApplicationState } from '../store/index';
-import { fetchGet, fetchPost, ProblemDetails } from '../services/FetchService'
+import { fetchGet, fetchPost } from '../services/FetchService'
 import SchemaKind from '../schemas/SchemaKind'
 import * as HttpStatusActions from '../actions/HttpStatusActions';
 import { IdentityState } from '../store/Identity';
@@ -13,7 +13,7 @@ import { ApplicationPaths, QueryParameterNames } from './api-authorization/ApiAu
 import { usePrevious } from '../hooks/usePrevious';
 import { useIsMounted } from '../hooks/useIsMounted';
 import { InvitationAcceptance, steps } from './InvitationAcceptance'
-import { ValidationError } from '../types/commonTypes'
+import { ValidationError, ProblemDetails } from '../types/commonTypes'
 import { nicknameValidationKey } from '../types/invitationAcceptanceTypes'
 import { tryAddProblemDetailNotification } from '../thunks/notificationThunks'
 import { NotificationAddActionInput } from '../types/notificationActionTypes';
@@ -176,10 +176,9 @@ const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
 
     // retrieve invitation by token
     React.useEffect(() => {
-        let isMounted = true;
         requestInvitationByToken()
             .then(invitation => {
-                if (isMounted) {
+                if (isMounted()) {
                     setInvitation(invitation);
                 }
             })
@@ -187,11 +186,7 @@ const InvitationPanel = (props: InvitationAcceptanceContainerProps) => {
             .finally(() =>
                 setIsLoadingInvitation(false)
             );
-
-        return () => {
-            isMounted = false;
-        };
-    }, [requestInvitationByToken]);
+    }, [isMounted, requestInvitationByToken]);
 
     // remove redirection url from state after redirected in render
     // must be declared before useEffect that sets redirectTo

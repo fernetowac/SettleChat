@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using IdentityServer4.Extensions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -14,6 +15,7 @@ using SettleChat.Factories;
 using SettleChat.Hubs;
 using SettleChat.Models;
 using SettleChat.Persistence;
+using SettleChat.Persistence.Enums;
 using SettleChat.Persistence.Models;
 
 namespace SettleChat.Controllers
@@ -45,110 +47,61 @@ namespace SettleChat.Controllers
             _conversationHubContext = conversationHubContext;
         }
 
-        // GET: api/Conversation
+        // GET: api/Conversations
         [HttpGet]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
-        public async Task<ActionResult<IEnumerable<ConversationListItemModel>>> GetConversations()
+        public async Task<ActionResult<List<ApiConversation>>> GetConversations()
         {
             Guid userId = Guid.Parse(User.Identity.GetSubjectId());
 
             var queryResult = await _context.Conversations
                 .Where(x => x.ConversationUsers
                     .Any(cu => cu.UserId == userId))
-                // Get single (if exists) latest message per conversation https://stackoverflow.com/a/2111420/1651606
-                // TODO: this solution might not be the most optimal when there are many messages per conversation, as it makes cartesian product of {messages x messages} internally
-                // left join conversation with its messages
-                .SelectMany(
-                    conversation => conversation.Messages
-                        .DefaultIfEmpty(),
-                    (conversation, message) =>
-                        new
-                        {
-                            Conversation = new
-                            {
-                                conversation.Id,
-                                conversation.Title,
-                                conversation.IsPublic,
-                                conversation.Created
-                            },
-                            Message = new
-                            {
-                                message.Id,
-                                message.AuthorId,
-                                message.Text,
-                                message.Created
-                            }
-                        })
-                // outer apply with messages that are newer as messages in previous join
-                .SelectMany(
-                    combined =>
-                        _context.Messages.Where(
-                                message =>
-                                    message.Conversation.Id == combined.Conversation.Id
-                                    && combined.Message.Created < message.Created
-                                    || (
-                                        combined.Message.Created == message.Created
-                                        && combined.Message.Id != message.Id
-                                        )
-                                    )
-                            .Select(x => x.Id)
-                            .DefaultIfEmpty(),
-                    (combined, newerMessageId) => new
-                    {
-                        combined.Conversation,
-                        combined.Message,
-                        NewerMessageId = newerMessageId
-                    })
                 // join with conversationUsers meta table
                 .Join(
                     _context.ConversationUsers,
-                    combined => combined.Conversation.Id,
+                    conversation => conversation.Id,
                     conversationUser => conversationUser.ConversationId,
-                    (combined, conversationUser) => new
+                    (conversation, conversationUser) => new
                     {
-                        combined.Conversation,
-                        combined.Message,
-                        conversationUser.UserId,
-                        conversationUser.UserNickName,
-                        combined.NewerMessageId
+                        Conversation = conversation,
+                        ConversationUser = conversationUser
                     })
                 // join with users
                 .Join(
                     _context.Users,
-                    combined => combined.UserId,
+                    combined => combined.ConversationUser.UserId,
                     user => user.Id,
                     (combined, user) => new
                     {
                         combined.Conversation,
-                        combined.Message,
-                        Users = new
-                        {
-                            user.Id,
-                            user.UserName,
-                            combined.UserNickName
-                        },
-                        combined.NewerMessageId
+                        combined.ConversationUser,
+                        User = user
                     })
-                // only message for which no newer message exists
-                .Where(x => x.NewerMessageId == null)
                 // materialize the query before grouping, because EF Core cannot translate it to sql otherwise
                 .ToListAsync();
             var conversationsWithMetadata = queryResult
-                .GroupBy(x => new { x.Conversation, x.Message }) // Message can be null (is selected by left join) here even though VS doesn't thing so
-                .Select(group => new ConversationListItemModel
+                .GroupBy(x => x.Conversation)
+                .Select(group => new ApiConversation(@group.Key.Id)
                 {
-                    Id = @group.Key.Conversation.Id,
-                    Title = @group.Key.Conversation.Title,
-                    LastMessageText = @group.Key.Message.Id == Guid.Empty ? null : @group.Key.Message.Text,
-                    LastMessageUserId = @group.Key.Message.Id == Guid.Empty ? null : (Guid?)@group.Key.Message.AuthorId,
-                    LastActivityTimestamp = @group.Key.Message.Id == Guid.Empty ? @group.Key.Conversation.Created : @group.Key.Message.Created,
-                    Users = @group.Select(u => new ConversationListItemUserModel
-                    {
-                        Id = u.Users.Id,
-                        UserName = u.Users.UserName,
-                        UserNickName = u.Users.UserNickName
-                    }).ToList()
-                }).ToList();
+                    Title = @group.Key.Title,
+                    IsPublic = @group.Key.IsPublic,
+                    Created = @group.Key.Created,
+                    ConversationUsers = @group.Key
+                        .ConversationUsers
+                        .Select(conversationUser =>
+                        new ApiConversationUser(conversationUser.Id, conversationUser.UserId, conversationUser.ConversationId)
+                        {
+                            Nickname = conversationUser.UserNickName,
+                            User = new ApiUser(conversationUser.User.Id, conversationUser.User.UserName,
+                                    ConversationHub.Connections.GetConnections(conversationUser.UserId).Any() ? UserStatus.Online : UserStatus.Offline)
+                            {
+                                LastActivityTimestamp = conversationUser.User.LastActivityTimestamp
+                            }
+                        })
+                        .ToList()
+                })
+                .ToList();
             return conversationsWithMetadata;
         }
 
@@ -276,19 +229,12 @@ namespace SettleChat.Controllers
         [HttpPost]
         //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         //[Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
         //[AllowAnonymous]
-        public async Task<ActionResult<ConversationDetailModel>> PostConversation(ConversationCreateModel model)
+        public async Task<ActionResult<ApiConversation>> PostConversation(ApiConversationCreateModel model)
         {
-            //string token =
-            //    "eyJhbGciOiJSUzI1NiIsImtpZCI6IkRldmVsb3BtZW50IiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE1OTg4Nzc2MDQsImV4cCI6MTU5ODg4MTIwNCwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzMDAiLCJhdWQiOiJTZXR0bGVDaGF0QVBJIiwiY2xpZW50X2lkIjoiUG9zdE1hbiIsInN1YiI6Ijg0ZGUyNzZiLTlkMTctNGExOS04YzA1LTA4ZDg0YzY5MWQzMyIsImF1dGhfdGltZSI6MTU5ODg3MDM4MCwiaWRwIjoiR29vZ2xlIiwic2NvcGUiOlsib3BlbmlkIiwicHJvZmlsZSIsIlNldHRsZUNoYXRBUEkiLCJvZmZsaW5lX2FjY2VzcyJdLCJhbXIiOlsiZXh0ZXJuYWwiXX0.QuG2g1t3zUYMUBPqEnMQ0Iy_3kVRxd205coSt9MjRaLcWcADIsczlFV5Nh1vGVRKrHiqMrVUNrHSuhmG6XIauxUj00zTiZ0d2-Fxomhb96muJhN4gGlP-lQo0upClCRKZkhT5IfDbrjjrtE-gAnCBeE6dz01i5YLM7b4U2vguk8VDwo3f952D9Loynf3e9CO4lZU4_PJQpte0RUfLc5S_eo_iUc8QAoV6USXsKAGdvOkOHtFrXyh_h71pGbbxwI1P-Em8a2XiySAExcohr1yzKkLiLuRB1GInL_r5ArgICZqL20boeDpAtISof3u081SuVs5Z62mx0POLGFeTG1NMA";
-            //SecurityToken validatedToken;
-            //var tokenValidationParameters = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions()
-            //    .TokenValidationParameters;
-            //var validated=ValidateSignature(token, tokenValidationParameters);
-            //var claimsPrincipal = new SettleChat.Controllers.JwtSecurityTokenHandler().ValidateToken(token,
-            //    tokenValidationParameters,
-            //    out validatedToken);
             var inputDbConversation = new Conversation
             {
                 Title = model.Title,
@@ -307,65 +253,38 @@ namespace SettleChat.Controllers
 
             _context.Conversations.Add(inputDbConversation);
 
-            ApplicationUser applicationUser = null;
-            //UserSecret userSecret;
-            //if (User.IsAuthenticated())
-            //{
-            applicationUser = await _context.Users.FindAsync(Guid.Parse(User.Identity.GetSubjectId()));
-            //userSecret = await _context.UserSecrets.AsQueryable().Where(x => x.UserId == applicationUser.Id)
-            //    .SingleAsync();
-            //}
-            //else
-            //{
-            //    var user = new ApplicationUser
-            //    {
-            //        UserName = string.IsNullOrEmpty(model.Creator.Name)
-            //            ? $"Anonymous_{Guid.NewGuid():N}"
-            //            : model.Creator.Name,
-            //        Email = model.Creator.Email
-            //    };
-            //    var result = await _userManager.CreateAsync(user);
-            //    if (result.Succeeded)
-            //    {
-            //        userSecret = new UserSecret { Secret = Guid.NewGuid().ToString(), User = user };
-            //        _context.UserSecrets.Add(userSecret); //TODO generate strong hash
-            //        applicationUser = user;
-            //    }
-            //    else
-            //    {
-            //        throw new NotImplementedException(); //TODO:
-            //    }
-            //}
+            //ApplicationUser applicationUser = await _context.Users.FindAsync(Guid.Parse(User.Identity.GetSubjectId()));
+            var currentUserId = Guid.Parse(User.Identity.GetSubjectId());
+            var currentUserEntry = _context.Entry(new ApplicationUser { Id = currentUserId });
+            currentUserEntry.State = EntityState.Unchanged;
 
-            //_context.Users.Add(applicationUser);
-
-            //var inputDbInvitedUsers = model.InvitedUsers.Select(invitedUser => new User
-            //{
-            //    Name = invitedUser.Name,
-            //    Email = invitedUser.Email
-            //}).ToList();
-            //_context.Users.AddRange(inputDbInvitedUsers);
             var conversationUser = new ConversationUser
             {
                 Conversation = inputDbConversation,
-                User = applicationUser
+                User = currentUserEntry.Entity
             };
             _context.ConversationUsers.Add(conversationUser);
-            //_context.ConversationUsers.AddRange(inputDbInvitedUsers.Select(invitedDbUser => new ConversationUser
-            //{
-            //    User = invitedDbUser,
-            //    Conversation = inputDbConversation
-            //}));
+
             await _context.SaveChangesAsync();
             //if (!User.IsAuthenticated())
             //{
             //    await _signInManager.SignInAsync(applicationUser, false);
             //}
 
-            var resultModel =
-                new ConversationDetailModelFactory().Create(inputDbConversation, applicationUser,
-                    new List<ConversationUser>());
-            //Response.Cookies.Append($"SettleAuth_{conversationUser.UserId}", userSecret.Secret);
+            var resultModel = new ApiConversation(inputDbConversation.Id)
+            {
+                Created = inputDbConversation.Created,
+                IsPublic = inputDbConversation.IsPublic,
+                Title = inputDbConversation.Title,
+                ConversationUsers = new List<ApiConversationUser>
+                {
+                    new ApiConversationUser(conversationUser.Id, conversationUser.UserId,
+                        conversationUser.ConversationId)
+                    {
+                        Nickname = null
+                    }
+                }
+            };
 
             return CreatedAtAction("GetConversation", new { id = conversationUser.Id }, resultModel);
         }

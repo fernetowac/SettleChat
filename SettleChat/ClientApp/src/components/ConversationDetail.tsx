@@ -1,7 +1,7 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
-import { ConversationPatch, patchConversationDetail } from '../store/conversationDetails'
+import { conversationByIdSelector, ConversationPatch, patchConversationDetail } from '../store/conversationDetails'
 import { Switch, FormControl, FormLabel, FormGroup, FormControlLabel, FormHelperText, IconButton, TextField, Box } from '@material-ui/core';
 import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@material-ui/icons';
 import { AppDispatch } from '../'
@@ -12,7 +12,7 @@ const ConversationDetail = (props: ConversationDetailProps) => {
     const [isPublicDisabled, setIsPublicDisabled] = React.useState(false);
     const [isTitleDisabled, setIsTitleDisabled] = React.useState(false);
     const [isTitleEditing, setIsTitleEditing] = React.useState(false);
-    const [inputTitle, setInputTitle] = React.useState<string | null>(props.conversation !== null ? props.conversation.title : null);
+    const [inputTitle, setInputTitle] = React.useState<string | undefined>(props.conversation?.title);
     const [inputTitleHasError, setInputTitleHasError] = React.useState(false);
     const inputTitleRef = React.useRef<HTMLInputElement>(null);
 
@@ -29,12 +29,12 @@ const ConversationDetail = (props: ConversationDetailProps) => {
         setIsTitleEditing(true);
     }
 
-    const isValidInputTitle = (inputTitle: string | null): boolean => {
-        return inputTitle !== null && /^.{3,200}$/.test(inputTitle);
+    const isValidInputTitle = (inputTitle: string | undefined): boolean => {
+        return inputTitle !== undefined && /^.{3,200}$/.test(inputTitle);
     }
 
     const handleSaveInputTitle = () => {
-        if (!props.conversation || inputTitle === null) {
+        if (!props.conversation || inputTitle === undefined) {
             return;
         }
 
@@ -156,8 +156,12 @@ const ConversationDetail = (props: ConversationDetailProps) => {
     }
 }
 
-const mapStateToProps = (state: ApplicationState) => ({
-    conversation: state.conversation.detail,
+type OwnProps = {
+    id: string
+}
+
+const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => ({
+    conversation: conversationByIdSelector(state, ownProps.id),
     isLoading: state && state.conversation.ui.isConversationLoading
 })
 

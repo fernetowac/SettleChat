@@ -43,7 +43,7 @@ namespace SettleChat.Controllers
                 .Select(x => new ApiConversationUser(x.Id, x.UserId, x.ConversationId)
                 {
                     Nickname = x.UserNickName,
-                    User = new ApiUser(x.UserId, x.User.UserName, ConversationHub.Connections.GetConnections(x.Id).Any() ? UserStatus.Online : UserStatus.Offline)//TODO: make it nicer
+                    User = new ApiUser(x.UserId, x.User.UserName, ConversationHub.Connections.GetConnections(x.UserId).Any() ? UserStatus.Online : UserStatus.Offline)//TODO: make it nicer
                     { LastActivityTimestamp = x.User.LastActivityTimestamp }
                 })
             .ToList();

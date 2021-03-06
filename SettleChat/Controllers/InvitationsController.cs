@@ -145,7 +145,7 @@ namespace SettleChat.Controllers
             var conversationUserModel = _context.ConversationUsers.Include(x => x.User)
                 .Where(x => x.ConversationId == dbInvitation.ConversationId && x.UserId == userId.Value).Select(x => new ApiConversationUser(x.Id, x.UserId, x.ConversationId)
                 {
-                    User = new ApiUser(x.UserId, x.User.UserName, ConversationHub.Connections.GetConnections(x.Id).Any() ? UserStatus.Online : UserStatus.Offline),//TODO: make it nicer
+                    User = new ApiUser(x.UserId, x.User.UserName, ConversationHub.Connections.GetConnections(x.UserId).Any() ? UserStatus.Online : UserStatus.Offline),//TODO: make it nicer
                     Nickname = x.UserNickName
                 }).Single();
             await _conversationHubContext.Clients

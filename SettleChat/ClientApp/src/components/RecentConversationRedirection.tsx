@@ -1,49 +1,48 @@
 ﻿import * as React from 'react';
 import { Redirect } from 'react-router-dom'
 import { connect } from 'react-redux';
-import { createSelector } from '@reduxjs/toolkit';
 import { ApplicationState } from '../store/index';
-import { actionCreators as ConversationsActionCreators, actions as conversationsActions } from '../store/Conversations';
 import { AppDispatch } from '../'
-import { unwrapResult } from '@reduxjs/toolkit'
-import { getHighestBy } from '../helpers/sortHelper'
+import { sortedConversationsSelector } from '../store/Conversation';
+import { requestMessages } from '../store/messages'
+import { useIsMounted } from '../hooks/useIsMounted';
+import { requestConversationsWithUsers } from '../store/common';
 
 type RecentConversationRedirectionProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
 
 const RecentConversationRedirection = (props: RecentConversationRedirectionProps) => {
-    const { requestConversations, clearConversations, userId, isAuthenticated, conversation } = props;
-    React.useEffect(() => {
-        if (!isAuthenticated) {
-            clearConversations();
-        } else {
-            requestConversations();
-        }
-        return () => {
-            clearConversations();
-        }
-    }, [requestConversations, clearConversations, userId, isAuthenticated]);
+    const { requestConversationsWithUsers, requestMessages, conversations } = props;
+    const [dataLoaded, setDataLoaded] = React.useState(false)
+    const isMounted = useIsMounted();
 
-    if (!conversation) {
+    React.useEffect(() => {
+        requestConversationsWithUsers()
+            .then(() => requestMessages(1))
+            .then(() => {
+                if (isMounted()) {
+                    setDataLoaded(true)
+                }
+            });
+    }, [requestConversationsWithUsers, requestMessages]);
+
+    if (!dataLoaded) {
         return 'Loading most recent conversation..';
     }
 
-    return <Redirect to={`/conversation/${conversation.id}`} />
+    if (conversations.length === 0) {
+        return 'No conversation exist yet. [TODO]' //TODO: decide if we'll allow redirect to display MessagesPanel or to brand new welcome screen
+    }
+
+    return <Redirect to={`/conversation/${conversations[0].id}`} />
 }
 
-/**
- * Memoized sorting of conversations
- */
-const mostRecentConversationSelector = createSelector([(state: ApplicationState) => state.conversations.conversations], getHighestBy((x) => x.lastActivityTimestamp));
-
 const mapStateToProps = (state: ApplicationState) => ({
-    userId: state.identity.userId,
-    isAuthenticated: !!state.identity.userId,
-    conversation: mostRecentConversationSelector(state)
+    conversations: sortedConversationsSelector(state)
 });
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
-    requestConversations: () => dispatch(ConversationsActionCreators.requestConversations()).then(unwrapResult),
-    clearConversations: conversationsActions.clear
+    requestConversationsWithUsers: () => dispatch(requestConversationsWithUsers()),
+    requestMessages: (amountPerConversation: number) => dispatch(requestMessages(amountPerConversation))
 });
 
 export default connect(

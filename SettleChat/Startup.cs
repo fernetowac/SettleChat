@@ -122,7 +122,11 @@ namespace SettleChat
                     jwtBearerOptions.Authority = Configuration["OidcAuthority"]; // "https://localhost:44328";
                     jwtBearerOptions.Audience = "SettleChatAPI";
                 });
-            services.AddMvc();
+            services.AddMvc()
+                .AddJsonOptions(options =>
+                    options.JsonSerializerOptions.IgnoreNullValues = true
+                //TODO: When migrating to NET.CORE 5.0, use: options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+                );
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>

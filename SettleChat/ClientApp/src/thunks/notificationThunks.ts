@@ -1,5 +1,5 @@
 ﻿import { ThunkAction } from '@reduxjs/toolkit'
-import { ProblemDetails } from '../services/FetchService'
+import { ProblemDetails } from '../types/commonTypes'
 import { parseErrors } from '../services/ProblemDetailsService'
 import { NotificationType } from '../types/notificationTypes'
 import { notificationsActions } from '../reducers/notificationsReducer'

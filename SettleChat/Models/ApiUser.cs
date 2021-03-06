@@ -11,9 +11,9 @@ namespace SettleChat.Models
             UserName = userName;
             Status = status;
         }
-        public Guid Id { get; set; }
-        public string UserName { get; set; }
-        public UserStatus Status { get; set; }
+        public Guid Id { get; }
+        public string UserName { get; }
+        public UserStatus Status { get; }
         public DateTimeOffset? LastActivityTimestamp { get; set; }
     }
 }

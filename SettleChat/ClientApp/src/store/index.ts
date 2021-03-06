@@ -1,4 +1,3 @@
-import * as Conversations from './Conversations';
 import * as Conversation from './Conversation';
 import * as Identity from './Identity';
 import * as SignalR from './SignalR';
@@ -7,7 +6,6 @@ import { Notification } from '../types/notificationTypes'
 
 // The top-level state object
 export interface ApplicationState {
-    conversations: Conversations.ConversationsState;
     conversation: Conversation.ConversationState;
     identity: Identity.IdentityState;
     signalR: SignalR.SignalRState;
@@ -18,7 +16,6 @@ export interface ApplicationState {
 // the reducer with the matching name. It's important that the names match exactly, and that the reducer
 // acts on the corresponding ApplicationState property type.
 export const reducers = {
-    conversations: Conversations.conversationsReducer,
     conversation: Conversation.reducer,
     identity: Identity.identityReducer,
     signalR: SignalR.signalRReducer,

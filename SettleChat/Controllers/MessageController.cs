@@ -1,7 +1,6 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using IdentityServer4.Extensions;
@@ -9,12 +8,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Internal;
-using SettleChat.Factories;
 using SettleChat.Factories.Interfaces;
 using SettleChat.Hubs;
 using SettleChat.Models;
 using SettleChat.Persistence;
-using SettleChat.Persistence.Models;
 
 namespace SettleChat.Controllers
 {
@@ -42,28 +39,33 @@ namespace SettleChat.Controllers
             _systemClock = systemClock;
         }
 
-        [HttpGet]
-        public IEnumerable<Message> Get()
+        [HttpGet("/api/messages")]
+        [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
+        public async Task<ActionResult<MessageModel[]>> List(int amountPerConversation = 1)
         {
-            yield return new Message
-            {
-                Id = 1,
-                Text = "Hi there",
-                UserFrom = "Fero"
-            };
+            Guid userId = Guid.Parse(User.Identity.GetSubjectId());
+            var firstNMessagesPerConversation = await _context.Conversations
+                .Where(x => x.ConversationUsers.Any(conversationUser => conversationUser.UserId == userId))
+                .SelectMany(x => x.Messages.OrderByDescending(message => message.Created).Take(amountPerConversation))
+                .ToListAsync();
 
-            yield return new Message
-            {
-                Id = 2,
-                Text = "Hi",
-                UserFrom = "Imro"
-            };
+            var messages = firstNMessagesPerConversation
+                .Select(x => new MessageModel
+                {
+                    Id = x.Id,
+                    ConversationId = x.ConversationId,
+                    Text = x.Text,
+                    UserId = x.AuthorId,
+                    Created = x.Created
+                }).ToArray();
+            return messages;
         }
 
         [HttpGet("/api/conversations/{conversationId}/messages")]
         [Authorize(AuthenticationSchemes = "Identity.Application,Bearer")]
         public async Task<ActionResult<MessageModel[]>> List(Guid conversationId, Guid? beforeId, int amount = 30)
         {
+            //TODO: filter only messages visible to user
             var messageQuery = _context.Messages
                 .Where(x => x.Conversation.Id == conversationId);
             if (beforeId.HasValue)

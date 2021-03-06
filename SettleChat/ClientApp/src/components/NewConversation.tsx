@@ -1,15 +1,11 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
-import * as ConversationsStore from '../store/Conversations';
 import { AppDispatch } from '../index'
+import { addConversation, NewConversation as NewConversationInput } from '../store/conversationDetails';
 
 const initialState = {
-    title: '',
-    creator: {
-        name: '',
-        email: ''
-    }
-} as ConversationsStore.NewConversation;
+    title: undefined
+} as NewConversationInput;
 
 function NewConversation(props: ReturnType<typeof mapDispatchToProps>) {
     const [inputConversation, setInputConversation] = React.useState(initialState);
@@ -17,19 +13,19 @@ function NewConversation(props: ReturnType<typeof mapDispatchToProps>) {
     const handleSubmit = (evt: React.SyntheticEvent<EventTarget>) => {
         evt.preventDefault();
         props.addConversation(inputConversation);
-        setInputConversation({ title: '', creator: { name: '', email: '' } } as ConversationsStore.NewConversation);
+        setInputConversation(initialState);
     };
 
-    const inputConversationCreatorEmailOnChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const onTitleChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
         e.preventDefault();
-        setInputConversation({ ...inputConversation, creator: { ...inputConversation.creator, email: e.target.value } });
+        setInputConversation({ title: e.target.value });
     }
 
     return <form onSubmit={handleSubmit}>
         <div>
             <label>
-                Email:</label>
-            <input type="text" value={inputConversation.creator.email} onChange={inputConversationCreatorEmailOnChange} />
+                Title:</label>
+            <input type="text" value={inputConversation.title} onChange={onTitleChange} />
         </div>
         <div>
             <input type="submit" value="Submit" />
@@ -38,7 +34,7 @@ function NewConversation(props: ReturnType<typeof mapDispatchToProps>) {
 }
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
-    addConversation: (conversationInput: ConversationsStore.NewConversation) => dispatch(ConversationsStore.actionCreators.addConversation(conversationInput))
+    addConversation: (conversationInput: NewConversationInput) => dispatch(addConversation(conversationInput))
 });
 
 export default connect(
