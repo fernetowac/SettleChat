@@ -1,7 +1,7 @@
 ﻿import { Middleware, Dispatch, MiddlewareAPI } from 'redux';
 import { ApplicationState } from '../store';
-import { updateOneUser } from '../store/Conversation';
 import { signalRActions } from '../store/SignalR'
+import { updateOneUser } from '../store/users';
 import { UserStatus } from '../types/userTypes'
 
 export const createConversationMiddleware = <S extends ApplicationState, D extends Dispatch>(): Middleware<{}, S, D> => {

@@ -1,7 +1,7 @@
 ﻿import { createSelector } from '@reduxjs/toolkit'
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
-import { conversationUsersByConversationIdSelector } from '../store/Conversation';
+import { conversationUsersByConversationIdSelector } from '../store/conversationUsers';
 import { conversationByIdSelector } from '../store/conversationDetails';
 import UserName from './UserName'
 

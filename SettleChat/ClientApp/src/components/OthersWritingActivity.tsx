@@ -1,8 +1,10 @@
 ﻿import * as React from 'react';
 import { connect } from 'react-redux';
-import * as ConversationStore from "../store/Conversation";
 import { ApplicationState } from '../store/index';
 import { useIsMounted } from '../hooks/useIsMounted';
+import { selectUserById } from '../store/users';
+import { WritingActivity } from '../store/writingActivities';
+import { conversationUsersByConversationIdSelector } from '../store/conversationUsers';
 
 interface UserWriting {
     name: string;
@@ -110,14 +112,14 @@ const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => {
     }
 
     /** memoized conversationUsers by conversation id */
-    const conversationUsers = ConversationStore.conversationUsersByConversationIdSelector(state, ownProps)
+    const conversationUsers = conversationUsersByConversationIdSelector(state, ownProps)
 
     function getNicknameWithFallback(state: ApplicationState, userId: string) {
         const conversationUser = conversationUsers.find((x) => x.userId)
         if (conversationUser && conversationUser.nickname) {
             return conversationUser.nickname
         }
-        const user = ConversationStore.selectUserById(state, userId)
+        const user = selectUserById(state, userId)
         return user && user.userName || 'somebody'
     }
     return {
@@ -125,7 +127,7 @@ const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => {
         othersWriting: state.conversation.writingActivities
             .filter(writingActivity =>
                 writingActivity.userId !== state.identity.userId
-                && writingActivity.activity === ConversationStore.WritingActivity.IsWriting
+                && writingActivity.activity === WritingActivity.IsWriting
                 && writingActivity.lastChangeClientUnixTimeInMs >= new Date().getTime() - writingActivityNotificationThresholdMiliseconds)
             .map(
                 writingActivity => {

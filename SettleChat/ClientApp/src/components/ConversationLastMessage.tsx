@@ -1,7 +1,7 @@
 ﻿import { createSelector } from '@reduxjs/toolkit'
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
-import { allMessagesSelector } from '../store/Conversation';
+import { allMessagesSelector } from '../store/messages';
 import { getHighestBy } from '../helpers/sortHelper';
 import UserName from './UserName'
 

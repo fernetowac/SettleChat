@@ -4,26 +4,26 @@ import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
 import { AppDispatch } from '../'
 import { sortedConversationsSelector } from '../store/Conversation';
-import { requestMessages } from '../store/messages'
+import { requestMessagesForAllConversations } from '../store/messages'
 import { useIsMounted } from '../hooks/useIsMounted';
 import { requestConversationsWithUsers } from '../store/common';
 
 type RecentConversationRedirectionProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
 
 const RecentConversationRedirection = (props: RecentConversationRedirectionProps) => {
-    const { requestConversationsWithUsers, requestMessages, conversations } = props;
+    const { requestConversationsWithUsers, requestMessagesForAllConversations, conversations } = props;
     const [dataLoaded, setDataLoaded] = React.useState(false)
     const isMounted = useIsMounted();
 
     React.useEffect(() => {
         requestConversationsWithUsers()
-            .then(() => requestMessages(1))
+            .then(() => requestMessagesForAllConversations(1))
             .then(() => {
                 if (isMounted()) {
                     setDataLoaded(true)
                 }
             });
-    }, [requestConversationsWithUsers, requestMessages]);
+    }, [requestConversationsWithUsers, requestMessagesForAllConversations]);
 
     if (!dataLoaded) {
         return 'Loading most recent conversation..';
@@ -42,7 +42,7 @@ const mapStateToProps = (state: ApplicationState) => ({
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     requestConversationsWithUsers: () => dispatch(requestConversationsWithUsers()),
-    requestMessages: (amountPerConversation: number) => dispatch(requestMessages(amountPerConversation))
+    requestMessagesForAllConversations: (amountPerConversation: number) => dispatch(requestMessagesForAllConversations(amountPerConversation))
 });
 
 export default connect(

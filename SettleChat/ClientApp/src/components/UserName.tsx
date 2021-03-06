@@ -1,7 +1,8 @@
 ﻿import { createSelector } from '@reduxjs/toolkit'
 import { connect } from 'react-redux';
+import { conversationUserByIdsSelector } from '../store/conversationUsers';
 import { ApplicationState } from '../store/index';
-import { conversationUserByIdsSelector, userByIdSelector } from '../store/Conversation';
+import { userByIdSelector } from '../store/users';
 
 const UserName = (props: ReturnType<ReturnType<typeof makeMapStateToProps>>) => {
     const { nickname, username } = props

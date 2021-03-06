@@ -1,19 +1,18 @@
 ﻿import * as React from 'react';
-import { connect } from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
 import { ApplicationState } from '../store/index';
-import * as  ConversationStore from '../store/Conversation';
 import { UserStatus, User } from '../types/userTypes';
 import UserAvatarBadge from './UserAvatarBadge';
 import { makeStyles } from '@material-ui/core/styles';
 import { List, ListItem, ListItemAvatar, ListItemText, Divider } from '@material-ui/core';
+import { requestConversationUsers } from '../store/common'
+import { conversationUsersByConversationIdSelector } from "../store/conversationUsers";
+import { selectUsersByConversationId } from '../store/users';
 
 export interface UsersState {
     conversationId: string,
     users: User[];
 }
-
-// At runtime, Redux will merge together...
-type UsersProps = ReturnType<typeof mapStateToProps> & typeof ConversationStore.actionCreators & OwnProps
 
 function WriteStatus(status: UserStatus): string {
     switch (status) {
@@ -36,17 +35,17 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const Users = (props: UsersProps) => {
+const Users = (props: ConnectedProps<typeof connector>) => {
     const classes = useStyles();
     const { conversationId, requestConversationUsers } = props;
 
     React.useEffect(() => {
         if (conversationId) {
             requestConversationUsers(conversationId);
-        }
+        }//TODO: abort promise when identity changes
     }, [conversationId, requestConversationUsers]);
 
-    return <React.Fragment>
+    return <>
         <h1>Users ({props.users.length})</h1>
         <List className={classes.root}>
             {
@@ -69,7 +68,7 @@ const Users = (props: UsersProps) => {
                 })
             }
         </List>
-    </React.Fragment>;
+    </>;
 }
 
 interface OwnProps {
@@ -78,12 +77,17 @@ interface OwnProps {
 
 const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => {
     return {
-        users: ConversationStore.selectUsersByConversationId(state, ownProps),
-        conversationUsers: ConversationStore.conversationUsersByConversationIdSelector(state, ownProps)
+        users: selectUsersByConversationId(state, ownProps),
+        conversationUsers: conversationUsersByConversationIdSelector(state, ownProps),
+        conversationId: ownProps.conversationId
     }
 }
 
-export default connect(
+const connector = connect(
     mapStateToProps,
-    ConversationStore.actionCreators
-)(Users as any);
+    {
+        requestConversationUsers
+    }
+)
+
+export default connector(Users)

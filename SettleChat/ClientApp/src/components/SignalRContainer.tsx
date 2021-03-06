@@ -2,7 +2,6 @@
 import * as signalR from '@microsoft/signalr';
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
-import * as  ConversationStore from "../store/Conversation";
 import { conversationDetailsActions } from "../store/conversationDetails";
 import authService from '../components/api-authorization/AuthorizeService'
 import { useIsMounted } from '../hooks/useIsMounted'
@@ -13,13 +12,15 @@ import { ConversationUserResponse } from '../types/conversationUserTypes';
 import { UserStatus } from '../types/userTypes';
 import { signalRActions } from '../store/SignalR'
 import { ConversationDetail } from '../types/conversationTypes';
+import { writingActivitiesActions, WritingActivity } from '../store/writingActivities';
+import { updateOneUser } from '../store/users';
 
 const signalRHubUrl = `${document.location.origin}/conversationHub`;//TODO: take url from some config
 
 export interface ReceivedWritingActivityData {
     conversationId: string;
     userId: string;
-    activity: ConversationStore.WritingActivity;
+    activity: WritingActivity;
 }
 
 //TODO: make sure there is only one SignalRContainer component at the same time. Otherwise it can overwrite redux store connectionId of another one.
@@ -128,8 +129,8 @@ const mapDispatchToProps = (dispatch: AppDispatch) => ({//TODO: can be simplyfie
         reconnected: (connectionId: string) => dispatch(signalRActions.reconnected(connectionId)),
         disconnected: () => dispatch(signalRActions.disconnected()),
         messageAdded: (message: Message) => dispatch(messageAddedActionCreator(message)),
-        writingActivityReceived: (writingActivity: ConversationStore.ReceivedWritingActivityData) => { dispatch(ConversationStore.writingActivitiesActions.received(writingActivity)) },
-        userStatusChanged: (userId: string, status: UserStatus) => dispatch(ConversationStore.updateOneUser({ id: userId, changes: { status } })),
+        writingActivityReceived: (writingActivity: ReceivedWritingActivityData) => { dispatch(writingActivitiesActions.received(writingActivity)) },
+        userStatusChanged: (userId: string, status: UserStatus) => dispatch(updateOneUser({ id: userId, changes: { status } })),
         conversationUpdated: (conversation: ConversationDetail) => dispatch(conversationDetailsActions.received(conversation)),
         conversationUserAdded: (user: ConversationUserResponse) => dispatch(conversationUserAdded(user))
     }

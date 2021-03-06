@@ -1,18 +1,14 @@
 ﻿import { unwrapResult } from '@reduxjs/toolkit'
 import * as React from 'react';
-import { connect } from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { ApplicationState } from '../store/index';
-import * as  ConversationStore from "../store/Conversation";
+import { requestMessagesByConversationId, messagesOfConversationSelector } from '../store/messages'
+import { enableLoadingMoreMessages, disableLoadingMoreMessages } from '../store/ui'
 import { Messages } from './Messages'
-import { AppDispatch } from '../'
 import { Message } from '../types/messageTypes'
 import { Ascending, lowestBy } from '../helpers/sortHelper'
-import { messagesOfConversationSelector } from '../store/Conversation';
-
-type MessagesContainerProps =
-    ReturnType<typeof mapStateToProps>
-    & ReturnType<typeof mapDispatchToProps> & { isLoading: boolean, loadMoreButtonEnabled: boolean, onLoadMoreClicked: () => void };
+import { selectUsersByConversationId } from '../store/users';
 
 export interface GetTriggerOptions<TTarget extends HTMLElement | Window> {
     disableHysteresis?: boolean;
@@ -20,9 +16,8 @@ export interface GetTriggerOptions<TTarget extends HTMLElement | Window> {
     threshold?: number;
 }
 
-const MessagesContainer = (props: MessagesContainerProps) => {
-    const { requestMessages, enableLoadingMoreMessages, disableLoadingMoreMessages } = props.actions;
-    const { conversationId } = props;
+const MessagesContainer = (props: ConnectedProps<typeof connector>) => {
+    const { requestMessagesByConversationId, enableLoadingMoreMessages, disableLoadingMoreMessages, conversationId } = props;
     const [loadMoreButtonEnabled, setLoadMoreButtonActive] = React.useState(true);
     const [isLoading, setIsLoading] = React.useState(true);
 
@@ -30,7 +25,7 @@ const MessagesContainer = (props: MessagesContainerProps) => {
         const oldestMessage = lowestBy(props.messages, (x) => x.created)
         setLoadMoreButtonActive(false);
         const amountOfMessagesToLoad = 2;
-        props.actions.requestMessages(conversationId, (oldestMessage && oldestMessage.id) || undefined, amountOfMessagesToLoad)
+        requestMessagesByConversationId({ conversationId, beforeId: (oldestMessage && oldestMessage.id) || undefined, amount: amountOfMessagesToLoad })
             .then(unwrapResult)
             .then(messages => {
                 if (messages.length < amountOfMessagesToLoad) {
@@ -43,7 +38,7 @@ const MessagesContainer = (props: MessagesContainerProps) => {
     React.useEffect(() => {
         let isMounted = true;
         const amountOfMessagesToLoad = 2;
-        requestMessages(conversationId, undefined, amountOfMessagesToLoad)
+        requestMessagesByConversationId({ conversationId, beforeId: undefined, amount: amountOfMessagesToLoad })
             .then(unwrapResult)
             .then(messages => {
                 if (messages.length >= amountOfMessagesToLoad) {
@@ -58,7 +53,7 @@ const MessagesContainer = (props: MessagesContainerProps) => {
         return () => {
             isMounted = false;
         };
-    }, [requestMessages, enableLoadingMoreMessages, conversationId]);
+    }, [requestMessagesByConversationId, enableLoadingMoreMessages, conversationId]);
 
     return <Messages
         isLoading={isLoading}
@@ -85,13 +80,11 @@ const getTypedMessages = (messages: Message[]): (Omit<Message, 'created'> & { cr
  */
 const sortedTypedMessagesSelector = createSelector([messagesOfConversationSelector], (messages) => getTypedMessages(getSortedMessages(messages)));
 
-const mapDispatchToProps = (dispatch: AppDispatch) => ({
-    actions: {
-        requestMessages: (conversationId: string, beforeId?: string, amount = 30) => dispatch(ConversationStore.requestMessages({ conversationId, beforeId, amount })),
-        enableLoadingMoreMessages: () => dispatch(ConversationStore.conversationUiActions.enableLoadingMoreMessages()),
-        disableLoadingMoreMessages: () => dispatch(ConversationStore.conversationUiActions.disableLoadingMoreMessages())
-    }
-});
+const mapDispatchToProps = {
+    requestMessagesByConversationId,
+    enableLoadingMoreMessages,
+    disableLoadingMoreMessages
+};
 
 interface OwnProps {
     conversationId: string;
@@ -100,7 +93,7 @@ interface OwnProps {
 const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => {
     return {
         messages: sortedTypedMessagesSelector(state, ownProps),
-        users: ConversationStore.selectUsersByConversationId(state, ownProps),
+        users: selectUsersByConversationId(state, ownProps),
         me: {
             userId: state.identity.userId
         },
@@ -111,7 +104,9 @@ const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => {
     }
 }
 
-export default connect(
+const connector = connect(
     mapStateToProps,
     mapDispatchToProps
-)(MessagesContainer as any);
+)
+
+export default connector(MessagesContainer as any);

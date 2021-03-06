@@ -100,4 +100,4 @@ export interface ProblemDetails {
     errors?: Errors
 }
 
-export type AppThunkApiConfig = { state: ApplicationState, dispatch: AppDispatch }
+export type AppThunkApiConfig = { state: ApplicationState, dispatch: AppDispatch, serializedErrorType: ProblemDetails }
