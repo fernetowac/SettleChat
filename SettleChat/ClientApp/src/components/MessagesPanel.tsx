@@ -67,28 +67,39 @@ const MessagesPanel = (props: ConversationProps) => {
         };
     }, [startListeningConversation, stopListeningConversation, connectionId, reconnected, conversationId]);//TODO: do we need 'reconnected' here?
 
-    return <Grid container spacing={3} direction="row" style={{ minHeight: 0, flexWrap: 'initial', flexGrow: 1 }}>
-        <Grid item xs={3} style={{ display: 'flex', flexDirection: 'column' }}>
-            <Box style={{ display: 'flex' }}>
-                <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.leftPanelDisplayConversationInvite}><PersonAddIcon /></IconButton>
-                <IconButton onClick={props.actions.leftPanelDisplayConversationUsers}><PeopleIcon /></IconButton>
-            </Box>
-            <Box style={{ position: 'relative', display: 'flex', flexGrow: 1, flexDirection: 'column', minHeight: '0px' }}>
+    return <Grid container spacing={3} direction="row" style={{
+        minHeight: 0,
+        flexWrap: 'initial',
+        flexGrow: 1,
+        maxWidth: 1400,
+        border: 'solid',
+        borderWidth: 1,
+        borderColor: 'black',
+        alignSelf: 'center'
+    }}>
+        <Grid item xs={3} style={{ display: 'flex', flexDirection: 'column', padding: 0, borderRight: '1px solid black' }}>
+            <Box style={{ position: 'relative', display: 'flex', flexGrow: 1, flexDirection: 'column', minHeight: '0px', overflow: 'hidden' }}>
                 <Slide direction="right" in={props.uiLeftPanelContentKind === LeftPanelContentKind.ConversationInvite} mountOnEnter unmountOnExit>
-                    <Box style={{ flexGrow: 1, backgroundColor: '#dfdfdf', position: 'absolute', width: '100%', height: '100%', zIndex: 2, overflowY: 'auto' }}>
-                        <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.leftPanelDisplayConversations}><ArrowBackIcon /></IconButton>
-                                Conversation invite
-                                <Box marginBottom={2} padding={2} style={{ backgroundColor: '#fff' }}>
-                            <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                                <CreateInvitationPanel conversationId={conversationId} />
-                            </Sentry.ErrorBoundary>
+                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, backgroundColor: '#dfdfdf', position: 'absolute', width: '100%', height: '100%', zIndex: 2 }}>
+                        <Box>
+                            <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.leftPanelDisplayConversations}>
+                                <ArrowBackIcon />
+                            </IconButton>
+                            Conversation invite
                         </Box>
-                        <Box marginBottom={2} padding={2} style={{ backgroundColor: '#fff' }}>
-                            <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                                <Users conversationId={conversationId} />
-                            </Sentry.ErrorBoundary>
+                        <Box style={{ overflowY: 'auto' }}>
+                            <Box marginBottom={2} padding={2} style={{ backgroundColor: '#fff' }}>
+                                <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                                    <CreateInvitationPanel conversationId={conversationId} />
+                                </Sentry.ErrorBoundary>
+                            </Box>
+                            <Box marginBottom={2} padding={2} style={{ backgroundColor: '#fff' }}>
+                                <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                                    <Users conversationId={conversationId} />
+                                </Sentry.ErrorBoundary>
+                            </Box>
                         </Box>
-                    </Box>
+                    </div>
                 </Slide>
                 <Slide direction="right" in={props.uiLeftPanelContentKind === LeftPanelContentKind.ConversationUsers} mountOnEnter unmountOnExit>
                     <Box style={{ flexGrow: 1, position: 'absolute', width: '100%', height: '100%', zIndex: 2 }}>
@@ -98,12 +109,18 @@ const MessagesPanel = (props: ConversationProps) => {
                                 Conversation users
                             </Box>
                 </Slide>
-                <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                    <Conversations />
-                </Sentry.ErrorBoundary>
+                <Box style={{ display: 'flex' }}>
+                    <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.leftPanelDisplayConversationInvite}><PersonAddIcon /></IconButton>
+                    <IconButton onClick={props.actions.leftPanelDisplayConversationUsers}><PeopleIcon /></IconButton>
+                </Box>
+                <Box style={{ display: 'flex', overflowY: 'hidden' }}>
+                    <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                        <Conversations />
+                    </Sentry.ErrorBoundary>
+                </Box>
             </Box>
         </Grid>
-        <Grid item xs={9} style={{ display: 'flex' }}>
+        <Grid item xs={9} style={{ display: 'flex', padding: 0 }}>
             <Grid container direction="column" style={{ flexWrap: 'initial' }}>
                 <Grid item xs={12} style={{ flexBasis: 'initial' }}>
                     <ConversationDetail id={conversationId} />
