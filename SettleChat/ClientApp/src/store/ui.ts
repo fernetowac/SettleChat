@@ -1,4 +1,4 @@
-﻿import { createSlice } from '@reduxjs/toolkit'
+﻿import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { requestConversationsWithUsers } from './common'
 
 export enum LeftPanelContentKind {
@@ -13,7 +13,8 @@ interface UiLeftPanel {
 export interface Ui {
     isConversationLoading: boolean;
     canLoadMoreMessages: boolean;
-    leftPanel: UiLeftPanel
+    leftPanel: UiLeftPanel;
+    isSmallScreen: boolean;
 }
 
 const initialUi: Ui = {
@@ -21,7 +22,8 @@ const initialUi: Ui = {
     canLoadMoreMessages: false,
     leftPanel: {
         contentKind: LeftPanelContentKind.Conversations
-    }
+    },
+    isSmallScreen: false
 };
 
 const uiSlice = createSlice({
@@ -46,6 +48,9 @@ const uiSlice = createSlice({
         },
         leftPanelDisplayConversations: (state) => {
             state.leftPanel.contentKind = LeftPanelContentKind.Conversations
+        },
+        setSmallScreen: (state, action: PayloadAction<boolean>) => {
+            state.isSmallScreen = action.payload
         }
     },
     extraReducers: (builder) => {
@@ -69,6 +74,7 @@ export const {
     disableLoadingMoreMessages,
     leftPanelDisplayConversationInvite,
     leftPanelDisplayConversationUsers,
-    leftPanelDisplayConversations
+    leftPanelDisplayConversations,
+    setSmallScreen
 } = uiSlice.actions
 export const { reducer: uiReducer } = uiSlice
