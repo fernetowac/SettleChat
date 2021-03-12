@@ -1,9 +1,12 @@
 ﻿import * as React from 'react';
 import { Link } from "react-router-dom";
 import { connect, ConnectedProps } from 'react-redux';
+import { createSelector } from '@reduxjs/toolkit'
 import { ApplicationState } from '../store/index';
 import { makeStyles } from '@material-ui/core/styles';
 import { List, ListItem, ListItemAvatar, ListItemText, Divider, Avatar, Typography } from '@material-ui/core';
+import GroupIcon from '@material-ui/icons/Group';
+import PersonIcon from '@material-ui/icons/Person';
 import TimeAgo from 'react-timeago';
 import timeAgoEnglishStrings from 'react-timeago/lib/language-strings/en'
 import timeAgoBuildFormatter from 'react-timeago/lib/formatters/buildFormatter'
@@ -14,6 +17,8 @@ import { requestConversationsWithUsers } from '../store/common'
 import { requestMessagesForAllConversations } from '../store/messages';
 import { selectAllConversationUsers } from '../store/conversationUsers';
 import { allUsersSelector } from '../store/users'
+import { ConversationUserMeta } from '../types/conversationUserTypes';
+import { arrayToMap, groupBy } from '../helpers/arrayHelper';
 
 const timeAgoFormatter = timeAgoBuildFormatter(timeAgoEnglishStrings);
 
@@ -27,7 +32,7 @@ const useStyles = makeStyles((theme) => ({
 
 const Conversations = (props: ConnectedProps<typeof connector>) => {
     const classes = useStyles();
-    const { requestConversationsWithUsers, requestMessagesForAllConversations, userId, isAuthenticated } = props;
+    const { requestConversationsWithUsers, requestMessagesForAllConversations, userId, isAuthenticated, hasMultipleUsersByConversationId } = props;
     React.useEffect(() => {
         const requestConversationsWithUsersPromise = requestConversationsWithUsers();
         const requestMessagesPromise = requestMessagesForAllConversations(1);
@@ -50,7 +55,7 @@ const Conversations = (props: ConnectedProps<typeof connector>) => {
                         to={"/conversation/" + conversation.id}
                     >
                         <ListItemAvatar>
-                            <Avatar>{title}</Avatar>
+                            <Avatar>{hasMultipleUsersByConversationId.get(conversation.id) === false ? <PersonIcon /> : <GroupIcon />}</Avatar>
                         </ListItemAvatar>
                         <ListItemText
                             primary={title}
@@ -78,12 +83,36 @@ const Conversations = (props: ConnectedProps<typeof connector>) => {
     </List>;
 }
 
+/**
+ * Returns Map of hasMultipleUsers by conversationId, where hasMultipleUsers says whether conversation has more than one other user except of current user
+ * @param conversationUsers All conversationUsers
+ * @param currentUserId ID of logged in user
+ */
+const getMapOfHasMultipleOtherUsersByConversationId = (conversationUsers: ConversationUserMeta[], currentUserId: string | null) =>
+    arrayToMap([...groupBy(conversationUsers, (item) => item.conversationId)]
+        .map((conversationUsersByConversationId) => ({
+            conversationId: conversationUsersByConversationId[0],
+            hasMultipleUsers: (conversationUsersByConversationId[1]
+                .filter(x => x.userId !== currentUserId).length > 1
+            )
+        })),
+        item => item.conversationId,
+        item => item.hasMultipleUsers)
+
+/**
+ * Memoized selector
+ * */
+const selectMapOfHasMultipleUsersByConversationId = createSelector(
+    selectAllConversationUsers,
+    (state: ApplicationState) => state.identity.userId,
+    getMapOfHasMultipleOtherUsersByConversationId
+)
+
 const mapStateToProps = (state: ApplicationState) => ({
     userId: state.identity.userId,
     isAuthenticated: !!state.identity.userId,
     conversations: sortedConversationsSelector(state),
-    conversationUsers: selectAllConversationUsers(state),
-    users: allUsersSelector(state)
+    hasMultipleUsersByConversationId: selectMapOfHasMultipleUsersByConversationId(state)
 });
 
 const mapDispatchToProps = {
