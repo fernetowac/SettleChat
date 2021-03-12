@@ -30,7 +30,7 @@ const RecentConversationRedirection = (props: RecentConversationRedirectionProps
     }
 
     if (conversations.length === 0) {
-        return 'No conversation exist yet. [TODO]' //TODO: decide if we'll allow redirect to display MessagesPanel or to brand new welcome screen
+        return 'No conversation exist yet. [TODO]' //TODO: decide if we'll allow redirect to display MessagesPanelContainer or to brand new welcome screen
     }
 
     return <Redirect to={`/conversation/${conversations[0].id}`} />

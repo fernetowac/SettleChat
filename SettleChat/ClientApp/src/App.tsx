@@ -3,7 +3,7 @@ import Layout from './components/Layout';
 import Notifier from './components/Notifier';
 import RecentConversationRedirection from './components/RecentConversationRedirection';
 import Home from './components/Home';
-import MessagesPanel from './components/MessagesPanel';
+import MessagesPanelContainer from './components/MessagesPanelContainer';
 import NewConversation from './components/NewConversation';
 import Token from './components/Token';
 import InvitationAcceptanceContainer from './components/InvitationAcceptanceContainer';
@@ -44,7 +44,7 @@ export default () => (
                         <Route exact path='/home' component={Home} />
                         <AuthorizeRoute path='/conversation/:conversationId' render={(props: RouteComponentProps<any>) => (
                             <SignalRContainer>
-                                <MessagesPanel {...props} />
+                                <MessagesPanelContainer {...props} />
                             </SignalRContainer>)} />
                         <Route path='/start-conversation' component={NewConversation} />
                         <Route path='*' component={PageNotFound} />
