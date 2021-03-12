@@ -9,15 +9,8 @@ import * as ConversationStore from "../store/Conversation";
 import { requestConversationDetail } from "../store/conversationDetails";
 import { requestConversationUsers } from "../store/common";
 import ConversationDetail from './ConversationDetail';
-import Users from './Users';
-import { Box, Slide, IconButton, Grid, Hidden, useMediaQuery, Theme, Typography } from '@material-ui/core';
-import * as Sentry from "@sentry/react";
-import ErrorBoundaryFallback from './ErrorBoundaryFallback';
-import Conversations from './Conversations';
-import CreateInvitationPanel from './CreateInvitationPanel';
+import { Box, IconButton, Grid, Hidden } from '@material-ui/core';
 import PersonAddIcon from '@material-ui/icons/PersonAdd';
-import PeopleIcon from '@material-ui/icons/People';
-import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import { useIsMounted } from '../hooks/useIsMounted'
 import { AppDispatch } from '../'
 import {
@@ -25,9 +18,12 @@ import {
     leftPanelDisplayConversationInvite,
     leftPanelDisplayConversationUsers,
     leftPanelDisplayConversations,
-    LeftPanelContentKind,
-    setSmallScreen
+    leftPanelContentPush,
+    ContentStackItem,
+    ContentType
 } from '../store/ui';
+import SlidingStackContainer from './SlidingStackContainer';
+import { LeftPanelConversations } from './LeftPanelConversations'
 
 // At runtime, Redux will merge together...
 type ConversationProps =
@@ -41,7 +37,14 @@ const MessagesPanel = (props: ConversationProps) => {
     const { connectionId, reconnected } = props;
     const { conversationId } = props.match.params;
     const isMounted = useIsMounted();
-    const matchesSmSize = useMediaQuery<Theme>(theme => theme.breakpoints.up('sm'));
+
+    const slideInLeftPanelConversations = () => {
+        props.actions.leftPanelContentPush({
+            type: ContentType.Conversations,
+            hiddenAtBreakpoints: ['sm', 'md', 'lg', 'xl'] /*no need to display conversations in slider in these screen sizes as they will be displayed anyway*/,
+            payload: { conversationId }
+        })
+    }
 
     React.useEffect(() => {
         requestConversationDetail(conversationId)
@@ -68,54 +71,6 @@ const MessagesPanel = (props: ConversationProps) => {
         };
     }, [startListeningConversation, stopListeningConversation, connectionId, reconnected, conversationId]);//TODO: do we need 'reconnected' here?
 
-    const leftPanel = <Box style={{ position: 'relative', display: 'flex', flexGrow: 1, flexDirection: 'column', minHeight: '0px', overflow: 'hidden' }}>
-        <Slide direction="right" in={props.uiLeftPanelContentKind === LeftPanelContentKind.ConversationInvite} mountOnEnter unmountOnExit>
-            <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, backgroundColor: '#dfdfdf', position: 'absolute', width: '100%', height: '100%', zIndex: 2 }}>
-                <Box>
-                    <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.leftPanelDisplayConversations}>
-                        <ArrowBackIcon />
-                    </IconButton>
-                            Conversation invite
-                        </Box>
-                <Box style={{ overflowY: 'auto' }}>
-                    <Box marginBottom={2} padding={2} style={{ backgroundColor: '#fff' }}>
-                        <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                            <CreateInvitationPanel conversationId={conversationId} />
-                        </Sentry.ErrorBoundary>
-                    </Box>
-                    <Box marginBottom={2} padding={2} style={{ backgroundColor: '#fff' }}>
-                        <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                            <Users conversationId={conversationId} />
-                        </Sentry.ErrorBoundary>
-                    </Box>
-                </Box>
-            </div>
-        </Slide>
-        <Slide direction="right" in={props.uiLeftPanelContentKind === LeftPanelContentKind.ConversationUsers} mountOnEnter unmountOnExit>
-            <Box style={{ flexGrow: 1, position: 'absolute', width: '100%', height: '100%', zIndex: 2 }}>
-                <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.leftPanelDisplayConversations}>
-                    <ArrowBackIcon />
-                </IconButton>
-                                Conversation users
-                            </Box>
-        </Slide>
-        <Box style={{ display: 'flex', alignItems: 'center' }}>
-            <Hidden smUp>
-                <IconButton onClick={() => props.actions.setSmallScreen(true)}>
-                    <ArrowBackIcon />
-                </IconButton>
-            </Hidden>
-            <Typography>Conversations</Typography>
-            <IconButton style={{ marginLeft: 'auto' }} onClick={props.actions.leftPanelDisplayConversationInvite}><PersonAddIcon /></IconButton>
-            <IconButton onClick={props.actions.leftPanelDisplayConversationUsers}><PeopleIcon /></IconButton>
-        </Box>
-        <Box style={{ display: 'flex', overflowY: 'hidden' }}>
-            <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                <Conversations />
-            </Sentry.ErrorBoundary>
-        </Box>
-    </Box>
-
     return <Grid container direction="row" style={{
         minHeight: 0,
         flexWrap: 'initial',
@@ -125,27 +80,26 @@ const MessagesPanel = (props: ConversationProps) => {
         borderWidth: 1,
         borderColor: 'black',
         alignSelf: 'center',
-        position: 'relative'
+        position: 'relative' /* needed for SlidingStackContainer (when in xs screen size) which sets its dimensions based on its first relative parent */
     }}>
         <Hidden xsDown={true}>
-            <Grid item xs={4} style={{ display: 'flex', flexDirection: 'column', padding: 0, borderRight: '1px solid black' }}>
-                {leftPanel}
+            <Grid item xs={4} style={{ display: 'flex', flexDirection: 'column', padding: 0, borderRight: '1px solid black', position: 'relative' /* needed for SlidingStackContainer*/, overflow: 'hidden' }}>
+                <SlidingStackContainer conversationId={conversationId} />
+                <LeftPanelConversations currentConversationId={conversationId} />
             </Grid>
         </Hidden>
         <Hidden smUp>
-            <Slide direction='right' in={!props.isSmallScreen} mountOnEnter unmountOnExit>
-                <div style={{ display: 'flex', flexDirection: 'column', padding: 0, position: 'absolute', width: '100%', height: '100%', zIndex: 2, background: 'red' }}>
-                    {leftPanel}
-                </div>
-            </Slide>
+            <SlidingStackContainer conversationId={conversationId} />
         </Hidden>
-        <Grid item sm={8} xs={12} style={{ display: 'flex', padding: 0 }}>
+        <Grid item xs={12} sm={8} style={{ display: 'flex', padding: 0 }}>
             <Grid container direction="column" style={{ flexWrap: 'initial' }}>
                 <Grid item xs={12} style={{ flexBasis: 'initial' }}>
                     <ConversationDetail id={conversationId} />
-                    <Box style={{ display: 'flex' }}>
-                        <IconButton style={{ marginLeft: 'auto' }} onClick={() => { props.actions.setSmallScreen(!props.isSmallScreen) }}><PersonAddIcon /></IconButton>
-                    </Box>
+                    <Hidden smUp>
+                        <Box style={{ display: 'flex' }}>
+                            <IconButton style={{ marginLeft: 'auto' }} onClick={slideInLeftPanelConversations}><PersonAddIcon /></IconButton>
+                        </Box>
+                    </Hidden>
                 </Grid>
                 <Grid item xs={12} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', minHeight: 0 }}>
                     <MessagesContainer conversationId={conversationId} />
@@ -165,7 +119,6 @@ const mapStateToProps = (state: ApplicationState) => {
     }
     return ({
         uiLeftPanelContentKind: state.conversation.ui.leftPanel.contentKind,
-        isSmallScreen: state.conversation.ui.isSmallScreen,
         connectionId: state.signalR.connectionId,
         reconnected: state.signalR.reconnected
     });
@@ -181,7 +134,7 @@ const mapDispatchToProps = (dispatch: AppDispatch) => ({
         leftPanelDisplayConversationInvite: () => dispatch(leftPanelDisplayConversationInvite()),
         leftPanelDisplayConversationUsers: () => dispatch(leftPanelDisplayConversationUsers()),
         leftPanelDisplayConversations: () => dispatch(leftPanelDisplayConversations()),
-        setSmallScreen: (isSmallScreen: boolean) => dispatch(setSmallScreen(isSmallScreen))
+        leftPanelContentPush: (content: ContentStackItem) => dispatch(leftPanelContentPush(content))
     }
 });
 

@@ -10,6 +10,7 @@ import App from './App';
 import * as Sentry from "@sentry/react";
 import { Integrations } from "@sentry/tracing";
 import { SnackbarProvider } from 'notistack';
+import { useDispatch } from 'react-redux'
 //import registerServiceWorker from './registerServiceWorker';
 
 Sentry.init({
@@ -26,6 +27,7 @@ const history = createBrowserHistory();
 // Get the application-wide store instance, prepopulating with state from the server where available.
 const store = configureStore(history);
 export type AppDispatch = typeof store.dispatch
+export const useAppDispatch = () => useDispatch<AppDispatch>()
 
 ReactDOM.render(
     <Provider store={store}>

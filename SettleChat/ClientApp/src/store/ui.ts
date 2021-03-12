@@ -7,23 +7,68 @@ export enum LeftPanelContentKind {
     ConversationInvite
 }
 
+export enum ContentType {
+    Conversations,
+    ConversationDetail,
+    Invitation,
+    GroupCreation,
+    UserDetail,
+    ConversationUserDetail
+}
+
+export type ContentStackItem = { hiddenAtBreakpoints?: ('xs' | 'sm' | 'md' | 'lg' | 'xl')[] } & (ConversationsContentStackItem |
+    ConversationDetailContentStackItem |
+    InvitationContentStackItem |
+    GroupCreationContentStackItem |
+    UserDetailContentStackItem |
+    ConversationUserDetailContentStackItem)
+
+interface ConversationsContentStackItem {
+    type: ContentType.Conversations,
+    payload: { conversationId: string }
+}
+
+interface ConversationDetailContentStackItem {
+    type: ContentType.ConversationDetail,
+    payload: { conversationId: string }
+}
+
+interface InvitationContentStackItem {
+    type: ContentType.Invitation,
+    payload: { conversationId: string }
+}
+
+interface GroupCreationContentStackItem {
+    type: ContentType.GroupCreation,
+}
+
+interface UserDetailContentStackItem {
+    type: ContentType.UserDetail,
+    payload: { userId: string }
+}
+
+interface ConversationUserDetailContentStackItem {
+    type: ContentType.UserDetail,
+    payload: { conversationUserId: string }
+}
+
 interface UiLeftPanel {
-    contentKind: LeftPanelContentKind
+    contentKind: LeftPanelContentKind,
+    contentStack: ContentStackItem[]
 }
 export interface Ui {
     isConversationLoading: boolean;
     canLoadMoreMessages: boolean;
     leftPanel: UiLeftPanel;
-    isSmallScreen: boolean;
 }
 
 const initialUi: Ui = {
     isConversationLoading: false,
     canLoadMoreMessages: false,
     leftPanel: {
-        contentKind: LeftPanelContentKind.Conversations
-    },
-    isSmallScreen: false
+        contentKind: LeftPanelContentKind.Conversations,
+        contentStack: []
+    }
 };
 
 const uiSlice = createSlice({
@@ -49,8 +94,11 @@ const uiSlice = createSlice({
         leftPanelDisplayConversations: (state) => {
             state.leftPanel.contentKind = LeftPanelContentKind.Conversations
         },
-        setSmallScreen: (state, action: PayloadAction<boolean>) => {
-            state.isSmallScreen = action.payload
+        leftPanelContentPush: (state, action: PayloadAction<ContentStackItem>) => {
+            state.leftPanel.contentStack.push(action.payload)
+        },
+        leftPanelContentPop: (state) => {
+            state.leftPanel.contentStack.pop()
         }
     },
     extraReducers: (builder) => {
@@ -75,6 +123,7 @@ export const {
     leftPanelDisplayConversationInvite,
     leftPanelDisplayConversationUsers,
     leftPanelDisplayConversations,
-    setSmallScreen
+    leftPanelContentPush,
+    leftPanelContentPop
 } = uiSlice.actions
 export const { reducer: uiReducer } = uiSlice
