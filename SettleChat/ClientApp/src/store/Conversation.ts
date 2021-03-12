@@ -24,14 +24,13 @@ export interface ConversationState {
     invitations: Invitation[];
 }
 
-export const actionCreators = {
-    startListeningConversation: createAsyncThunk<void, { connectionId: string, conversationId: string }>('conversation/startListening', ({ connectionId, conversationId }) =>
-        fetchPost<void>(`/api/notifications/conversations/${conversationId}`, connectionId)
-    ),
-    stopListeningConversation: createAsyncThunk<void, { connectionId: string, conversationId: string }>('conversation/stopListening', async ({ connectionId, conversationId }) =>
-        await fetchDelete<void>(`/api/notifications/conversations/${conversationId}`, connectionId)
-    )
-};
+export const startListeningConversation = createAsyncThunk<void, { connectionId: string, conversationId: string }>('conversation/startListening', ({ connectionId, conversationId }) =>
+    fetchPost<void>(`/api/notifications/conversations/${conversationId}`, connectionId)
+)
+
+export const stopListeningConversation = createAsyncThunk<void, { connectionId: string, conversationId: string }>('conversation/stopListening', async ({ connectionId, conversationId }) =>
+    await fetchDelete<void>(`/api/notifications/conversations/${conversationId}`, connectionId)
+)
 
 export const reducer = combineReducers<ConversationState>({
     detail: conversationDetailsReducer,

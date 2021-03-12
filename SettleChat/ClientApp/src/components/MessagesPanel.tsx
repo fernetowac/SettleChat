@@ -3,43 +3,27 @@ import MessagesContainer from "./MessagesContainer"
 import MessageInput from './MessageInput';
 import OthersWritingActivity from './OthersWritingActivity';
 import { RouteComponentProps } from 'react-router';
-import { connect } from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
 import { ApplicationState } from '../store/index';
-import * as ConversationStore from "../store/Conversation";
+import { startListeningConversation, stopListeningConversation } from "../store/Conversation";
 import { requestConversationDetail } from "../store/conversationDetails";
 import { requestConversationUsers } from "../store/common";
 import ConversationDetail from './ConversationDetail';
 import { Box, IconButton, Grid, Hidden } from '@material-ui/core';
 import PersonAddIcon from '@material-ui/icons/PersonAdd';
 import { useIsMounted } from '../hooks/useIsMounted'
-import { AppDispatch } from '../'
-import {
-    enableLoadingMoreMessages,
-    leftPanelDisplayConversationInvite,
-    leftPanelDisplayConversationUsers,
-    leftPanelDisplayConversations,
-    leftPanelContentPush,
-    ContentStackItem,
-    ContentType
-} from '../store/ui';
+import { enableLoadingMoreMessages, leftPanelContentPush, ContentType } from '../store/ui';
 import SlidingStackContainer from './SlidingStackContainer';
 import { LeftPanelConversations } from './LeftPanelConversations'
 
-// At runtime, Redux will merge together...
-type ConversationProps =
-    // ... state we've requested from the Redux store
-    ReturnType<typeof mapStateToProps>
-    & ReturnType<typeof mapDispatchToProps> // ... plus action creators we've requested
-    & RouteComponentProps<{ conversationId: string }>; // ... plus incoming routing parameters
-
-const MessagesPanel = (props: ConversationProps) => {
-    const { requestConversationDetail, requestConversationUsers, startListeningConversation, stopListeningConversation } = props.actions;
+const MessagesPanel = (props: ConnectedProps<typeof connector> & RouteComponentProps<{ conversationId: string }>) => {
+    const { requestConversationDetail, requestConversationUsers, startListeningConversation, stopListeningConversation } = props;
     const { connectionId, reconnected } = props;
     const { conversationId } = props.match.params;
     const isMounted = useIsMounted();
 
     const slideInLeftPanelConversations = () => {
-        props.actions.leftPanelContentPush({
+        props.leftPanelContentPush({
             type: ContentType.Conversations,
             hiddenAtBreakpoints: ['sm', 'md', 'lg', 'xl'] /*no need to display conversations in slider in these screen sizes as they will be displayed anyway*/,
             payload: { conversationId }
@@ -53,7 +37,7 @@ const MessagesPanel = (props: ConversationProps) => {
                     return requestConversationUsers(conversationId)
                 }
             }) //TODO: when user is connected, we need to update his UserStatus in users list somehow
-            .catch(x => console.error(`MessagesPanel catch alert ${x}`));
+            .catch(x => console.error(`MessagesPanel catch alert ${x}`));//TODO: can we take some recovery action?
         return () => {
             // cleanup
             //TODO: abort promises for requestConversationDetail and requestConversationUsers
@@ -62,12 +46,12 @@ const MessagesPanel = (props: ConversationProps) => {
 
     React.useEffect(() => {
         // It is always needed to restart listening to conversation when there's new connectionId (even when only reconnected), because new connectionId might be issued also due to server restart
-        startListeningConversation(connectionId, conversationId)
-            .catch(x => console.error(`MessagesPanel catch alert ${x}`));
+        startListeningConversation({ connectionId, conversationId })
+            .catch(x => console.error(`MessagesPanel catch alert ${x}`));//TODO: let user know we're not listening to some conversation updates
         return () => {
             // cleanup
             //TODO: abort promise for startListeningConversation so that it doesn't get finished after stopListeningConversation
-            stopListeningConversation(connectionId, conversationId);
+            stopListeningConversation({ connectionId, conversationId });
         };
     }, [startListeningConversation, stopListeningConversation, connectionId, reconnected, conversationId]);//TODO: do we need 'reconnected' here?
 
@@ -118,27 +102,23 @@ const mapStateToProps = (state: ApplicationState) => {
         throw new Error('ConnectionId must be set.');
     }
     return ({
-        uiLeftPanelContentKind: state.conversation.ui.leftPanel.contentKind,
         connectionId: state.signalR.connectionId,
         reconnected: state.signalR.reconnected
     });
 }
 
-const mapDispatchToProps = (dispatch: AppDispatch) => ({
-    actions: {
-        requestConversationDetail: (conversationId: string) => dispatch(requestConversationDetail(conversationId)),
-        requestConversationUsers: (conversationId: string) => dispatch(requestConversationUsers(conversationId)),
-        startListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.startListeningConversation({ connectionId, conversationId })),
-        stopListeningConversation: (connectionId: string, conversationId: string) => dispatch(ConversationStore.actionCreators.stopListeningConversation({ connectionId, conversationId })),
-        enableLoadingMoreMessages: () => dispatch(enableLoadingMoreMessages()),
-        leftPanelDisplayConversationInvite: () => dispatch(leftPanelDisplayConversationInvite()),
-        leftPanelDisplayConversationUsers: () => dispatch(leftPanelDisplayConversationUsers()),
-        leftPanelDisplayConversations: () => dispatch(leftPanelDisplayConversations()),
-        leftPanelContentPush: (content: ContentStackItem) => dispatch(leftPanelContentPush(content))
-    }
-});
+const mapDispatchToProps = {
+    requestConversationDetail,
+    requestConversationUsers,
+    startListeningConversation,
+    stopListeningConversation,
+    enableLoadingMoreMessages,
+    leftPanelContentPush
+}
 
-export default connect(
+const connector = connect(
     mapStateToProps,
     mapDispatchToProps
-)(MessagesPanel);
+)
+
+export default connector(MessagesPanel);

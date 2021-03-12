@@ -35,7 +35,7 @@ interface OwnProps {
 }
 
 const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => ({
-    contentStack: state.conversation.ui.leftPanel.contentStack,
+    contentStack: state.conversation.ui.leftPanelContentStack,
     conversationId: ownProps.conversationId
 })
 

@@ -52,23 +52,16 @@ interface ConversationUserDetailContentStackItem {
     payload: { conversationUserId: string }
 }
 
-interface UiLeftPanel {
-    contentKind: LeftPanelContentKind,
-    contentStack: ContentStackItem[]
-}
 export interface Ui {
-    isConversationLoading: boolean;
-    canLoadMoreMessages: boolean;
-    leftPanel: UiLeftPanel;
+    isConversationLoading: boolean
+    canLoadMoreMessages: boolean
+    leftPanelContentStack: ContentStackItem[]
 }
 
 const initialUi: Ui = {
     isConversationLoading: false,
     canLoadMoreMessages: false,
-    leftPanel: {
-        contentKind: LeftPanelContentKind.Conversations,
-        contentStack: []
-    }
+    leftPanelContentStack: []
 };
 
 const uiSlice = createSlice({
@@ -85,20 +78,11 @@ const uiSlice = createSlice({
                 state.canLoadMoreMessages = false
             }
         },
-        leftPanelDisplayConversationInvite: (state) => {
-            state.leftPanel.contentKind = LeftPanelContentKind.ConversationInvite
-        },
-        leftPanelDisplayConversationUsers: (state) => {
-            state.leftPanel.contentKind = LeftPanelContentKind.ConversationUsers
-        },
-        leftPanelDisplayConversations: (state) => {
-            state.leftPanel.contentKind = LeftPanelContentKind.Conversations
-        },
         leftPanelContentPush: (state, action: PayloadAction<ContentStackItem>) => {
-            state.leftPanel.contentStack.push(action.payload)
+            state.leftPanelContentStack.push(action.payload)
         },
         leftPanelContentPop: (state) => {
-            state.leftPanel.contentStack.pop()
+            state.leftPanelContentStack.pop()
         }
     },
     extraReducers: (builder) => {
@@ -120,9 +104,6 @@ const uiSlice = createSlice({
 export const {
     enableLoadingMoreMessages,
     disableLoadingMoreMessages,
-    leftPanelDisplayConversationInvite,
-    leftPanelDisplayConversationUsers,
-    leftPanelDisplayConversations,
     leftPanelContentPush,
     leftPanelContentPop
 } = uiSlice.actions
