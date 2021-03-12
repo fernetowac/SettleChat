@@ -5,7 +5,8 @@ import { AppDispatch } from '../'
 import { identityChangedActionCreator, requestConversationsWithUsers } from './common'
 import { AppThunkApiConfig } from '../types/commonTypes';
 import { ConversationDetail, ConversationWithUsersResponse } from '../types/conversationTypes';
-import { omit, flatten } from 'lodash'
+import omit from 'lodash/omit'
+import flatten from 'lodash/flatten'
 import { ConversationUserMeta } from '../types/conversationUserTypes';
 import { User } from '../types/userTypes';
 

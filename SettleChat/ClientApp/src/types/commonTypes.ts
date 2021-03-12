@@ -1,4 +1,4 @@
-﻿import { isDate } from 'lodash'
+﻿import isDate from 'lodash/isDate'
 import { AppDispatch } from '..';
 import { ApplicationState } from '../store';
 /**

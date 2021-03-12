@@ -4,7 +4,8 @@ import { fetchGet, fetchPost } from '../services/FetchService'
 import { problemDetailsThunkOptions, identityChangedActionCreator, messageAddedActionCreator } from './common'
 import { ProblemDetails, AppThunkApiConfig } from '../types/commonTypes'
 import { Message } from '../types/messageTypes'
-import { groupBy, mapValues } from 'lodash'
+import groupBy from 'lodash/groupBy'
+import mapValues from 'lodash/mapValues'
 import { highestBy } from '../helpers/sortHelper';
 import SchemaKind from '../schemas/SchemaKind'
 
