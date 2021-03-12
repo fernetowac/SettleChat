@@ -7,7 +7,7 @@ import { userByIdSelector } from '../store/users';
 const UserName = (props: ReturnType<ReturnType<typeof makeMapStateToProps>>) => {
     const { nickname, username } = props
     return (<>
-        <div>{nickname || username || 'someone'}</div>
+        {nickname || username || 'someone'}
     </>)
 }
 

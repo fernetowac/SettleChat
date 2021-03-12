@@ -12,7 +12,8 @@ const ConversationTitle = (props: ReturnType<ReturnType<typeof makeMapStateToPro
     }
     if (userIdsSelector.length > 0) {
         return <>
-            {userIdsSelector.map(x => (<UserName key={x} conversationId={conversationId} userId={x} />))}
+            {userIdsSelector.slice(0, 3).map(x => (<UserName key={x} conversationId={conversationId} userId={x} />))}
+            {(userIdsSelector.length > 3 && '...')}
         </>
     }
     return <>Conversation</>
@@ -24,8 +25,8 @@ type OwnProps = {
 
 const makeUserIdsSelector = () => {
     return createSelector(
-        [conversationUsersByConversationIdSelector],
-        (conversationUsers) => conversationUsers.map(x => x.userId)
+        [conversationUsersByConversationIdSelector, (state: ApplicationState) => state.identity.userId],
+        (conversationUsers, currentUserId) => conversationUsers.filter(x => x.userId !== currentUserId).map(x => x.userId)
     )
 }
 
