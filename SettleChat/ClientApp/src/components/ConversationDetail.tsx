@@ -2,7 +2,7 @@
 import { connect } from 'react-redux';
 import { ApplicationState } from '../store/index';
 import { conversationByIdSelector, ConversationPatch, patchConversationDetail } from '../store/conversationDetails'
-import { Switch, FormControl, FormLabel, FormGroup, FormControlLabel, FormHelperText, IconButton, TextField, Box } from '@material-ui/core';
+import { Switch, FormControl, FormLabel, FormGroup, FormControlLabel, FormHelperText, IconButton, TextField, Box, ClickAwayListener } from '@material-ui/core';
 import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@material-ui/icons';
 import { AppDispatch } from '../'
 
@@ -63,6 +63,8 @@ const ConversationDetail = (props: ConversationDetailProps) => {
         setIsTitleEditing(false);
     }
 
+    const onClickAwayFromTitle = () => handleCancelInputTitle()
+
     const onTitleSaveClick = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>): void => {
         handleSaveInputTitle();
     }
@@ -110,30 +112,32 @@ const ConversationDetail = (props: ConversationDetailProps) => {
     } else {
         return <React.Fragment>
             <h1>{isTitleEditing ?
-                <Box display="flex">
-                    <Box flexGrow={1}>
-                        <TextField
-                            type="text"
-                            placeholder="Title"
-                            disabled={isTitleDisabled}
-                            value={inputTitle}
-                            inputProps={{ 'aria-label': 'Conversation title' }}
-                            label="Conversation title"
-                            fullWidth
-                            required
-                            inputRef={inputTitleRef}
-                            onChange={onInputTitleChange}
-                            error={inputTitleHasError}
-                            onKeyDown={onInputTitleKeyDown}
-                        />
+                <ClickAwayListener onClickAway={onClickAwayFromTitle}>
+                    <Box display="flex">
+                        <Box flexGrow={1}>
+                            <TextField
+                                type="text"
+                                placeholder="Title"
+                                disabled={isTitleDisabled}
+                                value={inputTitle}
+                                inputProps={{ 'aria-label': 'Conversation title' }}
+                                label="Conversation title"
+                                fullWidth
+                                required
+                                inputRef={inputTitleRef}
+                                onChange={onInputTitleChange}
+                                error={inputTitleHasError}
+                                onKeyDown={onInputTitleKeyDown}
+                            />
+                        </Box>
+                        <IconButton aria-label="edit" size="small" onClick={onTitleSaveClick}>
+                            <SaveIcon />
+                        </IconButton>
+                        <IconButton aria-label="cancel" size="small" onClick={onInputTitleCancelClick}>
+                            <CancelIcon />
+                        </IconButton>
                     </Box>
-                    <IconButton aria-label="edit" size="small" onClick={onTitleSaveClick}>
-                        <SaveIcon />
-                    </IconButton>
-                    <IconButton aria-label="cancel" size="small" onClick={onInputTitleCancelClick}>
-                        <CancelIcon />
-                    </IconButton>
-                </Box>
+                </ClickAwayListener>
                 :
                 <React.Fragment>
                     {props.conversation.title}
