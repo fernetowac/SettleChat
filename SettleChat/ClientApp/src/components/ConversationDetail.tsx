@@ -12,7 +12,7 @@ const ConversationDetail = (props: ConversationDetailProps) => {
     const [isPublicDisabled, setIsPublicDisabled] = React.useState(false);
     const [isTitleDisabled, setIsTitleDisabled] = React.useState(false);
     const [isTitleEditing, setIsTitleEditing] = React.useState(false);
-    const [inputTitle, setInputTitle] = React.useState<string | undefined>(props.conversation?.title);
+    const [inputTitle, setInputTitle] = React.useState<string>(props.conversation?.title || '');
     const [inputTitleHasError, setInputTitleHasError] = React.useState(false);
     const inputTitleRef = React.useRef<HTMLInputElement>(null);
 
@@ -29,12 +29,12 @@ const ConversationDetail = (props: ConversationDetailProps) => {
         setIsTitleEditing(true);
     }
 
-    const isValidInputTitle = (inputTitle: string | undefined): boolean => {
-        return inputTitle !== undefined && /^.{3,200}$/.test(inputTitle);
+    const isValidInputTitle = (inputTitle: string): boolean => {
+        return /^.{3,200}$/.test(inputTitle);
     }
 
     const handleSaveInputTitle = () => {
-        if (!props.conversation || inputTitle === undefined) {
+        if (!props.conversation) {
             return;
         }
 
@@ -57,7 +57,7 @@ const ConversationDetail = (props: ConversationDetailProps) => {
         if (!props.conversation) {
             return;
         }
-        setInputTitle(props.conversation.title);
+        setInputTitle(props.conversation.title || '');
         setInputTitleHasError(false);
         setIsTitleDisabled(false);
         setIsTitleEditing(false);
@@ -94,7 +94,7 @@ const ConversationDetail = (props: ConversationDetailProps) => {
 
     React.useEffect(() => {
         if (props.conversation) {
-            setInputTitle(props.conversation.title);
+            setInputTitle(props.conversation.title || '');
         }
     }, [props.conversation]);
 
