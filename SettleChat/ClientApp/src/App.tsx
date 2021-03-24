@@ -15,42 +15,48 @@ import * as Sentry from "@sentry/react";
 import ErrorBoundaryFallback from './components/ErrorBoundaryFallback';
 import SignalRContainer from './components/SignalRContainer';
 import { CssBaseline, ThemeProvider, createMuiTheme, responsiveFontSizes } from '@material-ui/core';
+import { SnackbarProvider } from 'notistack';
 
 import './custom.css'
 
 const theme = responsiveFontSizes(createMuiTheme({
     typography: {
         fontSize: 14
+    },
+    zIndex: {
+        snackbar: 10000
     }
 }));
 
 export default () => (
     <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Notifier />
-        <Switch>
-            <Route path='/token/:token' component={Token} />
-            <Route exact
-                path='/invitation/:token/:step?'
-                render={
-                    (props) => <InvitationAcceptanceContainer token={props.match.params.token} step={parseInt(props.match.params.step || '0')} />
-                }
-            />
-            <Route path={ApplicationPaths.ApiAuthorizationPrefix} component={ApiAuthorizationRoutes} />
-            <Layout>
-                <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
-                    <Switch>
-                        <AuthorizeRoute exact path='/' component={RecentConversationRedirection} />
-                        <Route exact path='/home' component={Home} />
-                        <AuthorizeRoute path='/conversation/:conversationId' render={(props: RouteComponentProps<any>) => (
-                            <SignalRContainer>
-                                <MessagesPanelContainer {...props} />
-                            </SignalRContainer>)} />
-                        <Route path='/start-conversation' component={NewConversation} />
-                        <Route path='*' component={PageNotFound} />
-                    </Switch>
-                </Sentry.ErrorBoundary>
-            </Layout>
-        </Switch>
+        <SnackbarProvider>
+            <CssBaseline />
+            <Notifier />
+            <Switch>
+                <Route path='/token/:token' component={Token} />
+                <Route exact
+                    path='/invitation/:token/:step?'
+                    render={
+                        (props) => <InvitationAcceptanceContainer token={props.match.params.token} step={parseInt(props.match.params.step || '0')} />
+                    }
+                />
+                <Route path={ApplicationPaths.ApiAuthorizationPrefix} component={ApiAuthorizationRoutes} />
+                <Layout>
+                    <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
+                        <Switch>
+                            <AuthorizeRoute exact path='/' component={RecentConversationRedirection} />
+                            <Route exact path='/home' component={Home} />
+                            <AuthorizeRoute path='/conversation/:conversationId' render={(props: RouteComponentProps<any>) => (
+                                <SignalRContainer>
+                                    <MessagesPanelContainer {...props} />
+                                </SignalRContainer>)} />
+                            <Route path='/start-conversation' component={NewConversation} />
+                            <Route path='*' component={PageNotFound} />
+                        </Switch>
+                    </Sentry.ErrorBoundary>
+                </Layout>
+            </Switch>
+        </SnackbarProvider>
     </ThemeProvider>
 );
