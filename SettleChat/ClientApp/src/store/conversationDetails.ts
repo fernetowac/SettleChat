@@ -2,7 +2,7 @@
 import { ApplicationState } from './index';
 import { fetchGet, fetchPatch, fetchPost } from '../services/FetchService';
 import { AppDispatch } from '../'
-import { identityChangedActionCreator, requestConversationsWithUsers } from './common'
+import { identityChangedActionCreator, problemDetailsThunkOptions, requestConversationsWithUsers } from './common'
 import { AppThunkApiConfig } from '../types/commonTypes';
 import { ConversationDetail, ConversationWithUsersResponse } from '../types/conversationTypes';
 import omit from 'lodash/omit'
@@ -28,21 +28,32 @@ const normalizeConversationWithUsersResponse = (response: ConversationWithUsersR
 }
 
 const thunks = {
-    requestConversationDetail: createAsyncThunk<ConversationDetail | never, string, AppThunkApiConfig>('conversation/request', async (conversationId, thunkAPI) => {
-        const conversation = await fetchGet<ConversationDetail>(`/api/conversations/${conversationId}`)
-        thunkAPI.dispatch(conversationDetailsActions.received(conversation));
-        return conversation;
-    }),
-    patchConversationDetail: createAsyncThunk<ConversationDetail, { conversationId: string, updatedProperties: ConversationPatch }, { state: ApplicationState, dispatch: AppDispatch }>('conversation/patch', async ({ conversationId, updatedProperties }, thunkAPI) => {
-        const data = await fetchPatch<ConversationDetail>(`/api/conversations/${conversationId}`, updatedProperties)
-        thunkAPI.dispatch(conversationDetailsActions.received(data));
-        return data;
-
-    }),
-    addConversation: createAsyncThunk('conversations/addThunk', async (conversationInput: NewConversation) => {
-        return await fetchPost<ConversationWithUsersResponse>('/api/Conversations', conversationInput)
-            .then(normalizeConversationWithUsersResponse)
-    })
+    requestConversationDetail: createAsyncThunk<ConversationDetail | never, string, AppThunkApiConfig>(
+        'conversation/request',
+        async (conversationId, thunkAPI) => {
+            const conversation = await fetchGet<ConversationDetail>(`/api/conversations/${conversationId}`)
+            thunkAPI.dispatch(conversationDetailsActions.received(conversation));
+            return conversation;
+        },
+        problemDetailsThunkOptions
+    ),
+    patchConversationDetail: createAsyncThunk<ConversationDetail, { conversationId: string, updatedProperties: ConversationPatch }, AppThunkApiConfig>(
+        'conversation/patch',
+        async ({ conversationId, updatedProperties }, thunkAPI) => {
+            const data = await fetchPatch<ConversationDetail>(`/api/conversations/${conversationId}`, updatedProperties)
+            thunkAPI.dispatch(conversationDetailsActions.received(data));
+            return data;
+        },
+        problemDetailsThunkOptions
+    ),
+    addConversation: createAsyncThunk<ReturnType<typeof normalizeConversationWithUsersResponse>, NewConversation, AppThunkApiConfig>(
+        'conversations/addThunk',
+        async (conversationInput) => {
+            return await fetchPost<ConversationWithUsersResponse>('/api/Conversations', conversationInput)
+                .then(normalizeConversationWithUsersResponse)
+        },
+        problemDetailsThunkOptions
+    )
 }
 export const conversationDetailsAdapter = createEntityAdapter<ConversationDetail>()
 export const allConversationsSelector = conversationDetailsAdapter.getSelectors<ApplicationState>((state) => state.conversation.detail).selectAll

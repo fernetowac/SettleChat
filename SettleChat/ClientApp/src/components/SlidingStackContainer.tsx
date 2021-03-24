@@ -13,6 +13,7 @@ const SlidingStackContainer = (props: ConnectedProps<typeof connector>) => {
             case ContentType.Conversations:
                 return <LeftPanelConversations currentConversationId={props.conversationId} closable />
             case ContentType.Invitation:
+            case ContentType.GroupCreation:
                 return <LeftPanelInvitation conversationId={props.conversationId} />
             default:
                 throw Error(`Unsupported sliding stack content type:${contentStackItem.type}`)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using IdentityServer4.Extensions;
 using Microsoft.AspNetCore.Authorization;
@@ -90,14 +91,13 @@ namespace SettleChat.Controllers
                     ConversationUsers = @group.Key
                         .ConversationUsers
                         .Select(conversationUser =>
-                        new ApiConversationUser(conversationUser.Id, conversationUser.UserId, conversationUser.ConversationId)
-                        {
-                            Nickname = conversationUser.UserNickName,
-                            User = new ApiUser(conversationUser.User.Id, conversationUser.User.UserName,
-                                    ConversationHub.Connections.GetConnections(conversationUser.UserId).Any() ? UserStatus.Online : UserStatus.Offline)
+                        new ApiConversationUser(conversationUser.Id, conversationUser.UserId, conversationUser.ConversationId,
+                            new ApiUser(conversationUser.User.Id, conversationUser.User.UserName, ConversationHub.Connections.GetConnections(conversationUser.UserId).Any() ? UserStatus.Online : UserStatus.Offline)
                             {
                                 LastActivityTimestamp = conversationUser.User.LastActivityTimestamp
-                            }
+                            })
+                        {
+                            Nickname = conversationUser.UserNickName
                         })
                         .ToList()
                 })
@@ -139,7 +139,7 @@ namespace SettleChat.Controllers
             Guid userId = Guid.Parse(User.Identity.GetSubjectId());
             if (!conversation.ConversationUsers.Exists(x => x.UserId == userId))
             {
-                return Unauthorized();
+                return Unauthorized();//TODO: return status 403
             }
 
             return new ConversationModel
@@ -278,8 +278,12 @@ namespace SettleChat.Controllers
                 Title = inputDbConversation.Title,
                 ConversationUsers = new List<ApiConversationUser>
                 {
-                    new ApiConversationUser(conversationUser.Id, conversationUser.UserId,
-                        conversationUser.ConversationId)
+                    new ApiConversationUser(
+                        conversationUser.Id,
+                        conversationUser.UserId,
+                        conversationUser.ConversationId,
+                        new ApiUser(currentUserId, User.FindFirstValue(ClaimTypes.NameIdentifier), UserStatus.Online)
+                        )
                     {
                         Nickname = null
                     }

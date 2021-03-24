@@ -6,12 +6,24 @@ import flatten from 'lodash/flatten'
 import { User } from '../types/userTypes'
 import { ConversationUserResponse, ConversationUserMeta, ConversationUsersResponse } from '../types/conversationUserTypes'
 import { ConversationDetail, ConversationsWithUsersResponse } from '../types/conversationTypes'
-import { fetchGet } from '../services/FetchService'
+import { fetchGet, fetchPost } from '../services/FetchService'
 import { ProblemDetails, AppThunkApiConfig } from '../types/commonTypes'
+
+export const problemDetailsThunkOptions = {
+    serializeError: (error: unknown) => {
+        if (typeof error === 'object') {
+            if (error && error.hasOwnProperty('type') && error.hasOwnProperty('title') && error.hasOwnProperty('status') && error.hasOwnProperty('traceId')) {
+                return error as ProblemDetails
+            }
+        }
+        console.error(error)
+        throw Error('Error details in wrong format')
+    }
+}
 
 function toPrepareAction<TResponse>(func: ((...args: any[]) => TResponse)): PrepareAction<TResponse> {
     return (...args: any[]) => ({
-        payload: func(args)
+        payload: func(...args)
     })
 }
 
@@ -46,24 +58,18 @@ export const requestConversationsWithUsers = createAsyncThunk('common/requestCon
     return normalizeConversationsWithUsersResponse(conversations)
 })
 
-export const requestConversationUsers = createAsyncThunk<{ conversationUsers: ConversationUserMeta[], users: User[] }, string, AppThunkApiConfig>('users/requestUsers', async (conversationId, thunkAPI) => {
-    // Only load data if it's something we don't already have (and are not already loading)
-    const appState = thunkAPI.getState();
-    if (!appState || !appState.conversation || !appState.conversation.detail) {
-        throw Error('appState or its conversation is undefined');
-    }
+export const requestConversationUsers = createAsyncThunk<{ conversationUsers: ConversationUserMeta[], users: User[] }, string, AppThunkApiConfig>(
+    'users/requestUsers',
+    async (conversationId) =>
+        await fetchGet<ConversationUsersResponse>(`/api/conversations/${conversationId}/users`)
+            .then(normalizeConversationUsersResponse),
+    problemDetailsThunkOptions
+)
 
-    return await fetchGet<ConversationUsersResponse>(`/api/conversations/${conversationId}/users`)
-        .then(normalizeConversationUsersResponse)
-})
-
-export const problemDetailsThunkOptions = {
-    serializeError: (error: unknown) => {
-        if (typeof error === 'object') {
-            if (error && error.hasOwnProperty('type') && error.hasOwnProperty('title') && error.hasOwnProperty('status') && error.hasOwnProperty('traceId')) {
-                return error as ProblemDetails
-            }
-        }
-        throw Error('Error details in wrong format')
-    }
-}
+export const addUserToConversation = createAsyncThunk<{ conversationUser: ConversationUserMeta, user: User }, { conversationId: string, userId: string }, AppThunkApiConfig>(
+    'conversationUsers/add',
+    async ({ conversationId, userId }) =>
+        await fetchPost<ConversationUserResponse>(`/api/conversations/${conversationId}/users`, { userId })
+            .then(normalizeConversationUserResponse),
+    problemDetailsThunkOptions
+)

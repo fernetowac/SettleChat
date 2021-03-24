@@ -2,7 +2,7 @@
 import { ApplicationState } from './index';
 import { conversationUsersByConversationIdSelector } from './conversationUsers'
 import { User } from '../types/userTypes'
-import { conversationUserAdded, identityChangedActionCreator, requestConversationsWithUsers, requestConversationUsers } from './common'
+import { conversationUserAdded, addUserToConversation, identityChangedActionCreator, requestConversationsWithUsers, requestConversationUsers } from './common'
 import { addConversation } from './conversationDetails'
 
 export const usersAdapter = createEntityAdapter<User>()
@@ -36,6 +36,10 @@ const usersSlice = createSlice({
             )
             .addCase(
                 conversationUserAdded,
+                (state, action) => usersAdapter.addOne(state, action.payload.user)
+            )
+            .addCase(
+                addUserToConversation.fulfilled,
                 (state, action) => usersAdapter.addOne(state, action.payload.user)
             )
             .addCase(

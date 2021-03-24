@@ -61,7 +61,7 @@ const fetchExtended =
             })
             .then(async responseStream => {
                 let responsePromise = responseStream.json();
-                if (responseStream.status === 200) {
+                if (responseStream.status >= 200 && responseStream.status < 300) { // if HTTP status 2xx (success)
                     if (isDevelopment && responseSchemaKind) {
                         responsePromise = (await getSchemaValidator()).validateSchemaAsync(responsePromise, responseSchemaKind);
                     }

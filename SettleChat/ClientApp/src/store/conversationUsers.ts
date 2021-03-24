@@ -1,7 +1,7 @@
 ﻿import { createEntityAdapter, createSlice } from '@reduxjs/toolkit'
 import { ApplicationState } from './index';
 import { ConversationUserMeta } from '../types/conversationUserTypes'
-import { conversationUserAdded, identityChangedActionCreator, requestConversationsWithUsers, requestConversationUsers } from './common'
+import { conversationUserAdded, addUserToConversation, identityChangedActionCreator, requestConversationsWithUsers, requestConversationUsers } from './common'
 import { addConversation } from './conversationDetails'
 
 
@@ -30,6 +30,10 @@ const conversationUsersSlice = createSlice({
             )
             .addCase(
                 conversationUserAdded,
+                (state, action) => conversationUsersAdapter.addOne(state, action.payload.conversationUser)
+            )
+            .addCase(
+                addUserToConversation.fulfilled,
                 (state, action) => conversationUsersAdapter.addOne(state, action.payload.conversationUser)
             )
             .addCase(

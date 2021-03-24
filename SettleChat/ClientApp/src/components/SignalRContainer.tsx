@@ -132,7 +132,7 @@ const mapDispatchToProps = (dispatch: AppDispatch) => ({//TODO: can be simplyfie
         writingActivityReceived: (writingActivity: ReceivedWritingActivityData) => { dispatch(writingActivitiesActions.received(writingActivity)) },
         userStatusChanged: (userId: string, status: UserStatus) => dispatch(updateOneUser({ id: userId, changes: { status } })),
         conversationUpdated: (conversation: ConversationDetail) => dispatch(conversationDetailsActions.received(conversation)),
-        conversationUserAdded: (user: ConversationUserResponse) => dispatch(conversationUserAdded(user))
+        conversationUserAdded: (conversationUserResponse: ConversationUserResponse) => dispatch(conversationUserAdded(conversationUserResponse))
     }
 });
 
