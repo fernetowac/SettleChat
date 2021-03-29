@@ -1,7 +1,7 @@
 ﻿import { Middleware, Dispatch, MiddlewareAPI, AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import { ApplicationState } from '../store';
-import { conversationUserAdded } from '../store/common';
+import { conversationUserAdded, requestConversationUsers } from '../store/common';
 import { requestConversationDetail } from '../store/conversationDetails';
 import { signalRActions } from '../store/SignalR'
 import { updateOneUser } from '../store/users';
@@ -16,8 +16,9 @@ export const createConversationMiddleware = <S extends ApplicationState, D exten
         }
     }
 
-    const dispatchRequestConversationAndItsLastMessage = <TApi extends MiddlewareAPI<D, S>>(api: TApi, conversationId: string) => {
+    const dispatchRequestConversationWithUsersAndItsLastMessage = <TApi extends MiddlewareAPI<D, S>>(api: TApi, conversationId: string) => {
         api.dispatch(requestConversationDetail(conversationId))
+            .then(() => api.dispatch(requestConversationUsers(conversationId)))
             // we need also conversation last message so that it can be displayed in conversations list
             .then(() => api.dispatch(requestMessagesByConversationId({
                 conversationId: conversationId,
@@ -39,7 +40,7 @@ export const createConversationMiddleware = <S extends ApplicationState, D exten
                 const conversationId = action.payload.conversationUser.conversationId
                 // load conversation data (with last message) when current user has been added to new conversation
                 if (action.payload.conversationUser.userId === state.identity.userId && !state.conversation.detail.ids.includes(conversationId)) {
-                    dispatchRequestConversationAndItsLastMessage(api, conversationId)
+                    dispatchRequestConversationWithUsersAndItsLastMessage(api, conversationId)
                 }
             }
             return result;

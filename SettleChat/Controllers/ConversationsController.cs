@@ -256,7 +256,7 @@ namespace SettleChat.Controllers
             //ApplicationUser applicationUser = await _context.Users.FindAsync(Guid.Parse(User.Identity.GetSubjectId()));
             var currentUserId = Guid.Parse(User.Identity.GetSubjectId());
             var currentUserEntry = _context.Entry(new ApplicationUser { Id = currentUserId });
-            currentUserEntry.State = EntityState.Unchanged;
+            currentUserEntry.State = EntityState.Unchanged;//TODO: here it sometime crashes on "The instance of entity type 'ApplicationUser' cannot be tracked because another instance with the same key value for {'Id'} is already being tracked. When attaching existing entities, ensure that only one entity instance with a given key value is attached. Consider using 'DbContextOptionsBuilder.EnableSensitiveDataLogging' to see the conflicting key values."
 
             var conversationUser = new ConversationUser
             {

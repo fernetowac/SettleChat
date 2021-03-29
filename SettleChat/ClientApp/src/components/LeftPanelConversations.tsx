@@ -26,30 +26,46 @@ export const LeftPanelConversations = ({ currentConversationId, closable = false
             }
         }))
 
-    const leftPanelContentPushGroupCreation = () =>
+    const leftPanelContentPushGroupCreation = () => {
+        if (!anchorEl)
+            return;
         dispatch(addConversation({}))
             .then(unwrapResult)
             .then((conversationMeta) => dispatch(push(`/conversation/${conversationMeta.conversation.id}`)))
             .then(() => dispatch(leftPanelContentPush({ type: ContentType.GroupCreation })))
+    }
 
-    const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget);
     };
 
-    const handleMenuClose = () => {
+    const closeMenu = () => {
+        if (!anchorEl)
+            return;
         setAnchorEl(null);
-    };
+    };    
+
+    const isMenuOpen = !!anchorEl
+
+    const onMenuItemNewConversationClick = (_e: React.MouseEvent<HTMLLIElement, MouseEvent>) => {
+        // prevent multiple quick clicks handling
+        if (!isMenuOpen) {
+            return;
+        }
+        closeMenu();
+        leftPanelContentPushGroupCreation()
+    }
 
     const mainMenu = <Menu
         id="simple-menu"
         anchorEl={anchorEl}
         keepMounted
         open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
+        onClose={closeMenu}
     >
-        <MenuItem onClick={() => { handleMenuClose(); leftPanelContentPushGroupCreation() }}>New conversation</MenuItem>
-        <MenuItem onClick={handleMenuClose}>blabla</MenuItem>
-        <MenuItem onClick={handleMenuClose}>bla</MenuItem>
+        <MenuItem onClick={onMenuItemNewConversationClick}>New conversation</MenuItem>
+        <MenuItem onClick={closeMenu}>blabla</MenuItem>
+        <MenuItem onClick={closeMenu}>bla</MenuItem>
     </Menu>
 
     return <>
@@ -63,7 +79,7 @@ export const LeftPanelConversations = ({ currentConversationId, closable = false
             }
             <Typography>Conversations</Typography>
             <IconButton style={{ marginLeft: 'auto' }} onClick={leftPanelContentPushInvitation}><PersonAddIcon /></IconButton>
-            <IconButton onClick={handleMenuClick}><MenuIcon /></IconButton>
+            <IconButton onClick={handleMenuOpen}><MenuIcon /></IconButton>
         </Box>
         <Box style={{ display: 'flex', overflowY: 'hidden' }}>
             <Sentry.ErrorBoundary fallback={ErrorBoundaryFallback} showDialog>
