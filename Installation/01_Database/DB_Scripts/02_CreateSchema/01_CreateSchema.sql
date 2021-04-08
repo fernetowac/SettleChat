@@ -330,3 +330,147 @@ VALUES (N'20200906160647_Added status and lastActiveTimestamp to user', N'3.1.7'
 
 GO
 
+DECLARE @var1 sysname;
+SELECT @var1 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Messages]') AND [c].[name] = N'Created');
+IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [Messages] DROP CONSTRAINT [' + @var1 + '];');
+ALTER TABLE [Messages] ALTER COLUMN [Created] datetimeoffset NOT NULL;
+
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20201118190555_message-dateTimeOffset', N'3.1.7');
+
+GO
+
+DECLARE @var2 sysname;
+SELECT @var2 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[AspNetUsers]') AND [c].[name] = N'LastActivityTimestamp');
+IF @var2 IS NOT NULL EXEC(N'ALTER TABLE [AspNetUsers] DROP CONSTRAINT [' + @var2 + '];');
+ALTER TABLE [AspNetUsers] ALTER COLUMN [LastActivityTimestamp] datetimeoffset NOT NULL;
+
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20201119075434_datetime-to-datetimeoffset', N'3.1.7');
+
+GO
+
+ALTER TABLE [Conversations] ADD [IsPublic] bit NOT NULL DEFAULT CAST(0 AS bit);
+
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20201128204644_ConversationAddIsPublic', N'3.1.7');
+
+GO
+
+ALTER TABLE [Conversations] ADD [Created] datetimeoffset NOT NULL DEFAULT '0001-01-01T00:00:00.0000000+00:00';
+
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20201212171128_AddedConversationCreatedColumn', N'3.1.7');
+
+GO
+
+ALTER TABLE [ConversationUsers] ADD [UserNickName] nvarchar(max) NULL;
+
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20201217151729_added-ConversationUsers-UserNickName', N'3.1.7');
+
+GO
+
+DECLARE @var3 sysname;
+SELECT @var3 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Conversations]') AND [c].[name] = N'Title');
+IF @var3 IS NOT NULL EXEC(N'ALTER TABLE [Conversations] DROP CONSTRAINT [' + @var3 + '];');
+ALTER TABLE [Conversations] ALTER COLUMN [Title] nvarchar(max) NULL;
+
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20201217165918_Conversation-Title-Nullable', N'3.1.7');
+
+GO
+
+CREATE TABLE [Invitations] (
+    [Id] uniqueidentifier NOT NULL,
+    [ConversationId] uniqueidentifier NOT NULL,
+    [InvitedByUserId] uniqueidentifier NOT NULL,
+    [Token] nvarchar(max) NOT NULL,
+    [IsPermanent] bit NOT NULL,
+    CONSTRAINT [PK_Invitations] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_Invitations_Conversations_ConversationId] FOREIGN KEY ([ConversationId]) REFERENCES [Conversations] ([Id]),
+    CONSTRAINT [FK_Invitations_AspNetUsers_InvitedByUserId] FOREIGN KEY ([InvitedByUserId]) REFERENCES [AspNetUsers] ([Id])
+);
+
+GO
+
+CREATE INDEX [IX_Invitations_ConversationId] ON [Invitations] ([ConversationId]);
+
+GO
+
+CREATE INDEX [IX_Invitations_InvitedByUserId] ON [Invitations] ([InvitedByUserId]);
+
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20210106220442_AddedInvitationsTable', N'3.1.7');
+
+GO
+
+DROP INDEX [IX_ConversationUsers_UserId] ON [ConversationUsers];
+
+GO
+
+DECLARE @var4 sysname;
+SELECT @var4 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Invitations]') AND [c].[name] = N'Token');
+IF @var4 IS NOT NULL EXEC(N'ALTER TABLE [Invitations] DROP CONSTRAINT [' + @var4 + '];');
+ALTER TABLE [Invitations] ALTER COLUMN [Token] nvarchar(450) NOT NULL;
+
+GO
+
+ALTER TABLE [Invitations] ADD [IsActive] bit NOT NULL DEFAULT CAST(0 AS bit);
+
+GO
+
+CREATE UNIQUE INDEX [IX_Invitations_Token] ON [Invitations] ([Token]);
+
+GO
+
+CREATE UNIQUE INDEX [IX_ConversationUsers_UserId_ConversationId] ON [ConversationUsers] ([UserId], [ConversationId]);
+
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20210118174919_UniqueIndexes', N'3.1.7');
+
+GO
+
+DECLARE @var5 sysname;
+SELECT @var5 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[AspNetUsers]') AND [c].[name] = N'LastActivityTimestamp');
+IF @var5 IS NOT NULL EXEC(N'ALTER TABLE [AspNetUsers] DROP CONSTRAINT [' + @var5 + '];');
+ALTER TABLE [AspNetUsers] ALTER COLUMN [LastActivityTimestamp] datetimeoffset NULL;
+
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20210224182333_user-lastActivity-nullable', N'3.1.7');
+
+GO
+
