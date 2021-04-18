@@ -8,5 +8,8 @@
     "no-var": "error"
     
     //"@typescript-eslint/no-function-return-type": 0 // Here I manually override this specific rule
-  }
+  },
+  "extends": [
+    "prettier"
+  ]
 }

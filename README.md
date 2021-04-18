@@ -123,8 +123,13 @@ Content of `appsettings.Production.json`:
 
 # 2. Development
 ## 2.1. Visual Studio
-Make sure Typescript 4.2 for Visual Studio is installed: https://marketplace.visualstudio.com/items?itemName=TypeScriptTeam.typescript-42
+Make sure [Typescript 4.2 for Visual Studio](https://marketplace.visualstudio.com/items?itemName=TypeScriptTeam.typescript-42) is installed
 >Typescript 4.2 is referenced in .csproj in order to make tsconfig.json setting "--jsx":"react-jsx" (which is forced by Create-React-App `npm run start` command) work in Visual Studio
+
+Install [JavaScript Prettier](https://marketplace.visualstudio.com/items?itemName=MadsKristensen.JavaScriptPrettier) VS extension
+
+>[Optional] set it to format on save
+
 ## 2.2. Database migrations:
 1. when model changed, create migration by executing in VS Package Manager Console 
 ```
