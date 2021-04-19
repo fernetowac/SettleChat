@@ -1,19 +1,24 @@
-﻿import * as React from 'react';
+﻿import * as React from 'react'
 import { Redirect } from 'react-router-dom'
-import { connect } from 'react-redux';
-import { ApplicationState } from '../store/index';
+import { connect } from 'react-redux'
+import { ApplicationState } from '../store/index'
 import { AppDispatch } from '../'
-import { sortedConversationsSelector } from '../store/Conversation';
+import { sortedConversationsSelector } from '../store/Conversation'
 import { requestMessagesForAllConversations } from '../store/messages'
-import { useIsMounted } from '../hooks/useIsMounted';
-import { requestConversationsWithUsers } from '../store/common';
+import { useIsMounted } from '../hooks/useIsMounted'
+import { requestConversationsWithUsers } from '../store/common'
 
-type RecentConversationRedirectionProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
+type RecentConversationRedirectionProps = ReturnType<typeof mapStateToProps> &
+    ReturnType<typeof mapDispatchToProps>
 
 const RecentConversationRedirection = (props: RecentConversationRedirectionProps) => {
-    const { requestConversationsWithUsers, requestMessagesForAllConversations, conversations } = props;
+    const {
+        requestConversationsWithUsers,
+        requestMessagesForAllConversations,
+        conversations,
+    } = props
     const [dataLoaded, setDataLoaded] = React.useState(false)
-    const isMounted = useIsMounted();
+    const isMounted = useIsMounted()
 
     React.useEffect(() => {
         requestConversationsWithUsers()
@@ -22,11 +27,11 @@ const RecentConversationRedirection = (props: RecentConversationRedirectionProps
                 if (isMounted()) {
                     setDataLoaded(true)
                 }
-            });
-    }, [requestConversationsWithUsers, requestMessagesForAllConversations]);
+            })
+    }, [requestConversationsWithUsers, requestMessagesForAllConversations])
 
     if (!dataLoaded) {
-        return 'Loading most recent conversation..';
+        return 'Loading most recent conversation..'
     }
 
     if (conversations.length === 0) {
@@ -37,15 +42,13 @@ const RecentConversationRedirection = (props: RecentConversationRedirectionProps
 }
 
 const mapStateToProps = (state: ApplicationState) => ({
-    conversations: sortedConversationsSelector(state)
-});
+    conversations: sortedConversationsSelector(state),
+})
 
 const mapDispatchToProps = (dispatch: AppDispatch) => ({
     requestConversationsWithUsers: () => dispatch(requestConversationsWithUsers()),
-    requestMessagesForAllConversations: (amountPerConversation: number) => dispatch(requestMessagesForAllConversations(amountPerConversation))
-});
+    requestMessagesForAllConversations: (amountPerConversation: number) =>
+        dispatch(requestMessagesForAllConversations(amountPerConversation)),
+})
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(RecentConversationRedirection as any);
+export default connect(mapStateToProps, mapDispatchToProps)(RecentConversationRedirection as any)

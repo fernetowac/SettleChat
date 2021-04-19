@@ -1,71 +1,68 @@
 {
-  "$id": "https://settlechat.com/schemas/common-definitions-schema.json",
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "definitions": {
-    "invitation": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "conversationId": {
-          "type": "string"
-        },
-        "conversationTitle": {
-          "type": [ "string", "null" ]
-        },
-        "token": {
-          "type": "string"
-        },
-        "invitedByUserName": {
-          "type": "string"
-        },
-        "isPermanent": {
-          "type": "boolean"
-        },
-        "isActive": {
-          "type": "boolean"
-        },
-        "created": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "conversationUsers": {
-          "type": "array",
-          "items": {
+    "$id": "https://settlechat.com/schemas/common-definitions-schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "invitation": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string"
-              },
-              "nickname": {
-                "type": "string"
-              }
+                "id": {
+                    "type": "string"
+                },
+                "conversationId": {
+                    "type": "string"
+                },
+                "conversationTitle": {
+                    "type": ["string", "null"]
+                },
+                "token": {
+                    "type": "string"
+                },
+                "invitedByUserName": {
+                    "type": "string"
+                },
+                "isPermanent": {
+                    "type": "boolean"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "created": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "conversationUsers": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "nickname": {
+                                "type": "string"
+                            }
+                        },
+                        "required": ["id", "nickname"],
+                        "additionalProperties": false
+                    }
+                },
+                "definitions": {
+                    "UserNameResponseItem": {
+                        "type": "string"
+                    }
+                }
             },
             "required": [
-              "id",
-              "nickname"
+                "id",
+                "conversationId",
+                "token",
+                "invitedByUserName",
+                "isPermanent",
+                "isActive",
+                "created",
+                "conversationUsers"
             ],
             "additionalProperties": false
-          }
-        },
-        "definitions": {
-          "UserNameResponseItem": {
-            "type": "string"
-          }
         }
-      },
-      "required": [
-        "id",
-        "conversationId",
-        "token",
-        "invitedByUserName",
-        "isPermanent",
-        "isActive",
-        "created",
-        "conversationUsers"
-      ],
-      "additionalProperties": false
     }
-  }
 }

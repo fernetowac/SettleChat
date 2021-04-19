@@ -12,33 +12,33 @@ const invitationsSlice = createSlice({
         builder
             .addCase(
                 //TODO: probably it can be simplified with immer
-                createInvitation.fulfilled, (state, action) => {
+                createInvitation.fulfilled,
+                (state, action) => {
                     // don't change state, when the invitation already exists in the state
-                    const existingInvitation = state.find(x => x.id === action.payload.id);
+                    const existingInvitation = state.find((x) => x.id === action.payload.id)
                     if (existingInvitation) {
-                        const equals = JSON.stringify(existingInvitation) === JSON.stringify(action.payload);
+                        const equals =
+                            JSON.stringify(existingInvitation) === JSON.stringify(action.payload)
                         if (equals) {
-                            return;
+                            return
                         }
                     }
 
                     return [
-                        ...state.filter(x => x.id !== action.payload.id),
+                        ...state.filter((x) => x.id !== action.payload.id),
                         {
-                            ...action.payload
-                        }
-                    ];
+                            ...action.payload,
+                        },
+                    ]
                 }
             )
-            .addCase(
-                requestInvitations.fulfilled, (state, action) => {
-                    return [...unionArray<Invitation>(action.payload, state)];
-                }
-            )
+            .addCase(requestInvitations.fulfilled, (state, action) => {
+                return [...unionArray<Invitation>(action.payload, state)]
+            })
             .addCase(identityChangedActionCreator, () => {
                 return []
             })
-    }
+    },
 })
 
 export const { actions: invitationsActions, reducer: invitationsReducer } = invitationsSlice

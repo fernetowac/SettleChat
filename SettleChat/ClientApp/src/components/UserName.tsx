@@ -1,14 +1,12 @@
 ﻿import { createSelector } from '@reduxjs/toolkit'
-import { connect } from 'react-redux';
-import { conversationUserByIdsSelector } from '../store/conversationUsers';
-import { ApplicationState } from '../store/index';
-import { userByIdSelector } from '../store/users';
+import { connect } from 'react-redux'
+import { conversationUserByIdsSelector } from '../store/conversationUsers'
+import { ApplicationState } from '../store/index'
+import { userByIdSelector } from '../store/users'
 
 const UserName = (props: ReturnType<ReturnType<typeof makeMapStateToProps>>) => {
     const { nickname, username } = props
-    return (<>
-        {nickname || username || 'someone'}
-    </>)
+    return <>{nickname || username || 'someone'}</>
 }
 
 type OwnProps = {
@@ -28,11 +26,9 @@ const makeMapStateToProps = () => {
     const nicknameSelector = makeNicknameSelector()
     const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => ({
         nickname: nicknameSelector(state, ownProps),
-        username: userByIdSelector(state, ownProps.userId)?.userName
+        username: userByIdSelector(state, ownProps.userId)?.userName,
     })
     return mapStateToProps
 }
 
-export default connect(
-    makeMapStateToProps
-)(UserName);
+export default connect(makeMapStateToProps)(UserName)

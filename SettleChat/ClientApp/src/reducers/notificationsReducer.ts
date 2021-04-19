@@ -13,7 +13,7 @@ const notificationsSlice = createSlice({
                 state.push(action.payload)
             },
             prepare: (notification: NotificationAddActionInput | string) => {
-                if (typeof notification === "string") {
+                if (typeof notification === 'string') {
                     return {
                         payload: {
                             type: NotificationType.Info,
@@ -21,42 +21,42 @@ const notificationsSlice = createSlice({
                             key: new Date().getTime() + Math.random(),
                             dismissed: false,
                             hasCloseButton: true,
-                            shouldPersist: false
+                            shouldPersist: false,
                         },
-                    };
+                    }
                 }
                 return {
                     payload: {
                         ...notification,
-                        messageLines: Array.isArray(notification.message) ? notification.message : [notification.message],
+                        messageLines: Array.isArray(notification.message)
+                            ? notification.message
+                            : [notification.message],
                         key: notification.key || new Date().getTime() + Math.random(),
                         dismissed: false,
                         hasCloseButton: notification.hasCloseButton || false,
-                        shouldPersist: notification.shouldPersist || false
+                        shouldPersist: notification.shouldPersist || false,
                     },
-                };
-            }
+                }
+            },
         },
         close: (state, action: PayloadAction<Notification['key']>) => {
             return [
-                ...state.map(notification =>
+                ...state.map((notification) =>
                     notification.key === action.payload
                         ? { ...notification, dismissed: true }
                         : { ...notification }
-                )
+                ),
             ]
         },
         remove: (state, action: PayloadAction<Notification['key']>) => {
-            return [
-                ...state.filter(notification => notification.key !== action.payload)
-            ]
-        }
+            return [...state.filter((notification) => notification.key !== action.payload)]
+        },
     },
     extraReducers: (builder) => {
         builder.addMatcher(isRejectedWithProblemDetails, (state, action) => {
             const errorMessages = parseErrors(action.error)
             if (errorMessages.length == 0) {
-                return state;
+                return state
             }
             const notification = {
                 type: NotificationType.Error,
@@ -64,11 +64,11 @@ const notificationsSlice = createSlice({
                 key: new Date().getTime() + Math.random(),
                 dismissed: false,
                 hasCloseButton: true,
-                shouldPersist: true
+                shouldPersist: true,
             }
             state.push(notification)
         })
-    }
+    },
 })
 
 export const { actions: notificationsActions, reducer: notificationsReducer } = notificationsSlice

@@ -6,9 +6,9 @@
  * @param value
  */
 export function usePrevious<TValue>(value: TValue | undefined): TValue | undefined {
-    const ref = useRef<TValue>();
+    const ref = useRef<TValue>()
     useEffect(() => {
-        ref.current = value;
-    });
-    return ref.current;
+        ref.current = value
+    })
+    return ref.current
 }

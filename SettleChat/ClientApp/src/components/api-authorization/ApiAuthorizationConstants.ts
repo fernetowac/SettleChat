@@ -1,25 +1,25 @@
-export const ApplicationName = 'SettleChat';
+export const ApplicationName = 'SettleChat'
 
 export const QueryParameterNames = {
     ReturnUrl: 'returnUrl',
-    Message: 'message'
-};
+    Message: 'message',
+}
 
 export const LogoutActions = {
     LogoutCallback: 'logout-callback',
     Logout: 'logout',
-    LoggedOut: 'logged-out'
-};
+    LoggedOut: 'logged-out',
+}
 
 export enum LoginActions {
     Login = 'login',
     LoginCallback = 'login-callback',
     LoginFailed = 'login-failed',
     Profile = 'profile',
-    Register = 'register'
-};
+    Register = 'register',
+}
 
-const prefix = '/authentication';
+const prefix = '/authentication'
 
 export const ApplicationPaths = {
     DefaultLoginRedirectPath: '/',
@@ -34,5 +34,5 @@ export const ApplicationPaths = {
     LoggedOut: `${prefix}/${LogoutActions.LoggedOut}`,
     LogOutCallback: `${prefix}/${LogoutActions.LogoutCallback}`,
     IdentityRegisterPath: '/Identity/Account/Register',
-    IdentityManagePath: '/Identity/Account/Manage'
-};
+    IdentityManagePath: '/Identity/Account/Manage',
+}

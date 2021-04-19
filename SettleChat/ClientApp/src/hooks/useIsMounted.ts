@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+﻿import * as React from 'react'
 
 /**
  * Returns function that tells if function component is still mounted

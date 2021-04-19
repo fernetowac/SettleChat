@@ -2,7 +2,7 @@
     InvitationGetResponse,
     InvitationPostResponse,
     InvitationsGetResponse,
-    MessagesGetResponse
+    MessagesGetResponse,
 }
 
 export default SchemaKind

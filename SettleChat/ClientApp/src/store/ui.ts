@@ -4,7 +4,7 @@ import { requestConversationsWithUsers } from './common'
 export enum LeftPanelContentKind {
     Conversations,
     ConversationUsers,
-    ConversationInvite
+    ConversationInvite,
 }
 
 export enum ContentType {
@@ -13,42 +13,44 @@ export enum ContentType {
     Invitation,
     GroupCreation,
     UserDetail,
-    ConversationUserDetail
+    ConversationUserDetail,
 }
 
-export type ContentStackItem = { hiddenAtBreakpoints?: ('xs' | 'sm' | 'md' | 'lg' | 'xl')[] } & (ConversationsContentStackItem |
-    ConversationDetailContentStackItem |
-    InvitationContentStackItem |
-    GroupCreationContentStackItem |
-    UserDetailContentStackItem |
-    ConversationUserDetailContentStackItem)
+export type ContentStackItem = { hiddenAtBreakpoints?: ('xs' | 'sm' | 'md' | 'lg' | 'xl')[] } & (
+    | ConversationsContentStackItem
+    | ConversationDetailContentStackItem
+    | InvitationContentStackItem
+    | GroupCreationContentStackItem
+    | UserDetailContentStackItem
+    | ConversationUserDetailContentStackItem
+)
 
 interface ConversationsContentStackItem {
-    type: ContentType.Conversations,
+    type: ContentType.Conversations
     payload: { conversationId: string }
 }
 
 interface ConversationDetailContentStackItem {
-    type: ContentType.ConversationDetail,
+    type: ContentType.ConversationDetail
     payload: { conversationId: string }
 }
 
 interface InvitationContentStackItem {
-    type: ContentType.Invitation,
+    type: ContentType.Invitation
     payload: { conversationId: string }
 }
 
 interface GroupCreationContentStackItem {
-    type: ContentType.GroupCreation,
+    type: ContentType.GroupCreation
 }
 
 interface UserDetailContentStackItem {
-    type: ContentType.UserDetail,
+    type: ContentType.UserDetail
     payload: { userId: string }
 }
 
 interface ConversationUserDetailContentStackItem {
-    type: ContentType.UserDetail,
+    type: ContentType.UserDetail
     payload: { conversationUserId: string }
 }
 
@@ -61,8 +63,8 @@ export interface Ui {
 const initialUi: Ui = {
     isConversationLoading: false,
     canLoadMoreMessages: false,
-    leftPanelContentStack: []
-};
+    leftPanelContentStack: [],
+}
 
 const uiSlice = createSlice({
     name: 'ui',
@@ -83,28 +85,27 @@ const uiSlice = createSlice({
         },
         leftPanelContentPop: (state) => {
             state.leftPanelContentStack.pop()
-        }
+        },
     },
     extraReducers: (builder) => {
-        builder.addCase(
-            requestConversationsWithUsers.pending, (state) => {
+        builder
+            .addCase(requestConversationsWithUsers.pending, (state) => {
                 if (!state.isConversationLoading) {
                     state.isConversationLoading = true
                 }
             })
-            .addCase(
-                requestConversationsWithUsers.fulfilled, (state) => {
-                    if (state.isConversationLoading) {
-                        state.isConversationLoading = false
-                    }
-                })
-    }
+            .addCase(requestConversationsWithUsers.fulfilled, (state) => {
+                if (state.isConversationLoading) {
+                    state.isConversationLoading = false
+                }
+            })
+    },
 })
 
 export const {
     enableLoadingMoreMessages,
     disableLoadingMoreMessages,
     leftPanelContentPush,
-    leftPanelContentPop
+    leftPanelContentPop,
 } = uiSlice.actions
 export const { reducer: uiReducer } = uiSlice

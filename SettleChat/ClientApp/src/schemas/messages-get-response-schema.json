@@ -1,39 +1,34 @@
 {
-  "$id": "https://settlechat.com/schemas/messages-get-response-schema.json",
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "MessagesResponse",
-  "type": "array",
-  "items": {
-    "$ref": "#/definitions/MessageResponseItem"
-  },
-  "definitions": {
-    "MessageResponseItem": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "conversationId": {
-          "type": "string"
-        },
-        "text": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "created": {
-          "type": "string",
-          "format": "date-time"
+    "$id": "https://settlechat.com/schemas/messages-get-response-schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MessagesResponse",
+    "type": "array",
+    "items": {
+        "$ref": "#/definitions/MessageResponseItem"
+    },
+    "definitions": {
+        "MessageResponseItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "conversationId": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                },
+                "created": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            },
+            "required": ["id", "text", "userId", "created"],
+            "additionalProperties": false
         }
-      },
-      "required": [
-        "id",
-        "text",
-        "userId",
-        "created"
-      ],
-      "additionalProperties": false
     }
-  }
 }

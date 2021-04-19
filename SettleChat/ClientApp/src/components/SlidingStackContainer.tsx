@@ -1,6 +1,11 @@
 ﻿import { connect, ConnectedProps } from 'react-redux'
 import { ApplicationState } from '../store'
-import { leftPanelContentPush, leftPanelContentPop, ContentType, ContentStackItem } from '../store/ui'
+import {
+    leftPanelContentPush,
+    leftPanelContentPop,
+    ContentType,
+    ContentStackItem,
+} from '../store/ui'
 import { Slide, Hidden } from '@material-ui/core'
 import { LeftPanelConversations } from './LeftPanelConversations'
 import { LeftPanelInvitation } from './LeftPanelInvitation'
@@ -11,7 +16,9 @@ const SlidingStackContainer = (props: ConnectedProps<typeof connector>) => {
     const getContent = (contentStackItem: ContentStackItem) => {
         switch (contentStackItem.type) {
             case ContentType.Conversations:
-                return <LeftPanelConversations currentConversationId={props.conversationId} closable />
+                return (
+                    <LeftPanelConversations currentConversationId={props.conversationId} closable />
+                )
             case ContentType.Invitation:
             case ContentType.GroupCreation:
                 return <LeftPanelInvitation conversationId={props.conversationId} />
@@ -20,13 +27,26 @@ const SlidingStackContainer = (props: ConnectedProps<typeof connector>) => {
         }
     }
 
-    const slides = props.contentStack.map((contentStackItem, index) => <Hidden key={index} only={contentStackItem.hiddenAtBreakpoints}>
-        <Slide direction="right" in mountOnEnter unmountOnExit>
-            <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, backgroundColor: '#dfdfdf', position: 'absolute', width: '100%', height: '100%', zIndex: zIndexStart + index * 10 }}>
-                {getContent(contentStackItem)}
-            </div>
-        </Slide>
-    </Hidden>)
+    const slides = props.contentStack.map((contentStackItem, index) => (
+        <Hidden key={index} only={contentStackItem.hiddenAtBreakpoints}>
+            <Slide direction="right" in mountOnEnter unmountOnExit>
+                <div
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        flexGrow: 1,
+                        backgroundColor: '#dfdfdf',
+                        position: 'absolute',
+                        width: '100%',
+                        height: '100%',
+                        zIndex: zIndexStart + index * 10,
+                    }}
+                >
+                    {getContent(contentStackItem)}
+                </div>
+            </Slide>
+        </Hidden>
+    ))
 
     return <>{slides}</>
 }
@@ -37,17 +57,14 @@ interface OwnProps {
 
 const mapStateToProps = (state: ApplicationState, ownProps: OwnProps) => ({
     contentStack: state.conversation.ui.leftPanelContentStack,
-    conversationId: ownProps.conversationId
+    conversationId: ownProps.conversationId,
 })
 
 const mapDispatchToProps = {
     leftPanelContentPush,
-    leftPanelContentPop
+    leftPanelContentPop,
 }
 
-const connector = connect(
-    mapStateToProps,
-    mapDispatchToProps
-)
+const connector = connect(mapStateToProps, mapDispatchToProps)
 
 export default connector(SlidingStackContainer)
